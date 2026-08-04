@@ -24,8 +24,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const content = getLocaleContent(article, locale);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3099";
-  const path =
-    locale === "en" ? `/en/news/${content.slug}` : `/tin-tuc/${content.slug}`;
+  const path = `/${locale}/news/${content.slug}`;
   const en = getLocaleContent(article, "en");
   const vi = getLocaleContent(article, "vi");
 
@@ -35,9 +34,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     alternates: {
       canonical: `${siteUrl}${path}`,
       languages: {
-        vi: vi.slug ? `${siteUrl}/tin-tuc/${vi.slug}` : undefined,
+        vi: vi.slug ? `${siteUrl}/vi/news/${vi.slug}` : undefined,
         en: en.slug ? `${siteUrl}/en/news/${en.slug}` : undefined,
-        "x-default": vi.slug ? `${siteUrl}/tin-tuc/${vi.slug}` : undefined,
+        "x-default": vi.slug ? `${siteUrl}/vi/news/${vi.slug}` : undefined,
       },
     },
     keywords: article.tags?.length ? article.tags.join(", ") : undefined,
@@ -64,8 +63,7 @@ export default async function ArticlePage({ params }: Props) {
 
   const content = getLocaleContent(article, locale);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3099";
-  const path =
-    locale === "en" ? `/en/news/${content.slug}` : `/tin-tuc/${content.slug}`;
+  const path = `/${locale}/news/${content.slug}`;
 
   const jsonLd = {
     "@context": "https://schema.org",

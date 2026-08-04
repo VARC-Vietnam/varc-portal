@@ -36,9 +36,12 @@ async function requireSystemAdmin() {
 
 function revalidatePortal() {
   revalidatePath("/", "layout");
+  revalidatePath("/vi", "layout");
   revalidatePath("/en", "layout");
-  revalidatePath("/trang", "layout");
+  revalidatePath("/vi/pages", "layout");
   revalidatePath("/en/pages", "layout");
+  revalidatePath("/vi/news", "layout");
+  revalidatePath("/en/news", "layout");
   revalidatePath("/admin", "layout");
 }
 

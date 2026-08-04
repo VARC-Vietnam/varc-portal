@@ -1,34 +1,28 @@
-import NextAuth from "next-auth";
 import { NextRequest, NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
 import createMiddleware from "next-intl/middleware";
-import { authConfig } from "@/auth.config";
-import { isAdminRole } from "@/lib/roles";
+import { isAdminRole, type Role } from "@/lib/roles";
 import { routing } from "@/i18n/routing";
 
-const { auth } = NextAuth(authConfig);
 const intlMiddleware = createMiddleware(routing);
 
 /**
- * TLS terminates at Cloudflare / NPM. The in-cluster hop is HTTP, so
- * ingress often reports x-forwarded-proto=http. Rebuild the request URL as
- * https so next-intl / Auth.js do not emit a self-redirect loop.
+ * TLS terminates at Cloudflare / NPM. Rebuild the request as the public https
+ * origin so alternate links and redirects are not emitted as http://.
  */
 function asPublicRequest(req: NextRequest): NextRequest {
   const publicBase =
     process.env.AUTH_URL?.replace(/\/$/, "") ||
     process.env.NEXTAUTH_URL?.replace(/\/$/, "");
 
-  if (!publicBase?.startsWith("https://") && req.nextUrl.protocol === "https:") {
+  if (!publicBase?.startsWith("https://")) {
     return req;
   }
 
-  const target = publicBase
-    ? new URL(`${req.nextUrl.pathname}${req.nextUrl.search}`, publicBase)
-    : (() => {
-        const url = req.nextUrl.clone();
-        url.protocol = "https:";
-        return url;
-      })();
+  const target = new URL(
+    `${req.nextUrl.pathname}${req.nextUrl.search}`,
+    publicBase,
+  );
 
   if (
     target.href === req.nextUrl.href &&
@@ -54,16 +48,25 @@ function publicOrigin(req: NextRequest): string {
   );
 }
 
-export default auth((req) => {
+export default async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (pathname.startsWith("/api/")) {
     return NextResponse.next();
   }
 
+  // Do not wrap next-intl with auth() — Auth.js converts the result to a plain
+  // Response and breaks middleware rewrites/redirects under standalone.
   if (pathname.startsWith("/admin")) {
     const isLogin = pathname === "/admin/login";
-    const role = req.auth?.user?.role;
+    const token = await getToken({
+      req,
+      secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
+      secureCookie: (process.env.AUTH_URL ?? process.env.NEXTAUTH_URL)?.startsWith(
+        "https://",
+      ),
+    });
+    const role = token?.role as Role | undefined;
     const allowed = isAdminRole(role);
     const origin = publicOrigin(req);
 
@@ -81,7 +84,7 @@ export default auth((req) => {
   }
 
   return intlMiddleware(asPublicRequest(req));
-});
+}
 
 export const config = {
   matcher: ["/((?!_next|.*\\..*).*)"],

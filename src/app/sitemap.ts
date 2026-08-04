@@ -16,14 +16,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const entries: MetadataRoute.Sitemap = [
     {
-      url: siteUrl,
+      url: `${siteUrl}/vi`,
       lastModified: new Date(),
-      alternates: { languages: { vi: siteUrl, en: `${siteUrl}/en` } },
+      alternates: {
+        languages: { vi: `${siteUrl}/vi`, en: `${siteUrl}/en` },
+      },
     },
     {
       url: `${siteUrl}/en`,
       lastModified: new Date(),
-      alternates: { languages: { vi: siteUrl, en: `${siteUrl}/en` } },
+      alternates: {
+        languages: { vi: `${siteUrl}/vi`, en: `${siteUrl}/en` },
+      },
     },
   ];
 
@@ -36,11 +40,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     if (vi.slug) {
       entries.push({
-        url: `${siteUrl}/tin-tuc/${vi.slug}`,
+        url: `${siteUrl}/vi/news/${vi.slug}`,
         lastModified,
         alternates: {
           languages: {
-            vi: `${siteUrl}/tin-tuc/${vi.slug}`,
+            vi: `${siteUrl}/vi/news/${vi.slug}`,
             ...(en.slug ? { en: `${siteUrl}/en/news/${en.slug}` } : {}),
           },
         },
@@ -52,7 +56,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified,
         alternates: {
           languages: {
-            ...(vi.slug ? { vi: `${siteUrl}/tin-tuc/${vi.slug}` } : {}),
+            ...(vi.slug ? { vi: `${siteUrl}/vi/news/${vi.slug}` } : {}),
             en: `${siteUrl}/en/news/${en.slug}`,
           },
         },
@@ -69,11 +73,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     if (vi.slug) {
       entries.push({
-        url: `${siteUrl}/trang/${vi.slug}`,
+        url: `${siteUrl}/vi/pages/${vi.slug}`,
         lastModified,
         alternates: {
           languages: {
-            vi: `${siteUrl}/trang/${vi.slug}`,
+            vi: `${siteUrl}/vi/pages/${vi.slug}`,
             ...(en.slug ? { en: `${siteUrl}/en/pages/${en.slug}` } : {}),
           },
         },
@@ -85,7 +89,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified,
         alternates: {
           languages: {
-            ...(vi.slug ? { vi: `${siteUrl}/trang/${vi.slug}` } : {}),
+            ...(vi.slug ? { vi: `${siteUrl}/vi/pages/${vi.slug}` } : {}),
             en: `${siteUrl}/en/pages/${en.slug}`,
           },
         },

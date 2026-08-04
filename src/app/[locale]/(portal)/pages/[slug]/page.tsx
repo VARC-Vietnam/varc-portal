@@ -20,8 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const content = getPageLocale(page, locale);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3099";
-  const path =
-    locale === "en" ? `/en/pages/${content.slug}` : `/trang/${content.slug}`;
+  const path = `/${locale}/pages/${content.slug}`;
   const en = getPageLocale(page, "en");
   const vi = getPageLocale(page, "vi");
 
@@ -31,9 +30,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     alternates: {
       canonical: `${siteUrl}${path}`,
       languages: {
-        vi: vi.slug ? `${siteUrl}/trang/${vi.slug}` : undefined,
+        vi: vi.slug ? `${siteUrl}/vi/pages/${vi.slug}` : undefined,
         en: en.slug ? `${siteUrl}/en/pages/${en.slug}` : undefined,
-        "x-default": vi.slug ? `${siteUrl}/trang/${vi.slug}` : undefined,
+        "x-default": vi.slug ? `${siteUrl}/vi/pages/${vi.slug}` : undefined,
       },
     },
   };

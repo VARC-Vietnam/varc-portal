@@ -87,16 +87,14 @@ Article, category, and page slugs are generated automatically from the title/nam
 
 ## Releases
 
-Bump version, commit, then push a `v*` tag. The [Release](.github/workflows/release.yml) workflow builds the app and publishes a GitHub Release with release notes and a standalone tarball.
+Bump script updates `VERSION` + `package.json` and creates the version commit. Then push the commit and tag:
 
 ```bash
 VERSION=1.0.26
 ./scripts/bump-version.sh $VERSION
-git add VERSION package.json
-git commit -m "chore: bump version to $VERSION"
 git push origin HEAD
 git tag v$VERSION
 git push origin v$VERSION
 ```
 
-`VERSION` and `package.json` must match the tag (for example tag `v1.0.26` requires version `1.0.26`).
+The [Release](.github/workflows/release.yml) workflow runs on `v*.*.*` tags. The tagged commit must contain matching `VERSION` / `package.json` values.

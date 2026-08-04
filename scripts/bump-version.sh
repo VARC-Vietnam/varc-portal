@@ -17,6 +17,17 @@ fi
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  echo "Not a git repository"
+  exit 1
+fi
+
+if [[ -n "$(git status --porcelain --untracked-files=no)" ]]; then
+  echo "Working tree has uncommitted changes. Commit or stash them first."
+  git status --short
+  exit 1
+fi
+
 echo "$VERSION" > VERSION
 
 node <<EOF
@@ -27,12 +38,13 @@ pkg.version = "${VERSION}";
 fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + "\n");
 EOF
 
-echo "Bumped version to ${VERSION}"
-echo "Updated: VERSION, package.json"
+git add VERSION package.json
+git commit -m "chore: bump version to ${VERSION}"
+
+echo
+echo "Bumped and committed version ${VERSION}"
 echo
 echo "Next steps:"
-echo "  git add VERSION package.json"
-echo "  git commit -m \"chore: bump version to ${VERSION}\""
 echo "  git push origin HEAD"
 echo "  git tag v${VERSION}"
 echo "  git push origin v${VERSION}"

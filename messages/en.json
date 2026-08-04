@@ -1,0 +1,30 @@
+{
+  "site": {
+    "name": "VARC",
+    "fullName": "Vietnam Amateur Radio Club",
+    "tagline": "Official information portal for Vietnam's amateur radio community."
+  },
+  "nav": {
+    "home": "Home",
+    "news": "News",
+    "admin": "Admin",
+    "language": "Language"
+  },
+  "home": {
+    "title": "Latest news",
+    "empty": "No published articles yet.",
+    "readMore": "Read more",
+    "publishedAt": "Published"
+  },
+  "article": {
+    "notFound": "Article not found.",
+    "backToNews": "Back to news",
+    "missingTranslation": "This article is not available in English yet."
+  },
+  "page": {
+    "backHome": "Back to home"
+  },
+  "footer": {
+    "rights": "Vietnam Amateur Radio Club."
+  }
+}

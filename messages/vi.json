@@ -1,0 +1,30 @@
+{
+  "site": {
+    "name": "VARC",
+    "fullName": "Hiệp hội Vô tuyến Nghiệp dư Việt Nam",
+    "tagline": "Cổng thông tin chính thức của cộng đồng vô tuyến nghiệp dư Việt Nam."
+  },
+  "nav": {
+    "home": "Trang chủ",
+    "news": "Tin tức",
+    "admin": "Quản trị",
+    "language": "Ngôn ngữ"
+  },
+  "home": {
+    "title": "Tin tức mới nhất",
+    "empty": "Chưa có bài viết nào được xuất bản.",
+    "readMore": "Đọc tiếp",
+    "publishedAt": "Đăng ngày"
+  },
+  "article": {
+    "notFound": "Không tìm thấy bài viết.",
+    "backToNews": "Quay lại tin tức",
+    "missingTranslation": "Bài viết này chưa có bản tiếng Anh."
+  },
+  "page": {
+    "backHome": "Quay lại trang chủ"
+  },
+  "footer": {
+    "rights": "Hiệp hội Vô tuyến Nghiệp dư Việt Nam."
+  }
+}

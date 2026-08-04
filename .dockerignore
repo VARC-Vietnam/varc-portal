@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+.env
+.env.*
+!.env.example
+Dockerfile
+docker-compose.yml
+deploy
+skills
+.agents
+.claude
+*.md
+.DS_Store

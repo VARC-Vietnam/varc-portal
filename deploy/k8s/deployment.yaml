@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: varc-portal
+  labels:
+    app: varc-portal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: varc-portal
+  template:
+    metadata:
+      labels:
+        app: varc-portal
+    spec:
+      containers:
+        - name: web
+          image: varc-portal:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3099
+          envFrom:
+            - secretRef:
+                name: varc-portal-secrets
+            - configMapRef:
+                name: varc-portal-config
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3099
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3099
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 512Mi

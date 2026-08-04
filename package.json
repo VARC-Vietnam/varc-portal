@@ -1,0 +1,45 @@
+{
+  "name": "varc-portal",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3099",
+    "build": "next build",
+    "start": "next start --port 3099",
+    "lint": "eslint",
+    "seed": "tsx --env-file=.env scripts/seed-admin.ts"
+  },
+  "dependencies": {
+    "@tiptap/extension-image": "^3.29.2",
+    "@tiptap/extension-link": "^3.29.2",
+    "@tiptap/extension-placeholder": "^3.29.2",
+    "@tiptap/extension-text-align": "^3.29.2",
+    "@tiptap/extension-underline": "^3.29.2",
+    "@tiptap/pm": "^3.29.2",
+    "@tiptap/react": "^3.29.2",
+    "@tiptap/starter-kit": "^3.29.2",
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^17.4.2",
+    "isomorphic-dompurify": "^3.21.0",
+    "mongoose": "^9.9.1",
+    "next": "16.2.12",
+    "next-auth": "5.0.0-beta.32",
+    "next-intl": "^4.13.4",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-markdown": "^10.1.0",
+    "slugify": "^1.6.9",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.12",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.5",
+    "typescript": "^5"
+  }
+}

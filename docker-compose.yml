@@ -1,0 +1,27 @@
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27027:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  web:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3099:3099"
+    env_file:
+      - .env
+    environment:
+      MONGODB_URI: mongodb://mongo:27017/varc
+      PORT: "3099"
+      NEXTAUTH_URL: http://localhost:3099
+      AUTH_URL: http://localhost:3099
+      NEXT_PUBLIC_SITE_URL: http://localhost:3099
+    depends_on:
+      - mongo
+
+volumes:
+  mongo_data:

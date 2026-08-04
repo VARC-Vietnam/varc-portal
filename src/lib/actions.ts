@@ -133,6 +133,15 @@ export async function saveArticleAction(
       .filter((value) => mongoose.isValidObjectId(value))
       .map((value) => new mongoose.Types.ObjectId(value));
 
+    const tags = Array.from(
+      new Map(
+        data.tags
+          .map((tag) => tag.trim().replace(/\s+/g, " "))
+          .filter(Boolean)
+          .map((tag) => [tag.toLowerCase(), tag] as const),
+      ).values(),
+    );
+
     if (id) {
       const existing = await Article.findById(id);
       if (!existing) return { ok: false, error: "Article not found" };
@@ -141,6 +150,7 @@ export async function saveArticleAction(
       existing.coverImageUrl = data.coverImageUrl.trim();
       existing.ogImageUrl = data.ogImageUrl.trim();
       existing.categoryIds = categoryIds;
+      existing.tags = tags;
       existing.locales = locales;
       if (data.status === "published") {
         existing.publishedAt = existing.publishedAt ?? new Date();
@@ -157,6 +167,7 @@ export async function saveArticleAction(
       coverImageUrl: data.coverImageUrl.trim(),
       ogImageUrl: data.ogImageUrl.trim(),
       categoryIds,
+      tags,
       locales,
       authorId: session.user.id,
       publishedAt: data.status === "published" ? new Date() : null,

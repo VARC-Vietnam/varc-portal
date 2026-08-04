@@ -26,6 +26,10 @@ const ArticleSchema = new Schema(
       type: [{ type: Schema.Types.ObjectId, ref: "Category" }],
       default: [],
     },
+    tags: {
+      type: [{ type: String, trim: true }],
+      default: [],
+    },
     coverImageUrl: { type: String, default: "" },
     ogImageUrl: { type: String, default: "" },
     locales: {
@@ -52,6 +56,7 @@ ArticleSchema.index(
 );
 ArticleSchema.index({ status: 1, publishedAt: -1 });
 ArticleSchema.index({ categoryIds: 1 });
+ArticleSchema.index({ tags: 1 });
 
 export type LocaleContent = {
   title: string;

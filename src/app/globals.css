@@ -1,3 +1,6 @@
+@import '../styles/_variables.scss';
+@import '../styles/_keyframe-animations.scss';
+
 @import "tailwindcss";
 
 :root {
@@ -68,8 +71,40 @@ body {
   list-style: disc;
 }
 
+.prose-article ol,
+.prose-article-wide ol {
+  margin: 1em 0;
+  padding-left: 1.25rem;
+  list-style: decimal;
+}
+
 .prose-article a,
 .prose-article-wide a {
   color: var(--accent);
   text-decoration: underline;
+}
+
+.prose-article img,
+.prose-article-wide img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.25rem;
+}
+
+.prose-article blockquote,
+.prose-article-wide blockquote {
+  margin: 1em 0;
+  padding-left: 1rem;
+  border-left: 3px solid var(--border);
+  color: var(--muted);
+}
+
+.prose-article pre,
+.prose-article-wide pre {
+  margin: 1em 0;
+  overflow-x: auto;
+  padding: 0.75rem 1rem;
+  border-radius: 0.375rem;
+  background: #f3f4f6;
+  font-size: 0.9em;
 }

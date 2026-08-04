@@ -63,7 +63,9 @@ export default async function AdminDashboardLayout({
           </div>
         </div>
       </header>
-      <div className="mx-auto max-w-6xl px-4 py-8">{children}</div>
+      <div className="mx-auto max-w-6xl overflow-x-visible px-4 py-8">
+        {children}
+      </div>
     </div>
   );
 }

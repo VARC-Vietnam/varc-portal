@@ -3,8 +3,10 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deletePageAction, savePageAction } from "@/lib/actions";
+import { isEmptyHtml } from "@/lib/html";
 import { makeSlug } from "@/lib/slug";
 import type { PageFormValues } from "@/lib/validations/article";
+import { RichTextEditor } from "@/components/admin/rich-text-editor";
 
 type Props = {
   pageId?: string;
@@ -31,7 +33,7 @@ export function PageEditor({ pageId, initial }: Props) {
   );
 
   const canPublish = Boolean(
-    form.locales.vi.title.trim() && form.locales.vi.content.trim(),
+    form.locales.vi.title.trim() && !isEmptyHtml(form.locales.vi.content),
   );
 
   function updateLocale(
@@ -117,15 +119,15 @@ export function PageEditor({ pageId, initial }: Props) {
             {previewSlug || "—"}
           </p>
         </div>
-        <label className="block text-sm">
-          <span className="mb-1 block font-medium">Content (Markdown)</span>
-          <textarea
+        <div className="block text-sm">
+          <span className="mb-1 block font-medium">Content</span>
+          <RichTextEditor
+            key={tab}
             value={locale.content}
-            onChange={(e) => updateLocale(tab, "content", e.target.value)}
-            rows={14}
-            className="w-full rounded border border-gray-300 px-3 py-2 font-mono text-sm"
+            onChange={(html) => updateLocale(tab, "content", html)}
+            placeholder={tab === "vi" ? "Nội dung trang…" : "Page content…"}
           />
-        </label>
+        </div>
         <div className="grid gap-4 md:grid-cols-2">
           <label className="block text-sm">
             <span className="mb-1 block font-medium">Meta title</span>

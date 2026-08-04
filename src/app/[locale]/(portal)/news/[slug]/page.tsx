@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import ReactMarkdown from "react-markdown";
 import { Link } from "@/i18n/navigation";
 import {
   getLocaleContent,
@@ -9,6 +8,7 @@ import {
   hasLocaleContent,
 } from "@/lib/articles";
 import type { AppLocale } from "@/i18n/routing";
+import { HtmlContent } from "@/components/portal/html-content";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +40,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         "x-default": vi.slug ? `${siteUrl}/tin-tuc/${vi.slug}` : undefined,
       },
     },
+    keywords: article.tags?.length ? article.tags.join(", ") : undefined,
     openGraph: {
       title: content.metaTitle || content.title,
       description: content.metaDescription || content.excerpt,
@@ -105,6 +106,18 @@ export default async function ArticlePage({ params }: Props) {
         {content.excerpt ? (
           <p className="mt-4 text-lg text-muted">{content.excerpt}</p>
         ) : null}
+        {article.tags?.length ? (
+          <ul className="mt-5 flex flex-wrap gap-2">
+            {article.tags.map((tag) => (
+              <li
+                key={tag}
+                className="rounded border border-border px-2.5 py-1 text-xs text-muted"
+              >
+                {tag}
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </header>
       {article.coverImageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
@@ -114,9 +127,7 @@ export default async function ArticlePage({ params }: Props) {
           className="mt-8 aspect-[16/9] w-full object-cover"
         />
       ) : null}
-      <div className="prose-article-wide mt-10">
-        <ReactMarkdown>{content.content}</ReactMarkdown>
-      </div>
+      <HtmlContent html={content.content} />
     </article>
   );
 }

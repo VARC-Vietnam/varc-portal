@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import ReactMarkdown from "react-markdown";
 import { Link } from "@/i18n/navigation";
 import { getPageLocale, getPublishedPageBySlug } from "@/lib/cms";
 import type { AppLocale } from "@/i18n/routing";
+import { HtmlContent } from "@/components/portal/html-content";
 
 export const dynamic = "force-dynamic";
 
@@ -61,9 +61,7 @@ export default async function CmsPage({ params }: Props) {
           {content.title}
         </h1>
       </header>
-      <div className="prose-article-wide mt-10">
-        <ReactMarkdown>{content.content}</ReactMarkdown>
-      </div>
+      <HtmlContent html={content.content} />
     </article>
   );
 }

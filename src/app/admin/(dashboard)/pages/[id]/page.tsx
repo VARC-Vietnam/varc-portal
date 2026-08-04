@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { PageEditor, emptyPageForm } from "@/components/admin/page-editor";
 import { getPageById, getPageLocale } from "@/lib/cms";
+import { normalizeEditorHtml } from "@/lib/html";
 
 export const dynamic = "force-dynamic";
 
@@ -29,13 +30,13 @@ export default async function EditPagePage({ params }: Props) {
           locales: {
             vi: {
               title: vi.title,
-              content: vi.content,
+              content: normalizeEditorHtml(vi.content),
               metaTitle: vi.metaTitle,
               metaDescription: vi.metaDescription,
             },
             en: {
               title: en.title,
-              content: en.content,
+              content: normalizeEditorHtml(en.content),
               metaTitle: en.metaTitle,
               metaDescription: en.metaDescription,
             },

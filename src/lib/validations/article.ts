@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isEmptyHtml } from "@/lib/html";
 
 const articleLocaleSchema = z.object({
   title: z.string().trim(),
@@ -14,6 +15,7 @@ export const articleFormSchema = z
     coverImageUrl: z.string().trim(),
     ogImageUrl: z.string().trim(),
     categoryIds: z.array(z.string()),
+    tags: z.array(z.string().trim().min(1)).max(30),
     locales: z.object({
       vi: articleLocaleSchema,
       en: articleLocaleSchema,
@@ -29,7 +31,7 @@ export const articleFormSchema = z
         path: ["locales", "vi", "title"],
       });
     }
-    if (!data.locales.vi.content.trim()) {
+    if (isEmptyHtml(data.locales.vi.content)) {
       ctx.addIssue({
         code: "custom",
         message: "Vietnamese content is required to publish",
@@ -90,7 +92,7 @@ export const pageFormSchema = z
         path: ["locales", "vi", "title"],
       });
     }
-    if (!data.locales.vi.content.trim()) {
+    if (isEmptyHtml(data.locales.vi.content)) {
       ctx.addIssue({
         code: "custom",
         message: "Vietnamese content is required to publish",

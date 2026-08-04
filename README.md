@@ -64,7 +64,9 @@ kubectl apply -f deploy/k8s/ingress.yaml
 
 ## Content model
 
-Articles store `locales.vi` and `locales.en` (title, slug, excerpt, content, SEO). Publishing requires Vietnamese title, slug, and content. English is optional.
+Articles and pages store bilingual fields. Body content is **HTML** from the TipTap rich text editor. Public views sanitize HTML before render. Publishing requires Vietnamese title and content; English is optional.
+
+Article, category, and page slugs are generated automatically from the title/name.
 
 ## Routes
 

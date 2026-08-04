@@ -5,6 +5,7 @@ import {
 } from "@/components/admin/article-editor";
 import { getArticleById, getLocaleContent } from "@/lib/articles";
 import { listCategories, getCategoryLocale } from "@/lib/cms";
+import { normalizeEditorHtml } from "@/lib/html";
 
 export const dynamic = "force-dynamic";
 
@@ -41,18 +42,19 @@ export default async function EditArticlePage({ params }: Props) {
           coverImageUrl: article.coverImageUrl ?? "",
           ogImageUrl: article.ogImageUrl ?? "",
           categoryIds: (article.categoryIds ?? []).map(String),
+          tags: (article.tags ?? []).map(String),
           locales: {
             vi: {
               title: vi.title,
               excerpt: vi.excerpt,
-              content: vi.content,
+              content: normalizeEditorHtml(vi.content),
               metaTitle: vi.metaTitle,
               metaDescription: vi.metaDescription,
             },
             en: {
               title: en.title,
               excerpt: en.excerpt,
-              content: en.content,
+              content: normalizeEditorHtml(en.content),
               metaTitle: en.metaTitle,
               metaDescription: en.metaDescription,
             },

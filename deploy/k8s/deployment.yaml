@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: varc-portal
+  namespace: varc
   labels:
     app: varc-portal
 spec:
@@ -14,9 +15,8 @@ spec:
       labels:
         app: varc-portal
     spec:
-      # Uncomment if the GHCR package is private:
-      # imagePullSecrets:
-      #   - name: ghcr-pull
+      imagePullSecrets:
+        - name: ghcr-pull
       containers:
         - name: web
           image: ghcr.io/varc-vietnam/varc-portal:v0.0.2

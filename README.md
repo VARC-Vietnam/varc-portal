@@ -64,13 +64,13 @@ cp deploy/docs/secret.example.yaml /tmp/varc-portal-secrets.yaml
 # edit /tmp/varc-portal-secrets.yaml
 kubectl apply -f /tmp/varc-portal-secrets.yaml
 
-# If the GHCR package is private:
-# kubectl create secret docker-registry ghcr-pull \
-#   --namespace varc \
-#   --docker-server=ghcr.io \
-#   --docker-username=YOUR_GITHUB_USER \
-#   --docker-password=YOUR_GITHUB_PAT
-# then uncomment imagePullSecrets in deploy/k8s/deployment.yaml
+# If the GHCR package is private (required for pull):
+kubectl create secret docker-registry ghcr-pull \
+  --namespace varc \
+  --docker-server=ghcr.io \
+  --docker-username=YOUR_GITHUB_USER \
+  --docker-password=YOUR_GITHUB_PAT \
+  --docker-email=YOUR_EMAIL
 
 kubectl apply -f deploy/argocd/application.yaml
 ```

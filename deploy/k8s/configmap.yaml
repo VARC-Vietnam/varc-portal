@@ -2,8 +2,10 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: varc-portal-config
+  namespace: varc
 data:
   PORT: "3099"
-  NEXTAUTH_URL: "https://varc.example.com"
-  NEXT_PUBLIC_SITE_URL: "https://varc.example.com"
-  AUTH_URL: "https://varc.example.com"
+  NEXTAUTH_URL: "https://www.hamvn.com"
+  NEXT_PUBLIC_SITE_URL: "https://www.hamvn.com"
+  AUTH_URL: "https://www.hamvn.com"
+  AUTH_TRUST_HOST: "true"

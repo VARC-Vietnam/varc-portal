@@ -2,6 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: varc-portal
+  namespace: varc
 spec:
   selector:
     app: varc-portal

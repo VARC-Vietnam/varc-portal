@@ -2,11 +2,21 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: varc-portal
+  namespace: varc
+  labels:
+    classq.io/ingress-kind: default
   annotations:
-    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/proxy-body-size: 50m
+    # SSL terminates at Cloudflare / Nginx Proxy Manager. NPM forwards plain
+    # HTTP to MetalLB, so do not force HTTPS redirects here.
+    # Do not use configuration-snippet: this cluster disables ingress snippets.
+    # Public https scheme is enforced in src/proxy.ts via AUTH_URL instead.
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "false"
 spec:
+  ingressClassName: nginx
   rules:
-    - host: varc.example.com
+    - host: www.hamvn.com
       http:
         paths:
           - path: /

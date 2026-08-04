@@ -1,0 +1,101 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build and publish release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify VERSION file matches tag
+        run: |
+          FILE_VERSION="$(tr -d '[:space:]' < VERSION)"
+          PKG_VERSION="$(node -p "require('./package.json').version")"
+          echo "tag version: ${{ steps.version.outputs.version }}"
+          echo "VERSION file: ${FILE_VERSION}"
+          echo "package.json: ${PKG_VERSION}"
+
+          if [[ "${FILE_VERSION}" != "${{ steps.version.outputs.version }}" ]]; then
+            echo "::error::VERSION (${FILE_VERSION}) does not match tag ${{ steps.version.outputs.tag }}"
+            exit 1
+          fi
+
+          if [[ "${PKG_VERSION}" != "${{ steps.version.outputs.version }}" ]]; then
+            echo "::error::package.json version (${PKG_VERSION}) does not match tag ${{ steps.version.outputs.tag }}"
+            exit 1
+          fi
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Build
+        run: pnpm build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+          MONGODB_URI: mongodb://localhost:27017/varc
+          NEXTAUTH_URL: http://localhost:3099
+          AUTH_URL: http://localhost:3099
+          NEXTAUTH_SECRET: ci-build-secret-not-for-production
+          AUTH_SECRET: ci-build-secret-not-for-production
+          NEXT_PUBLIC_SITE_URL: http://localhost:3099
+
+      - name: Package standalone build
+        run: |
+          mkdir -p dist
+          cp -R .next/standalone dist/varc-portal
+          mkdir -p dist/varc-portal/.next
+          cp -R .next/static dist/varc-portal/.next/static
+          if [[ -d public ]]; then
+            cp -R public dist/varc-portal/public
+          fi
+          tar -czf "dist/varc-portal-${{ steps.version.outputs.version }}-standalone.tar.gz" -C dist varc-portal
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: VARC Portal ${{ steps.version.outputs.version }}
+          generate_release_notes: true
+          files: |
+            dist/varc-portal-${{ steps.version.outputs.version }}-standalone.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

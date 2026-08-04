@@ -1,5 +1,6 @@
 "use client";
 
+import NextLink from "next/link";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import type { AppLocale } from "@/i18n/routing";
@@ -38,12 +39,12 @@ export function SiteHeader({ navPages = [] }: { navPages?: NavPage[] }) {
               {page.title}
             </Link>
           ))}
-          <a
+          <NextLink
             href="/admin"
             className="shrink-0 text-muted transition hover:text-foreground"
           >
             {t("admin")}
-          </a>
+          </NextLink>
         </nav>
       </div>
     </header>

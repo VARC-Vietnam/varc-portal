@@ -1,0 +1,98 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version to deploy (e.g. 0.0.2 or v0.0.2)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  packages: read
+
+concurrency:
+  group: deploy-varc-portal
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Pin image tag for Argo CD
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Normalize version
+        id: version
+        run: |
+          RAW="${{ inputs.version }}"
+          RAW="${RAW#v}"
+          if [[ ! "$RAW" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Invalid version: ${{ inputs.version }}"
+            exit 1
+          fi
+          echo "version=${RAW}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${RAW}" >> "$GITHUB_OUTPUT"
+
+      - name: Set image name
+        id: image
+        run: |
+          OWNER_REPO="$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')"
+          echo "name=ghcr.io/${OWNER_REPO}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify GitHub Release exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view "${{ steps.version.outputs.tag }}" \
+            --repo "${{ github.repository }}"
+
+      - name: Verify GHCR image tag exists
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          IMAGE="${{ steps.image.outputs.name }}"
+          TAG="${{ steps.version.outputs.tag }}"
+          # Package name is the repo name (second path segment)
+          PKG="$(basename "${IMAGE}")"
+          OWNER="$(dirname "${IMAGE#ghcr.io/}")"
+          echo "Checking package ${OWNER}/${PKG} tag ${TAG}"
+          gh api \
+            -H "Accept: application/vnd.github+json" \
+            "/orgs/${OWNER}/packages/container/${PKG}/versions" \
+            --jq ".[] | select(.metadata.container.tags[]? == \"${TAG}\") | .id" \
+            | grep -q . \
+            || gh api \
+              -H "Accept: application/vnd.github+json" \
+              "/users/${OWNER}/packages/container/${PKG}/versions" \
+              --jq ".[] | select(.metadata.container.tags[]? == \"${TAG}\") | .id" \
+              | grep -q .
+
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Update deployment image
+        run: |
+          IMAGE="${{ steps.image.outputs.name }}:${{ steps.version.outputs.tag }}"
+          FILE="deploy/k8s/deployment.yaml"
+          if ! grep -q 'image: ' "${FILE}"; then
+            echo "::error::No image field in ${FILE}"
+            exit 1
+          fi
+          sed -i.bak -E "s|image:[[:space:]]*.*$|image: ${IMAGE}|" "${FILE}"
+          rm -f "${FILE}.bak"
+          echo "Updated image to ${IMAGE}"
+          grep -n 'image:' "${FILE}"
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add deploy/k8s/deployment.yaml
+          if git diff --staged --quiet; then
+            echo "Image already set to ${{ steps.image.outputs.name }}:${{ steps.version.outputs.tag }}; nothing to commit."
+            exit 0
+          fi
+          git commit -m "chore: deploy ${{ steps.version.outputs.tag }}"
+          git push origin HEAD

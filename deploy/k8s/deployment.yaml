@@ -14,9 +14,12 @@ spec:
       labels:
         app: varc-portal
     spec:
+      # Uncomment if the GHCR package is private:
+      # imagePullSecrets:
+      #   - name: ghcr-pull
       containers:
         - name: web
-          image: varc-portal:latest
+          image: ghcr.io/varc-vietnam/varc-portal:v0.0.1
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3099

@@ -50,17 +50,61 @@ pnpm seed
 docker compose up --build web
 ```
 
-## Kubernetes
+## Kubernetes / Argo CD
 
-Manifests live in `deploy/k8s/`. Point `MONGODB_URI` at Atlas or your managed Mongo. Do not commit real secrets; copy `secret.example.yaml`.
+Manifests for Argo CD live in `deploy/k8s/` (Deployment, Service, Ingress, ConfigMap). App secrets are **not** synced by Argo — create them once in the cluster.
+
+### One-time bootstrap
 
 ```bash
-kubectl apply -f deploy/k8s/configmap.yaml
-kubectl apply -f deploy/k8s/secret.example.yaml   # rename/edit first
-kubectl apply -f deploy/k8s/deployment.yaml
-kubectl apply -f deploy/k8s/service.yaml
-kubectl apply -f deploy/k8s/ingress.yaml
+kubectl create namespace varc
+
+# Edit values first, then apply (or create the secret manually)
+cp deploy/docs/secret.example.yaml /tmp/varc-portal-secrets.yaml
+# edit /tmp/varc-portal-secrets.yaml
+kubectl apply -f /tmp/varc-portal-secrets.yaml
+
+# If the GHCR package is private:
+# kubectl create secret docker-registry ghcr-pull \
+#   --namespace varc \
+#   --docker-server=ghcr.io \
+#   --docker-username=YOUR_GITHUB_USER \
+#   --docker-password=YOUR_GITHUB_PAT
+# then uncomment imagePullSecrets in deploy/k8s/deployment.yaml
+
+kubectl apply -f deploy/argocd/application.yaml
 ```
+
+Argo CD watches `deploy/k8s` on this repo and syncs into namespace `varc`.
+
+### Release (build only — does not deploy)
+
+Bump version, commit, then push a `v*` tag. The [Release](.github/workflows/release.yml) workflow:
+
+- Lints and builds the app
+- Publishes a GitHub Release (notes + standalone tarball)
+- Pushes container images to GHCR:
+  - `ghcr.io/<owner>/varc-portal:vX.Y.Z`
+  - `ghcr.io/<owner>/varc-portal:X.Y.Z`
+
+```bash
+VERSION=1.0.26
+./scripts/bump-version.sh $VERSION
+git push origin HEAD
+git tag v$VERSION
+git push origin v$VERSION
+```
+
+The tagged commit must contain matching `VERSION` / `package.json` values.
+
+### On-demand deploy
+
+Deploy is **not** triggered by tags. After a release exists:
+
+1. GitHub → **Actions** → **Deploy** → **Run workflow**
+2. Enter the version (e.g. `1.0.26` or `v1.0.26`)
+3. The workflow verifies the GitHub Release + GHCR image, updates `deploy/k8s/deployment.yaml` image tag, and pushes a `chore: deploy v…` commit
+4. Argo CD syncs the new image from Git
 
 ## Content model
 
@@ -87,7 +131,9 @@ Article, category, and page slugs are generated automatically from the title/nam
 
 ## Releases
 
-Bump script updates `VERSION` + `package.json` and creates the version commit. Then push the commit and tag:
+See [Kubernetes / Argo CD](#kubernetes--argo-cd) for the full release and on-demand deploy flow.
+
+Quick release:
 
 ```bash
 VERSION=1.0.26
@@ -96,5 +142,3 @@ git push origin HEAD
 git tag v$VERSION
 git push origin v$VERSION
 ```
-
-The [Release](.github/workflows/release.yml) workflow runs on `v*.*.*` tags. The tagged commit must contain matching `VERSION` / `package.json` values.

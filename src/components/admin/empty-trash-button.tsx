@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useConfirm } from "@/components/admin/use-confirm";
+import { notifyError, notifySuccess } from "@/components/admin/admin-toast";
 
 type Props = {
   count: number;
@@ -36,9 +37,11 @@ export function EmptyTrashButton({ count, itemLabel, emptyAction }: Props) {
             startTransition(async () => {
               const result = await emptyAction();
               if (!result.ok) {
+                notifyError(result.error);
                 setError(result.error);
                 return;
               }
+              notifySuccess(`Emptied trash (${result.deleted} ${itemLabel})`);
               router.refresh();
             });
           }}

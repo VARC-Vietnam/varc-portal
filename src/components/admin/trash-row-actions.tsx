@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { DeleteForeverIcon, RestoreIcon } from "@/components/admin/admin-action-icons";
 import { IconActionButton, RowActionsGroup } from "@/components/admin/icon-action-button";
 import { useConfirm } from "@/components/admin/use-confirm";
+import { notifyAction } from "@/components/admin/admin-toast";
 
 type Props = {
   restoreAction: () => Promise<{ ok: true } | { ok: false; error: string }>;
@@ -33,7 +34,7 @@ export function TrashRowActions({
             setError(null);
             startTransition(async () => {
               const result = await restoreAction();
-              if (!result.ok) {
+              if (!notifyAction(result, "Restored successfully")) {
                 setError(result.error);
                 return;
               }
@@ -58,7 +59,7 @@ export function TrashRowActions({
             setError(null);
             startTransition(async () => {
               const result = await deleteAction();
-              if (!result.ok) {
+              if (!notifyAction(result, "Deleted permanently")) {
                 setError(result.error);
                 return;
               }

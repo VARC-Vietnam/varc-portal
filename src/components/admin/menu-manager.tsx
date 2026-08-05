@@ -24,6 +24,7 @@ import {
 } from "@/components/admin/icon-action-button";
 import { TrashRowActions } from "@/components/admin/trash-row-actions";
 import { useConfirm } from "@/components/admin/use-confirm";
+import { notifyAction } from "@/components/admin/admin-toast";
 
 type PageOption = {
   id: string;
@@ -107,7 +108,7 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
         ...form,
         location: tab,
       });
-      if (!result.ok) {
+      if (!notifyAction(result, editingId ? "Menu item updated" : "Menu item created")) {
         setError(result.error);
         return;
       }
@@ -129,7 +130,7 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
     setError(null);
     startTransition(async () => {
       const result = await deleteMenuItemAction(id);
-      if (!result.ok) {
+      if (!notifyAction(result, "Moved to trash")) {
         setError(result.error);
         return;
       }
@@ -150,7 +151,7 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
         location: tab,
         orderedIds: nextItems.map((item) => item.id),
       });
-      if (!result.ok) {
+      if (!notifyAction(result, "Menu order saved")) {
         setError(result.error);
         setOptimisticItems(null);
         return;

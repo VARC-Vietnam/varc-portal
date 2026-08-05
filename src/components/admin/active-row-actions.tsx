@@ -9,6 +9,7 @@ import {
   RowActionsGroup,
 } from "@/components/admin/icon-action-button";
 import { useConfirm } from "@/components/admin/use-confirm";
+import { notifyAction } from "@/components/admin/admin-toast";
 
 type Props = {
   editHref: string;
@@ -54,7 +55,7 @@ export function ActiveRowActions({
               setError(null);
               startTransition(async () => {
                 const result = await deleteAction();
-                if (!result.ok) {
+                if (!notifyAction(result, "Moved to trash")) {
                   setError(result.error);
                   return;
                 }

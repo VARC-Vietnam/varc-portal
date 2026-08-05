@@ -6,6 +6,7 @@ import { deleteCategoryAction, saveCategoryAction } from "@/lib/actions";
 import { makeSlug } from "@/lib/slug";
 import type { CategoryFormValues } from "@/lib/validations/article";
 import { useConfirm } from "@/components/admin/use-confirm";
+import { notifyAction } from "@/components/admin/admin-toast";
 
 type Props = {
   categoryId?: string;
@@ -36,7 +37,7 @@ export function CategoryEditor({
     setError(null);
     startTransition(async () => {
       const result = await saveCategoryAction(categoryId ?? null, form);
-      if (!result.ok) {
+      if (!notifyAction(result, "Category saved")) {
         setError(result.error);
         return;
       }
@@ -57,7 +58,7 @@ export function CategoryEditor({
     if (!confirmed) return;
     startTransition(async () => {
       const result = await deleteCategoryAction(categoryId);
-      if (!result.ok) {
+      if (!notifyAction(result, "Moved to trash")) {
         setError(result.error);
         return;
       }

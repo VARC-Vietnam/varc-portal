@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createUserAction } from "@/lib/actions";
 import type { PublicRole } from "@/lib/app-roles";
 import type { Role } from "@/lib/roles";
+import { notifyAction } from "@/components/admin/admin-toast";
 
 type Props = {
   roles: PublicRole[];
@@ -36,7 +37,7 @@ export function CreateUserForm({ roles }: Props) {
             password,
             role,
           });
-          if (!result.ok) {
+          if (!notifyAction(result, "User created")) {
             setError(result.error);
             return;
           }

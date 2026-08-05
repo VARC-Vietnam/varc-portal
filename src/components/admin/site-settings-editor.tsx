@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ImageSourceField } from "@/components/admin/image-source-field";
 import { saveSiteSettingsAction } from "@/lib/actions";
 import type { SiteSettingsFormValues } from "@/lib/validations/article";
+import { notifyAction } from "@/components/admin/admin-toast";
 
 type Props = {
   initial: SiteSettingsFormValues;
@@ -40,7 +41,7 @@ export function SiteSettingsEditor({ initial }: Props) {
     setSaved(false);
     startTransition(async () => {
       const result = await saveSiteSettingsAction(form);
-      if (!result.ok) {
+      if (!notifyAction(result, "Settings saved")) {
         setError(result.error);
         return;
       }

@@ -9,6 +9,7 @@ import { makeSlug } from "@/lib/slug";
 import type { PageFormValues } from "@/lib/validations/article";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { useConfirm } from "@/components/admin/use-confirm";
+import { notifyAction } from "@/components/admin/admin-toast";
 
 type Props = {
   pageId?: string;
@@ -57,7 +58,7 @@ export function PageEditor({ pageId, initial }: Props) {
     setError(null);
     startTransition(async () => {
       const result = await savePageAction(pageId ?? null, { ...form, status });
-      if (!result.ok) {
+      if (!notifyAction(result, status === "published" ? "Page published" : "Page saved")) {
         setError(result.error);
         return;
       }
@@ -77,7 +78,7 @@ export function PageEditor({ pageId, initial }: Props) {
     if (!confirmed) return;
     startTransition(async () => {
       const result = await deletePageAction(pageId);
-      if (!result.ok) {
+      if (!notifyAction(result, "Moved to trash")) {
         setError(result.error);
         return;
       }

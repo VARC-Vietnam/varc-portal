@@ -4,6 +4,7 @@ import { useEffect, useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveRoleAction } from "@/lib/actions";
 import type { PublicRole } from "@/lib/app-roles";
+import { notifyAction } from "@/components/admin/admin-toast";
 
 type Props = {
   roles: PublicRole[];
@@ -213,7 +214,7 @@ function RoleEditModal({
                   description,
                   enabled,
                 });
-                if (!result.ok) {
+                if (!notifyAction(result, "Role saved")) {
                   setError(result.error);
                   return;
                 }

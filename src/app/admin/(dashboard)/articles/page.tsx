@@ -19,6 +19,22 @@ type Props = {
   searchParams: Promise<{ tab?: string }>;
 };
 
+function clipWords(text: string, maxWords: number): string {
+  const trimmed = text.trim();
+  if (!trimmed) return text;
+  const words = trimmed.split(/\s+/).filter(Boolean);
+  if (words.length <= maxWords) return trimmed;
+  return `${words.slice(0, maxWords).join(" ")}…`;
+}
+
+function clipSlug(text: string, maxWords: number): string {
+  const trimmed = text.trim();
+  if (!trimmed) return text;
+  const words = trimmed.split(/[-_\s]+/).filter(Boolean);
+  if (words.length <= maxWords) return trimmed;
+  return `${words.slice(0, maxWords).join("-")}…`;
+}
+
 export default async function AdminArticlesPage({ searchParams }: Props) {
   await requireEditorialPage();
 
@@ -79,7 +95,6 @@ export default async function AdminArticlesPage({ searchParams }: Props) {
               <tr>
                 <th className="px-4 py-3 font-medium">Title (VI)</th>
                 <th className="px-4 py-3 font-medium">Category</th>
-                <th className="px-4 py-3 font-medium">Slug</th>
                 <th className="px-4 py-3 font-medium">EN</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">
@@ -97,22 +112,38 @@ export default async function AdminArticlesPage({ searchParams }: Props) {
                   .map((categoryId) => categoryNameById.get(String(categoryId)))
                   .filter(Boolean);
                 return (
-                  <tr key={id} className="border-b border-gray-100">
-                    <td className="px-4 py-3 font-medium text-gray-900">
-                      {vi.title || "(untitled)"}
+                  <tr
+                    key={id}
+                    className={`relative border-b border-gray-100 ${
+                      trash ? "" : "hover:bg-gray-50"
+                    }`}
+                  >
+                    <td className="px-4 py-3">
+                      {!trash ? (
+                        <Link
+                          href={`/admin/articles/${id}`}
+                          className="absolute inset-0 z-0"
+                          aria-label={`Edit ${vi.title || "article"}`}
+                        />
+                      ) : null}
+                      <div className="relative z-10 pointer-events-none">
+                        <div className="font-medium text-gray-900">
+                          {clipWords(vi.title || "(untitled)", 20)}
+                        </div>
+                        <div className="mt-0.5 font-mono text-xs text-gray-500">
+                          {vi.slug ? clipSlug(vi.slug, 15) : "—"}
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-600">
+                    <td className="relative z-10 pointer-events-none px-4 py-3 text-gray-600">
                       {categoryNames.length > 0
                         ? categoryNames.join(", ")
                         : "—"}
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs text-gray-500">
-                      {vi.slug || "—"}
-                    </td>
-                    <td className="px-4 py-3 text-gray-600">
+                    <td className="relative z-10 pointer-events-none px-4 py-3 text-gray-600">
                       {en.title ? "Ready" : "Missing"}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="relative z-10 pointer-events-none px-4 py-3">
                       <span
                         className={
                           article.status === "published"
@@ -123,7 +154,7 @@ export default async function AdminArticlesPage({ searchParams }: Props) {
                         {article.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-gray-500">
+                    <td className="relative z-10 pointer-events-none px-4 py-3 text-gray-500">
                       {trash
                         ? article.deletedAt
                           ? new Date(article.deletedAt).toLocaleString("vi-VN")
@@ -132,7 +163,7 @@ export default async function AdminArticlesPage({ searchParams }: Props) {
                           ? new Date(article.updatedAt).toLocaleString("vi-VN")
                           : "-"}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="relative z-10 px-4 py-3 text-right">
                       {trash ? (
                         <TrashRowActions
                           restoreAction={restoreArticleAction.bind(null, id)}

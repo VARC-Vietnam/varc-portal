@@ -11,6 +11,7 @@ import { ImageSourceField } from "@/components/admin/image-source-field";
 import { CoverFocusPicker } from "@/components/admin/cover-focus-picker";
 import { TagsInput } from "@/components/admin/tags-input";
 import { useConfirm } from "@/components/admin/use-confirm";
+import { notifyAction } from "@/components/admin/admin-toast";
 
 type CategoryOption = { id: string; label: string };
 
@@ -90,7 +91,7 @@ export function ArticleEditor({ articleId, initial, categories }: Props) {
         ...form,
         status,
       });
-      if (!result.ok) {
+      if (!notifyAction(result, status === "published" ? "Article published" : "Article saved")) {
         setError(result.error);
         return;
       }
@@ -110,7 +111,7 @@ export function ArticleEditor({ articleId, initial, categories }: Props) {
     if (!confirmed) return;
     startTransition(async () => {
       const result = await deleteArticleAction(articleId);
-      if (!result.ok) {
+      if (!notifyAction(result, "Moved to trash")) {
         setError(result.error);
         return;
       }

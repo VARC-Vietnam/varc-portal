@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { updateUserRoleAction } from "@/lib/actions";
 import type { PublicRole } from "@/lib/app-roles";
 import { normalizeRoleKey, type Role } from "@/lib/roles";
+import { notifyAction } from "@/components/admin/admin-toast";
 
 type Props = {
   userId: string;
@@ -30,7 +31,7 @@ export function UserRoleControls({ userId, role, roles, disabled }: Props) {
           setError(null);
           startTransition(async () => {
             const result = await updateUserRoleAction(userId, next);
-            if (!result.ok) {
+            if (!notifyAction(result, "Role updated")) {
               setError(result.error);
               return;
             }

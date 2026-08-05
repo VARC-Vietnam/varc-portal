@@ -2,6 +2,7 @@
 
 import { useId, useMemo, useRef, useState, useTransition } from "react";
 import { handleImageUpload, MAX_FILE_SIZE } from "@/lib/tiptap-utils";
+import { notifyError, notifySuccess } from "@/components/admin/admin-toast";
 
 type SourceMode = "url" | "upload";
 
@@ -91,6 +92,7 @@ export function ImageSourceField({
 
     if (!file.type.startsWith("image/")) {
       setError("Please choose an image file.");
+      notifyError("Please choose an image file.");
       return;
     }
 
@@ -99,8 +101,11 @@ export function ImageSourceField({
         const url = await handleImageUpload(file);
         onChange(url);
         setMode("upload");
+        notifySuccess("Image uploaded");
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Upload failed");
+        const message = err instanceof Error ? err.message : "Upload failed";
+        setError(message);
+        notifyError(message);
       }
     });
   }

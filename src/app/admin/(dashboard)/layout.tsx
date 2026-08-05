@@ -7,6 +7,7 @@ import {
   canManageUsers,
 } from "@/lib/roles";
 import { AdminNavLinks } from "@/components/admin/admin-nav-links";
+import { AdminToaster } from "@/components/admin/admin-toast";
 
 export default async function AdminDashboardLayout({
   children,
@@ -79,6 +80,7 @@ export default async function AdminDashboardLayout({
       <div className="mx-auto max-w-6xl overflow-x-visible px-4 py-8">
         {children}
       </div>
+      <AdminToaster />
     </div>
   );
 }

@@ -53,23 +53,9 @@ function MenuItem({
   );
 }
 
-function splitIntoColumns<T>(items: T[], columnCount: number): T[][] {
-  const columns: T[][] = Array.from({ length: columnCount }, () => []);
-  items.forEach((item, index) => {
-    columns[index % columnCount]?.push(item);
-  });
-  return columns;
-}
-
-export function FooterMenuLinks({
-  items,
-  columns = 4,
-}: {
-  items: PublicMenuLink[];
-  columns?: number;
-}) {
-  const linkClass = "block text-muted transition hover:text-foreground";
-  // Flatten nested items for the footer column layout.
+export function FooterMenuLinks({ items }: { items: PublicMenuLink[] }) {
+  const linkClass =
+    "whitespace-nowrap text-muted transition hover:text-foreground";
   const flat: PublicMenuLink[] = [];
   function walk(nodes: PublicMenuLink[]) {
     for (const item of nodes) {
@@ -78,16 +64,11 @@ export function FooterMenuLinks({
     }
   }
   walk(items);
-  const groups = splitIntoColumns(flat, columns);
 
   return (
-    <div className="grid w-max max-w-full grid-cols-2 gap-x-8 gap-y-3 md:grid-cols-3">
-      {groups.map((group, columnIndex) => (
-        <div key={columnIndex} className="flex flex-col gap-2">
-          {group.map((item) => (
-            <MenuItem key={item.id} item={item} className={linkClass} />
-          ))}
-        </div>
+    <div className="flex flex-wrap items-center justify-end gap-x-5 gap-y-2 md:flex-nowrap">
+      {flat.map((item) => (
+        <MenuItem key={item.id} item={item} className={linkClass} />
       ))}
     </div>
   );

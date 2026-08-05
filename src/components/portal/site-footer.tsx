@@ -20,25 +20,23 @@ export async function SiteFooter({
   return (
     <footer className="border-t border-border bg-surface">
       <div className="mx-auto max-w-6xl px-4 py-10 text-sm text-muted md:px-6">
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-6 md:items-start md:gap-6">
-          <div className="flex flex-col gap-2 md:col-span-2">
+        <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between md:gap-8">
+          <div className="min-w-0 shrink md:max-w-[40%]">
             <p className="font-display text-base text-foreground">
               {branding.siteName}
             </p>
-            <p>{branding.copyright}</p>
+            <p className="mt-2">{branding.copyright}</p>
           </div>
 
-          <nav
-            aria-label={t("menu")}
-            className="md:col-span-3 md:flex md:justify-end"
-          >
+          <div className="flex shrink-0 flex-nowrap items-start justify-end gap-x-5">
             {menuItems.length > 0 ? (
-              <FooterMenuLinks items={menuItems} columns={3} />
+              <nav aria-label={t("menu")} className="min-w-0">
+                <FooterMenuLinks items={menuItems} />
+              </nav>
             ) : null}
-          </nav>
-
-          <div className="md:col-span-1 md:justify-self-end">
-            <LanguageSwitcher align="end" />
+            <div className="shrink-0 pt-0.5">
+              <LanguageSwitcher align="end" />
+            </div>
           </div>
         </div>
       </div>

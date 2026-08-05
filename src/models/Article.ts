@@ -31,6 +31,11 @@ const ArticleSchema = new Schema(
       default: [],
     },
     coverImageUrl: { type: String, default: "" },
+    /** Focal point for object-position when cover is cropped (0–100%). */
+    coverImageFocus: {
+      type: Schema.Types.Mixed,
+      default: () => ({ x: 50, y: 50 }),
+    },
     ogImageUrl: { type: String, default: "" },
     featured: { type: Boolean, default: false, index: true },
     locales: {

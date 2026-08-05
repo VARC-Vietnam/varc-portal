@@ -10,6 +10,7 @@ import {
 import { getPublicSiteBranding } from "@/lib/cms";
 import type { AppLocale } from "@/i18n/routing";
 import { HtmlContent } from "@/components/portal/html-content";
+import { coverFocusObjectPosition, normalizeCoverFocus } from "@/lib/cover-focus";
 
 export const dynamic = "force-dynamic";
 
@@ -127,6 +128,11 @@ export default async function ArticlePage({ params }: Props) {
           src={article.coverImageUrl}
           alt=""
           className="mt-8 aspect-[16/9] w-full object-cover"
+          style={{
+            objectPosition: coverFocusObjectPosition(
+              normalizeCoverFocus(article.coverImageFocus),
+            ),
+          }}
         />
       ) : null}
       <HtmlContent html={content.content} />

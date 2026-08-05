@@ -14,6 +14,12 @@ export const articleFormSchema = z
     status: z.enum(["draft", "published"]),
     featured: z.boolean(),
     coverImageUrl: z.string().trim(),
+    coverImageFocus: z.object({
+      x: z.number().min(0).max(100),
+      y: z.number().min(0).max(100),
+      width: z.number().min(1).max(100),
+      height: z.number().min(1).max(100),
+    }),
     ogImageUrl: z.string().trim(),
     categoryIds: z.array(z.string()),
     tags: z.array(z.string().trim().min(1)).max(30),

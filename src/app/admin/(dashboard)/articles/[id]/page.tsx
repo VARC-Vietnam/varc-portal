@@ -6,6 +6,7 @@ import {
 import { getArticleById, getLocaleContent } from "@/lib/articles";
 import { listCategories, getCategoryLocale } from "@/lib/cms";
 import { normalizeEditorHtml } from "@/lib/html";
+import { normalizeCoverFocus } from "@/lib/cover-focus";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,7 @@ export default async function EditArticlePage({ params }: Props) {
           status: article.status === "published" ? "published" : "draft",
           featured: Boolean(article.featured),
           coverImageUrl: article.coverImageUrl ?? "",
+          coverImageFocus: normalizeCoverFocus(article.coverImageFocus),
           ogImageUrl: article.ogImageUrl ?? "",
           categoryIds: (article.categoryIds ?? []).map(String),
           tags: (article.tags ?? []).map(String),

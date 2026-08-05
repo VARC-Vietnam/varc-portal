@@ -72,7 +72,7 @@ export function FooterMenuLinks({
   const groups = splitIntoColumns(items, columns);
 
   return (
-    <div className="grid grid-cols-2 gap-x-4 gap-y-3 md:grid-cols-3">
+    <div className="grid w-max max-w-full grid-cols-2 gap-x-8 gap-y-3 md:grid-cols-3">
       {groups.map((group, columnIndex) => (
         <div key={columnIndex} className="flex flex-col gap-2">
           {group.map((item) => (

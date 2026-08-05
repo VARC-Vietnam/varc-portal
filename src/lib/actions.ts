@@ -7,6 +7,7 @@ import { auth, signOut } from "@/auth";
 import { connectDb } from "@/lib/db";
 import { isAdminRole, isSystemAdmin, type Role } from "@/lib/roles";
 import { uniqueSlugFromTitle } from "@/lib/slug";
+import { normalizeCoverFocus } from "@/lib/cover-focus";
 import {
   articleFormSchema,
   categoryFormSchema,
@@ -159,6 +160,7 @@ export async function saveArticleAction(
       existing.status = data.status;
       existing.featured = data.featured;
       existing.coverImageUrl = data.coverImageUrl.trim();
+      existing.coverImageFocus = normalizeCoverFocus(data.coverImageFocus);
       existing.ogImageUrl = data.ogImageUrl.trim();
       existing.categoryIds = categoryIds;
       existing.tags = tags;
@@ -177,6 +179,7 @@ export async function saveArticleAction(
       status: data.status,
       featured: data.featured,
       coverImageUrl: data.coverImageUrl.trim(),
+      coverImageFocus: normalizeCoverFocus(data.coverImageFocus),
       ogImageUrl: data.ogImageUrl.trim(),
       categoryIds,
       tags,

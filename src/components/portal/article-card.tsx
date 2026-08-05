@@ -1,5 +1,6 @@
 import { Link } from "@/i18n/navigation";
 import type { PublicArticleCard } from "@/lib/articles";
+import { coverFocusObjectPosition } from "@/lib/cover-focus";
 import type { AppLocale } from "@/i18n/routing";
 
 type Variant = "lead" | "support" | "grid";
@@ -26,15 +27,24 @@ function Cover({
   src,
   alt,
   className,
+  focus,
 }: {
   src: string;
   alt: string;
   className: string;
+  focus?: Parameters<typeof coverFocusObjectPosition>[0];
 }) {
   if (src) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={src} alt={alt} className={className} />
+      <img
+        src={src}
+        alt={alt}
+        className={className}
+        style={{
+          objectPosition: coverFocusObjectPosition(focus ?? { x: 15, y: 15, width: 70, height: 70 }),
+        }}
+      />
     );
   }
 
@@ -61,6 +71,7 @@ export function ArticleCard({ article, locale, variant, labels }: Props) {
             <Cover
               src={article.coverImageUrl}
               alt=""
+              focus={article.coverImageFocus}
               className="h-full w-full object-cover transition duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-[1.03]"
             />
           </div>
@@ -104,6 +115,7 @@ export function ArticleCard({ article, locale, variant, labels }: Props) {
             <Cover
               src={article.coverImageUrl}
               alt=""
+              focus={article.coverImageFocus}
               className="h-full w-full object-cover transition duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-[1.03]"
             />
           </div>
@@ -137,6 +149,7 @@ export function ArticleCard({ article, locale, variant, labels }: Props) {
           <Cover
             src={article.coverImageUrl}
             alt=""
+            focus={article.coverImageFocus}
             className="h-full w-full object-cover transition duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:scale-[1.03]"
           />
         </div>

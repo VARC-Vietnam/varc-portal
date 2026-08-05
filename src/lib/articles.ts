@@ -1,4 +1,9 @@
 import { connectDb } from "@/lib/db";
+import {
+  DEFAULT_COVER_FOCUS,
+  normalizeCoverFocus,
+  type CoverFocusRect,
+} from "@/lib/cover-focus";
 import { excerptFromHtml, extractFirstImageUrl } from "@/lib/html";
 import { Article, type ArticleDocument, type LocaleContent } from "@/models/Article";
 import type { AppLocale } from "@/i18n/routing";
@@ -11,6 +16,7 @@ export type PublicArticleCard = {
   excerpt: string;
   publishedAt: string | null;
   coverImageUrl: string;
+  coverImageFocus: CoverFocusRect;
 };
 
 function localeKey(locale: AppLocale): "vi" | "en" {
@@ -68,6 +74,8 @@ function toPublicCard(
   locale: AppLocale,
 ): PublicArticleCard {
   const content = getLocaleContent(article, locale);
+  const coverImageUrl = resolveCardImage(article, locale, content);
+  const hasExplicitCover = Boolean(article.coverImageUrl?.trim());
   return {
     id: String(article._id),
     title: content.title,
@@ -76,7 +84,11 @@ function toPublicCard(
     publishedAt: article.publishedAt
       ? new Date(article.publishedAt).toISOString()
       : null,
-    coverImageUrl: resolveCardImage(article, locale, content),
+    coverImageUrl,
+    // Body-image fallbacks stay centered; focus only applies to uploaded covers.
+    coverImageFocus: hasExplicitCover
+      ? normalizeCoverFocus(article.coverImageFocus)
+      : DEFAULT_COVER_FOCUS,
   };
 }
 

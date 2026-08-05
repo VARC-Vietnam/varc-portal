@@ -30,7 +30,7 @@ export async function SiteFooter({
 
           <nav
             aria-label={t("menu")}
-            className="md:col-span-3"
+            className="md:col-span-3 md:flex md:justify-end"
           >
             {menuItems.length > 0 ? (
               <FooterMenuLinks items={menuItems} columns={3} />

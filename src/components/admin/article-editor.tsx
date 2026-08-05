@@ -8,6 +8,7 @@ import { makeSlug } from "@/lib/slug";
 import type { ArticleFormValues } from "@/lib/validations/article";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { ImageSourceField } from "@/components/admin/image-source-field";
+import { CoverFocusPicker } from "@/components/admin/cover-focus-picker";
 import { TagsInput } from "@/components/admin/tags-input";
 
 type CategoryOption = { id: string; label: string };
@@ -334,12 +335,21 @@ export function ArticleEditor({ articleId, initial, categories }: Props) {
             <div className="grid content-start gap-5 rounded-lg border border-gray-200 bg-white p-5 min-h-[33dvh]">
               <ImageSourceField
                 label="Cover image"
-                description="Shown at the top of the article on the public site."
+                description="Shown in the home hero, cards, and at the top of the article."
                 value={form.coverImageUrl}
                 onChange={(coverImageUrl) =>
                   setForm((prev) => ({ ...prev, coverImageUrl }))
                 }
               />
+              {form.coverImageUrl ? (
+                <CoverFocusPicker
+                  imageUrl={form.coverImageUrl}
+                  value={form.coverImageFocus}
+                  onChange={(coverImageFocus) =>
+                    setForm((prev) => ({ ...prev, coverImageFocus }))
+                  }
+                />
+              ) : null}
               <ImageSourceField
                 label="OG image"
                 description="Used for link previews on social platforms. Leave empty to fall back to the cover."
@@ -451,6 +461,7 @@ export const emptyArticleForm: ArticleFormValues = {
   status: "draft",
   featured: false,
   coverImageUrl: "",
+  coverImageFocus: { x: 15, y: 15, width: 70, height: 70 },
   ogImageUrl: "",
   categoryIds: [],
   tags: [],

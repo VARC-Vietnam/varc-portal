@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useEffectEvent, useState } from "react";
 import { Link } from "@/i18n/navigation";
 import type { PublicArticleCard } from "@/lib/articles";
+import { FocusedCoverImage } from "@/components/portal/focused-cover-image";
 import type { AppLocale } from "@/i18n/routing";
 
 type Props = {
@@ -67,18 +68,16 @@ export function HomeFeaturedSlider({
             <div
               key={article.id}
               aria-hidden={!active}
-              className={`absolute inset-0 transition-opacity duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+              className={`absolute inset-0 overflow-hidden transition-opacity duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${
                 active ? "opacity-100" : "pointer-events-none opacity-0"
               }`}
             >
               {article.coverImageUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <FocusedCoverImage
                   src={article.coverImageUrl}
-                  alt=""
-                  className={`h-full w-full object-cover transition duration-[1200ms] ease-[cubic-bezier(0.32,0.72,0,1)] ${
-                    active ? "scale-100" : "scale-105"
-                  }`}
+                  focus={article.coverImageFocus}
+                  className="absolute inset-0 h-full w-full"
+                  mode="fill"
                 />
               ) : (
                 <div

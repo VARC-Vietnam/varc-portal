@@ -111,3 +111,55 @@ export const createUserSchema = z.object({
 });
 
 export type CreateUserValues = z.infer<typeof createUserSchema>;
+
+const menuLocaleSchema = z.object({
+  label: z.string().trim(),
+  url: z.string().trim(),
+});
+
+export const menuItemFormSchema = z
+  .object({
+    location: z.enum(["navigation", "footer"]),
+    type: z.enum(["page", "custom"]),
+    pageId: z.string().nullable(),
+    locales: z.object({
+      vi: menuLocaleSchema,
+      en: menuLocaleSchema,
+    }),
+    enabled: z.boolean(),
+    openInNewTab: z.boolean(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.type === "page") {
+      if (!data.pageId) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Select a page for this menu item",
+          path: ["pageId"],
+        });
+      }
+      return;
+    }
+
+    if (!data.locales.vi.label) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Vietnamese label is required",
+        path: ["locales", "vi", "label"],
+      });
+    }
+    if (!data.locales.vi.url) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Vietnamese URL is required",
+        path: ["locales", "vi", "url"],
+      });
+    }
+  });
+
+export type MenuItemFormValues = z.infer<typeof menuItemFormSchema>;
+
+export const reorderMenuSchema = z.object({
+  location: z.enum(["navigation", "footer"]),
+  orderedIds: z.array(z.string().min(1)).min(1),
+});

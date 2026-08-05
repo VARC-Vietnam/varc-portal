@@ -1,5 +1,10 @@
 import { connectDb } from "@/lib/db";
 import { Category, type CategoryDocument } from "@/models/Category";
+import {
+  MenuItem,
+  type MenuItemDocument,
+  type MenuLocation,
+} from "@/models/MenuItem";
 import { Page, type PageDocument, type PageLocaleContent } from "@/models/Page";
 import type { AppLocale } from "@/i18n/routing";
 
@@ -69,6 +74,60 @@ export type NavPageItem = {
   linkLocale: AppLocale;
 };
 
+export type PublicMenuLink = {
+  id: string;
+  label: string;
+  kind: "page" | "custom";
+  /** Present when kind === "page". */
+  slug?: string;
+  linkLocale?: AppLocale;
+  /** Present when kind === "custom". */
+  href?: string;
+  openInNewTab: boolean;
+};
+
+export type AdminMenuItem = {
+  id: string;
+  location: MenuLocation;
+  type: "page" | "custom";
+  pageId: string | null;
+  pageTitle: string | null;
+  locales: {
+    vi: { label: string; url: string };
+    en: { label: string; url: string };
+  };
+  enabled: boolean;
+  openInNewTab: boolean;
+  sortOrder: number;
+};
+
+function pageNavFields(
+  page: PageDocument,
+  locale: AppLocale,
+): Pick<NavPageItem, "title" | "slug" | "linkLocale"> | null {
+  const preferred = getPageLocale(page, locale);
+  const fallback = getPageLocale(page, locale === "en" ? "vi" : "en");
+
+  if (preferred.slug && preferred.title) {
+    return {
+      title: preferred.title,
+      slug: preferred.slug,
+      linkLocale: locale,
+    };
+  }
+
+  if (fallback.slug && fallback.title) {
+    return {
+      title: fallback.title,
+      slug: fallback.slug,
+      linkLocale: locale === "en" ? "vi" : "en",
+    };
+  }
+
+  return null;
+}
+
+/** Legacy fallback while menus are still empty. */
 export async function listNavPages(locale: AppLocale): Promise<NavPageItem[]> {
   await connectDb();
   const pages = await Page.find({
@@ -79,33 +138,166 @@ export async function listNavPages(locale: AppLocale): Promise<NavPageItem[]> {
     .lean<PageDocument[]>();
 
   const items: NavPageItem[] = [];
-
   for (const page of pages) {
-    const preferred = getPageLocale(page, locale);
-    const fallback = getPageLocale(page, locale === "en" ? "vi" : "en");
+    const fields = pageNavFields(page, locale);
+    if (!fields) continue;
+    items.push({ id: String(page._id), ...fields });
+  }
+  return items;
+}
 
-    if (preferred.slug && preferred.title) {
-      items.push({
-        id: String(page._id),
-        title: preferred.title,
-        slug: preferred.slug,
-        linkLocale: locale,
+export async function listMenuItemsAdmin(
+  location?: MenuLocation,
+): Promise<AdminMenuItem[]> {
+  await connectDb();
+  const filter = location ? { location } : {};
+  const items = await MenuItem.find(filter)
+    .sort({ location: 1, sortOrder: 1, updatedAt: -1 })
+    .lean<MenuItemDocument[]>();
+
+  const pageIds = items
+    .map((item) => item.pageId)
+    .filter((id): id is NonNullable<typeof id> => Boolean(id));
+  const pages = pageIds.length
+    ? await Page.find({ _id: { $in: pageIds } }).lean<PageDocument[]>()
+    : [];
+  const pageById = new Map(pages.map((page) => [String(page._id), page]));
+
+  return items.map((item) => {
+    const page = item.pageId ? pageById.get(String(item.pageId)) : null;
+    const pageTitle = page
+      ? getPageLocale(page, "vi").title ||
+        getPageLocale(page, "en").title ||
+        null
+      : null;
+
+    return {
+      id: String(item._id),
+      location: item.location as MenuLocation,
+      type: item.type as "page" | "custom",
+      pageId: item.pageId ? String(item.pageId) : null,
+      pageTitle,
+      locales: {
+        vi: {
+          label: item.locales?.vi?.label ?? "",
+          url: item.locales?.vi?.url ?? "",
+        },
+        en: {
+          label: item.locales?.en?.label ?? "",
+          url: item.locales?.en?.url ?? "",
+        },
+      },
+      enabled: Boolean(item.enabled),
+      openInNewTab: Boolean(item.openInNewTab),
+      sortOrder: item.sortOrder ?? 0,
+    };
+  });
+}
+
+export async function listPublicMenuLinks(
+  location: MenuLocation,
+  locale: AppLocale,
+): Promise<PublicMenuLink[]> {
+  await connectDb();
+  const items = await MenuItem.find({ location, enabled: true })
+    .sort({ sortOrder: 1, updatedAt: -1 })
+    .lean<MenuItemDocument[]>();
+
+  if (items.length === 0 && location === "navigation") {
+    const legacy = await listNavPages(locale);
+    return legacy.map((page) => ({
+      id: page.id,
+      label: page.title,
+      kind: "page" as const,
+      slug: page.slug,
+      linkLocale: page.linkLocale,
+      openInNewTab: false,
+    }));
+  }
+
+  const pageIds = items
+    .filter((item) => item.type === "page" && item.pageId)
+    .map((item) => item.pageId!);
+  const pages = pageIds.length
+    ? await Page.find({
+        _id: { $in: pageIds },
+        status: "published",
+      }).lean<PageDocument[]>()
+    : [];
+  const pageById = new Map(pages.map((page) => [String(page._id), page]));
+
+  const links: PublicMenuLink[] = [];
+
+  for (const item of items) {
+    if (item.type === "custom") {
+      const preferred = item.locales?.[localeKey(locale)];
+      const fallback = item.locales?.[locale === "en" ? "vi" : "en"];
+      const label = preferred?.label?.trim() || fallback?.label?.trim();
+      const href = preferred?.url?.trim() || fallback?.url?.trim();
+      if (!label || !href) continue;
+      links.push({
+        id: String(item._id),
+        label,
+        kind: "custom",
+        href,
+        openInNewTab: Boolean(item.openInNewTab),
       });
       continue;
     }
 
-    // Show published nav pages even if the other language is not translated yet.
-    if (fallback.slug && fallback.title) {
-      items.push({
-        id: String(page._id),
-        title: fallback.title,
-        slug: fallback.slug,
-        linkLocale: locale === "en" ? "vi" : "en",
-      });
-    }
+    if (!item.pageId) continue;
+    const page = pageById.get(String(item.pageId));
+    if (!page) continue;
+    const fields = pageNavFields(page, locale);
+    if (!fields) continue;
+
+    const override =
+      item.locales?.[localeKey(locale)]?.label?.trim() ||
+      item.locales?.[locale === "en" ? "vi" : "en"]?.label?.trim();
+
+    links.push({
+      id: String(item._id),
+      label: override || fields.title,
+      kind: "page",
+      slug: fields.slug,
+      linkLocale: fields.linkLocale,
+      openInNewTab: Boolean(item.openInNewTab),
+    });
   }
 
-  return items;
+  return links;
+}
+
+/**
+ * Import published showInNav pages into the Navigation menu when it is empty.
+ */
+export async function importNavPagesIntoMenuIfEmpty(): Promise<number> {
+  await connectDb();
+  const existing = await MenuItem.countDocuments({ location: "navigation" });
+  if (existing > 0) return 0;
+
+  const pages = await Page.find({
+    status: "published",
+    showInNav: true,
+  })
+    .sort({ sortOrder: 1, updatedAt: -1 })
+    .lean<PageDocument[]>();
+
+  if (pages.length === 0) return 0;
+
+  await MenuItem.insertMany(
+    pages.map((page, index) => ({
+      location: "navigation",
+      type: "page",
+      pageId: page._id,
+      locales: { vi: { label: "", url: "" }, en: { label: "", url: "" } },
+      enabled: true,
+      openInNewTab: false,
+      sortOrder: index,
+    })),
+  );
+
+  return pages.length;
 }
 
 export async function listPublishedPagesForSitemap() {

@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
+import { auth } from "@/auth";
 import { routing, type AppLocale } from "@/i18n/routing";
-import { listNavPages } from "@/lib/cms";
+import { listPublicMenuLinks } from "@/lib/cms";
+import { isAdminRole } from "@/lib/roles";
 import { SiteFooter } from "@/components/portal/site-footer";
 import { SiteHeader } from "@/components/portal/site-header";
 
@@ -25,14 +27,27 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   setRequestLocale(locale);
   const messages = await getMessages();
-  const navPages = await listNavPages(locale as AppLocale);
+  const appLocale = locale as AppLocale;
+  const [navItems, footerItems, session] = await Promise.all([
+    listPublicMenuLinks("navigation", appLocale),
+    listPublicMenuLinks("footer", appLocale),
+    auth(),
+  ]);
+
+  const user = session?.user
+    ? {
+        name: session.user.name ?? null,
+        email: session.user.email ?? null,
+        isAdmin: isAdminRole(session.user.role),
+      }
+    : null;
 
   return (
     <NextIntlClientProvider messages={messages}>
       <div className="flex min-h-[100dvh] flex-col">
-        <SiteHeader navPages={navPages} />
+        <SiteHeader menuItems={navItems} user={user} />
         <main className="flex-1">{children}</main>
-        <SiteFooter />
+        <SiteFooter menuItems={footerItems} />
       </div>
     </NextIntlClientProvider>
   );

@@ -3,7 +3,7 @@
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import mongoose from "mongoose";
-import { auth } from "@/auth";
+import { auth, signOut } from "@/auth";
 import { connectDb } from "@/lib/db";
 import { isAdminRole, isSystemAdmin, type Role } from "@/lib/roles";
 import { uniqueSlugFromTitle } from "@/lib/slug";
@@ -11,10 +11,13 @@ import {
   articleFormSchema,
   categoryFormSchema,
   createUserSchema,
+  menuItemFormSchema,
   pageFormSchema,
+  reorderMenuSchema,
 } from "@/lib/validations/article";
 import { Article } from "@/models/Article";
 import { Category } from "@/models/Category";
+import { MenuItem } from "@/models/MenuItem";
 import { Page } from "@/models/Page";
 import { User } from "@/models/User";
 
@@ -43,6 +46,7 @@ function revalidatePortal() {
   revalidatePath("/vi/news", "layout");
   revalidatePath("/en/news", "layout");
   revalidatePath("/admin", "layout");
+  revalidatePath("/admin/menu");
 }
 
 async function articleSlugTaken(
@@ -370,6 +374,141 @@ export async function deletePageAction(
   }
 }
 
+export async function saveMenuItemAction(
+  id: string | null,
+  raw: unknown,
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  try {
+    await requireAdmin();
+    const parsed = menuItemFormSchema.safeParse(raw);
+    if (!parsed.success) {
+      return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid data" };
+    }
+
+    const data = parsed.data;
+    await connectDb();
+
+    if (data.type === "page" && data.pageId) {
+      const page = await Page.findById(data.pageId);
+      if (!page) return { ok: false, error: "Page not found" };
+    }
+
+    const locales = {
+      vi: {
+        label: data.locales.vi.label.trim(),
+        url: data.locales.vi.url.trim(),
+      },
+      en: {
+        label: data.locales.en.label.trim(),
+        url: data.locales.en.url.trim(),
+      },
+    };
+
+    if (id) {
+      const existing = await MenuItem.findById(id);
+      if (!existing) return { ok: false, error: "Menu item not found" };
+      if (existing.location !== data.location) {
+        return { ok: false, error: "Cannot change menu location" };
+      }
+      existing.type = data.type;
+      existing.pageId =
+        data.type === "page" && data.pageId
+          ? new mongoose.Types.ObjectId(data.pageId)
+          : null;
+      existing.locales = locales;
+      existing.enabled = data.enabled;
+      existing.openInNewTab = data.openInNewTab;
+      await existing.save();
+      revalidatePortal();
+      return { ok: true, id: String(existing._id) };
+    }
+
+    const max = await MenuItem.find({ location: data.location })
+      .sort({ sortOrder: -1 })
+      .limit(1)
+      .lean();
+    const nextOrder = (max[0]?.sortOrder ?? -1) + 1;
+
+    const created = await MenuItem.create({
+      location: data.location,
+      type: data.type,
+      pageId:
+        data.type === "page" && data.pageId
+          ? new mongoose.Types.ObjectId(data.pageId)
+          : null,
+      locales,
+      enabled: data.enabled,
+      openInNewTab: data.openInNewTab,
+      sortOrder: nextOrder,
+    });
+    revalidatePortal();
+    return { ok: true, id: String(created._id) };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Failed to save menu item",
+    };
+  }
+}
+
+export async function deleteMenuItemAction(
+  id: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await requireAdmin();
+    await connectDb();
+    await MenuItem.findByIdAndDelete(id);
+    revalidatePortal();
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error ? error.message : "Failed to delete menu item",
+    };
+  }
+}
+
+export async function reorderMenuItemsAction(
+  raw: unknown,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await requireAdmin();
+    const parsed = reorderMenuSchema.safeParse(raw);
+    if (!parsed.success) {
+      return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid data" };
+    }
+
+    const { location, orderedIds } = parsed.data;
+    await connectDb();
+
+    const items = await MenuItem.find({
+      location,
+      _id: { $in: orderedIds },
+    });
+    if (items.length !== orderedIds.length) {
+      return { ok: false, error: "One or more menu items were not found" };
+    }
+
+    await Promise.all(
+      orderedIds.map((itemId, index) =>
+        MenuItem.updateOne(
+          { _id: itemId, location },
+          { $set: { sortOrder: index } },
+        ),
+      ),
+    );
+    revalidatePortal();
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error ? error.message : "Failed to reorder menu items",
+    };
+  }
+}
+
 export async function updateUserRoleAction(
   userId: string,
   role: Role,
@@ -433,4 +572,8 @@ export async function createUserAction(
       error: error instanceof Error ? error.message : "Failed to create user",
     };
   }
+}
+
+export async function signOutAction() {
+  await signOut({ redirectTo: "/" });
 }

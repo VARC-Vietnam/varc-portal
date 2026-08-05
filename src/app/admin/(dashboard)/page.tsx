@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { listAllArticles } from "@/lib/articles";
-import { listCategories, listPages } from "@/lib/cms";
+import { listCategories, listMenuItemsAdmin, listPages } from "@/lib/cms";
 import { connectDb } from "@/lib/db";
 import { User } from "@/models/User";
 
@@ -8,10 +8,11 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminDashboardPage() {
   await connectDb();
-  const [articles, categories, pages, users] = await Promise.all([
+  const [articles, categories, pages, menuItems, users] = await Promise.all([
     listAllArticles(),
     listCategories(),
     listPages(),
+    listMenuItemsAdmin(),
     User.countDocuments(),
   ]);
 
@@ -35,6 +36,12 @@ export default async function AdminDashboardPage() {
       hint: "Static site pages",
     },
     {
+      href: "/admin/menu",
+      title: "Menus",
+      count: menuItems.length,
+      hint: "Navigation and footer order",
+    },
+    {
       href: "/admin/users",
       title: "Users",
       count: users,
@@ -46,9 +53,9 @@ export default async function AdminDashboardPage() {
     <div>
       <h1 className="text-2xl font-semibold">Dashboard</h1>
       <p className="mt-2 text-sm text-gray-600">
-        Manage portal content, navigation pages, and admin access.
+        Manage portal content, menus, and admin access.
       </p>
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {cards.map((card) => (
           <Link
             key={card.href}

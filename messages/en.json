@@ -8,6 +8,11 @@
     "home": "Home",
     "news": "News",
     "admin": "Admin",
+    "login": "Login",
+    "dashboard": "Admin dashboard",
+    "logout": "Log out",
+    "account": "Account",
+    "accountMenu": "Account menu",
     "language": "Language"
   },
   "home": {
@@ -25,6 +30,7 @@
     "backHome": "Back to home"
   },
   "footer": {
-    "rights": "Vietnam Amateur Radio Club."
+    "rights": "Vietnam Amateur Radio Club.",
+    "menu": "Footer"
   }
 }

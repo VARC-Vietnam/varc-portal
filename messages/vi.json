@@ -8,6 +8,11 @@
     "home": "Trang chủ",
     "news": "Tin tức",
     "admin": "Quản trị",
+    "login": "Đăng nhập",
+    "dashboard": "Bảng điều khiển",
+    "logout": "Đăng xuất",
+    "account": "Tài khoản",
+    "accountMenu": "Menu tài khoản",
     "language": "Ngôn ngữ"
   },
   "home": {
@@ -25,6 +30,7 @@
     "backHome": "Quay lại trang chủ"
   },
   "footer": {
-    "rights": "Hiệp hội Vô tuyến Nghiệp dư Việt Nam."
+    "rights": "Hiệp hội Vô tuyến Nghiệp dư Việt Nam.",
+    "menu": "Chân trang"
   }
 }

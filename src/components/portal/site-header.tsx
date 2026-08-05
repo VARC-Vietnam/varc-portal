@@ -3,16 +3,66 @@
 import NextLink from "next/link";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import type { AppLocale } from "@/i18n/routing";
+import type { PublicMenuLink } from "@/lib/cms";
+import {
+  SiteAccountMenu,
+  type SiteAccountUser,
+} from "@/components/portal/site-account-menu";
 
-type NavPage = {
-  id: string;
-  title: string;
-  slug: string;
-  linkLocale: AppLocale;
-};
+function MenuAnchor({
+  item,
+  className,
+}: {
+  item: PublicMenuLink;
+  className?: string;
+}) {
+  if (item.kind === "page" && item.slug) {
+    return (
+      <Link
+        href={{
+          pathname: "/pages/[slug]",
+          params: { slug: item.slug },
+        }}
+        locale={item.linkLocale}
+        className={className}
+        target={item.openInNewTab ? "_blank" : undefined}
+        rel={item.openInNewTab ? "noopener noreferrer" : undefined}
+      >
+        {item.label}
+      </Link>
+    );
+  }
 
-export function SiteHeader({ navPages = [] }: { navPages?: NavPage[] }) {
+  const href = item.href || "/";
+  const external = /^https?:\/\//i.test(href);
+
+  if (external || item.openInNewTab) {
+    return (
+      <a
+        href={href}
+        className={className}
+        target={item.openInNewTab || external ? "_blank" : undefined}
+        rel={item.openInNewTab || external ? "noopener noreferrer" : undefined}
+      >
+        {item.label}
+      </a>
+    );
+  }
+
+  return (
+    <NextLink href={href} className={className}>
+      {item.label}
+    </NextLink>
+  );
+}
+
+export function SiteHeader({
+  menuItems = [],
+  user = null,
+}: {
+  menuItems?: PublicMenuLink[];
+  user?: SiteAccountUser | null;
+}) {
   const t = useTranslations("nav");
   const tSite = useTranslations("site");
 
@@ -26,25 +76,14 @@ export function SiteHeader({ navPages = [] }: { navPages?: NavPage[] }) {
           <Link href="/" className="shrink-0 text-muted transition hover:text-foreground">
             {t("home")}
           </Link>
-          {navPages.map((page) => (
-            <Link
-              key={page.id}
-              href={{
-                pathname: "/pages/[slug]",
-                params: { slug: page.slug },
-              }}
-              locale={page.linkLocale}
+          {menuItems.map((item) => (
+            <MenuAnchor
+              key={item.id}
+              item={item}
               className="shrink-0 text-muted transition hover:text-foreground"
-            >
-              {page.title}
-            </Link>
+            />
           ))}
-          <NextLink
-            href="/admin"
-            className="shrink-0 text-muted transition hover:text-foreground"
-          >
-            {t("admin")}
-          </NextLink>
+          <SiteAccountMenu user={user} />
         </nav>
       </div>
     </header>

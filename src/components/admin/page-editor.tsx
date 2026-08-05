@@ -151,16 +151,25 @@ export function PageEditor({ pageId, initial }: Props) {
       </div>
 
       <div className="grid gap-4 rounded-lg border border-gray-200 bg-white p-5 md:grid-cols-2">
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={form.showInNav}
-            onChange={(e) =>
-              setForm((prev) => ({ ...prev, showInNav: e.target.checked }))
-            }
-          />
-          View in site navigation
-        </label>
+        <div className="space-y-2 text-sm">
+          <label className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={form.showInNav}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, showInNav: e.target.checked }))
+              }
+            />
+            Legacy: include in navigation import
+          </label>
+          <p className="text-gray-500">
+            Prefer{" "}
+            <a href="/admin/menu" className="underline">
+              Menus
+            </a>{" "}
+            to manage Navigation and Footer order.
+          </p>
+        </div>
         <label className="block text-sm">
           <span className="mb-1 block font-medium">Sort order</span>
           <input

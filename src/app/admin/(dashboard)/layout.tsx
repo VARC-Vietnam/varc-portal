@@ -1,15 +1,7 @@
 import { auth, signOut } from "@/auth";
 import Link from "next/link";
 import { isSystemAdmin } from "@/lib/roles";
-
-const links = [
-  { href: "/admin", label: "Dashboard" },
-  { href: "/admin/articles", label: "Articles" },
-  { href: "/admin/categories", label: "Categories" },
-  { href: "/admin/pages", label: "Pages" },
-  { href: "/admin/menu", label: "Menus" },
-  { href: "/admin/users", label: "Users" },
-];
+import { AdminNavLinks } from "@/components/admin/admin-nav-links";
 
 export default async function AdminDashboardLayout({
   children,
@@ -29,20 +21,28 @@ export default async function AdminDashboardLayout({
             <Link href="/admin" className="shrink-0 font-semibold">
               VARC Admin
             </Link>
-            {links
-              .filter((link) => link.href !== "/admin/users" || showUsers)
-              .map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="shrink-0 text-gray-600 hover:text-black"
-                >
-                  {link.label}
-                </Link>
-              ))}
-            <Link href="/" className="shrink-0 text-gray-600 hover:text-black">
+            <AdminNavLinks showUsers={showUsers} />
+            <a
+              href="/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex shrink-0 items-center gap-1 text-gray-600 underline hover:text-black"
+            >
               View site
-            </Link>
+              <svg
+                viewBox="0 0 16 16"
+                className="h-3.5 w-3.5"
+                aria-hidden
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M4.5 11.5 11.5 4.5" />
+                <path d="M6 4.5h5.5V10" />
+              </svg>
+            </a>
           </div>
           <div className="flex shrink-0 items-center gap-3 text-sm">
             <span className="hidden text-gray-500 sm:inline">

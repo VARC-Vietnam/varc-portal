@@ -9,6 +9,11 @@ import {
   type SiteAccountUser,
 } from "@/components/portal/site-account-menu";
 
+export type SiteHeaderBranding = {
+  siteName: string;
+  logoUrl?: string;
+};
+
 function MenuAnchor({
   item,
   className,
@@ -59,18 +64,30 @@ function MenuAnchor({
 export function SiteHeader({
   menuItems = [],
   user = null,
+  branding,
 }: {
   menuItems?: PublicMenuLink[];
   user?: SiteAccountUser | null;
+  branding: SiteHeaderBranding;
 }) {
   const t = useTranslations("nav");
-  const tSite = useTranslations("site");
 
   return (
     <header className="border-b border-border/80 bg-surface/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 md:px-6">
-        <Link href="/" className="font-display text-xl tracking-tight text-foreground">
-          {tSite("name")}
+        <Link
+          href="/"
+          className="flex shrink-0 items-center gap-2.5 font-display text-xl tracking-tight text-foreground"
+        >
+          {branding.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- remote/data URLs from CMS
+            <img
+              src={branding.logoUrl}
+              alt=""
+              className="h-8 w-auto max-w-[9rem] object-contain"
+            />
+          ) : null}
+          <span>{branding.siteName}</span>
         </Link>
         <nav className="flex items-center gap-4 overflow-x-auto text-sm md:gap-5">
           <Link href="/" className="shrink-0 text-muted transition hover:text-foreground">

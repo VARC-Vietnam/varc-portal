@@ -7,6 +7,7 @@ import {
   getPublishedArticleBySlug,
   hasLocaleContent,
 } from "@/lib/articles";
+import { getPublicSiteBranding } from "@/lib/cms";
 import type { AppLocale } from "@/i18n/routing";
 import { HtmlContent } from "@/components/portal/html-content";
 
@@ -23,13 +24,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!article) return { title: "Not found" };
 
   const content = getLocaleContent(article, locale);
+  const branding = await getPublicSiteBranding(locale);
+  const pageName = content.metaTitle || content.title;
+  const documentTitle = `${pageName} - ${branding.siteName} | ${branding.siteTitle}`;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3099";
   const path = `/${locale}/news/${content.slug}`;
   const en = getLocaleContent(article, "en");
   const vi = getLocaleContent(article, "vi");
 
   return {
-    title: content.metaTitle || content.title,
+    title: pageName,
     description: content.metaDescription || content.excerpt,
     alternates: {
       canonical: `${siteUrl}${path}`,
@@ -41,7 +45,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     },
     keywords: article.tags?.length ? article.tags.join(", ") : undefined,
     openGraph: {
-      title: content.metaTitle || content.title,
+      title: documentTitle,
       description: content.metaDescription || content.excerpt,
       url: `${siteUrl}${path}`,
       type: "article",

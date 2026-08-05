@@ -18,6 +18,12 @@ export default async function AdminDashboardPage() {
 
   const cards = [
     {
+      href: "/admin/settings",
+      title: "Site Settings",
+      count: "•",
+      hint: "Name, logo, SEO, copyright",
+    },
+    {
       href: "/admin/articles",
       title: "Articles",
       count: articles.length,
@@ -55,7 +61,7 @@ export default async function AdminDashboardPage() {
       <p className="mt-2 text-sm text-gray-600">
         Manage portal content, menus, and admin access.
       </p>
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
         {cards.map((card) => (
           <Link
             key={card.href}

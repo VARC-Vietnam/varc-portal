@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
-import { getPageLocale, getPublishedPageBySlug } from "@/lib/cms";
+import { getPageLocale, getPublishedPageBySlug, getPublicSiteBranding } from "@/lib/cms";
 import type { AppLocale } from "@/i18n/routing";
 import { HtmlContent } from "@/components/portal/html-content";
 
@@ -19,13 +19,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!page) return { title: "Not found" };
 
   const content = getPageLocale(page, locale);
+  const branding = await getPublicSiteBranding(locale);
+  const pageName = content.metaTitle || content.title;
+  const documentTitle = `${pageName} - ${branding.siteName} | ${branding.siteTitle}`;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3099";
   const path = `/${locale}/pages/${content.slug}`;
   const en = getPageLocale(page, "en");
   const vi = getPageLocale(page, "vi");
 
   return {
-    title: content.metaTitle || content.title,
+    title: pageName,
     description: content.metaDescription || undefined,
     alternates: {
       canonical: `${siteUrl}${path}`,
@@ -34,6 +37,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         en: en.slug ? `${siteUrl}/en/pages/${en.slug}` : undefined,
         "x-default": vi.slug ? `${siteUrl}/vi/pages/${vi.slug}` : undefined,
       },
+    },
+    openGraph: {
+      title: documentTitle,
+      description: content.metaDescription || undefined,
+      url: `${siteUrl}${path}`,
     },
   };
 }

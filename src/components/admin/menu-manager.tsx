@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  useEffect,
+  useMemo,
   useState,
   useTransition,
   type DragEvent,
@@ -56,15 +56,17 @@ export function MenuManager({ initialItems, pages }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<MenuItemFormValues>(emptyForm("navigation"));
   const [showForm, setShowForm] = useState(false);
-  const [items, setItems] = useState(() =>
-    sortForLocation(initialItems, "navigation"),
+  const [optimisticItems, setOptimisticItems] = useState<AdminMenuItem[] | null>(
+    null,
   );
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
 
-  useEffect(() => {
-    setItems(sortForLocation(initialItems, tab));
-  }, [initialItems, tab]);
+  const serverItems = useMemo(
+    () => sortForLocation(initialItems, tab),
+    [initialItems, tab],
+  );
+  const items = optimisticItems ?? serverItems;
 
   function openCreate() {
     setEditingId(null);
@@ -100,6 +102,7 @@ export function MenuManager({ initialItems, pages }: Props) {
       }
       setShowForm(false);
       setEditingId(null);
+      setOptimisticItems(null);
       router.refresh();
     });
   }
@@ -117,12 +120,13 @@ export function MenuManager({ initialItems, pages }: Props) {
         setShowForm(false);
         setEditingId(null);
       }
+      setOptimisticItems(null);
       router.refresh();
     });
   }
 
   function persistOrder(nextItems: AdminMenuItem[]) {
-    setItems(nextItems);
+    setOptimisticItems(nextItems);
     setError(null);
     startTransition(async () => {
       const result = await reorderMenuItemsAction({
@@ -131,9 +135,10 @@ export function MenuManager({ initialItems, pages }: Props) {
       });
       if (!result.ok) {
         setError(result.error);
-        setItems(sortForLocation(initialItems, tab));
+        setOptimisticItems(null);
         return;
       }
+      setOptimisticItems(null);
       router.refresh();
     });
   }
@@ -193,6 +198,7 @@ export function MenuManager({ initialItems, pages }: Props) {
 
   function switchTab(next: MenuLocation) {
     setTab(next);
+    setOptimisticItems(null);
     setShowForm(false);
     setEditingId(null);
     setError(null);

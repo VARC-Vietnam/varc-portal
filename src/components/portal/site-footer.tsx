@@ -3,31 +3,44 @@ import { LanguageSwitcher } from "@/components/portal/language-switcher";
 import type { PublicMenuLink } from "@/lib/cms";
 import { FooterMenuLinks } from "@/components/portal/footer-menu-links";
 
+export type SiteFooterBranding = {
+  siteName: string;
+  copyright: string;
+};
+
 export async function SiteFooter({
   menuItems = [],
+  branding,
 }: {
   menuItems?: PublicMenuLink[];
+  branding: SiteFooterBranding;
 }) {
   const t = await getTranslations("footer");
-  const tSite = await getTranslations("site");
 
   return (
     <footer className="border-t border-border bg-surface">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-10 text-sm text-muted md:px-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div className="flex flex-col gap-2">
+      <div className="mx-auto max-w-6xl px-4 py-10 text-sm text-muted md:px-6">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-6 md:items-start md:gap-6">
+          <div className="flex flex-col gap-2 md:col-span-2">
             <p className="font-display text-base text-foreground">
-              {tSite("name")}
+              {branding.siteName}
             </p>
-            <p>{t("rights")}</p>
+            <p>{branding.copyright}</p>
           </div>
-          {menuItems.length > 0 ? (
-            <nav aria-label={t("menu")} className="flex flex-wrap gap-x-5 gap-y-2">
-              <FooterMenuLinks items={menuItems} />
-            </nav>
-          ) : null}
+
+          <nav
+            aria-label={t("menu")}
+            className="md:col-span-3"
+          >
+            {menuItems.length > 0 ? (
+              <FooterMenuLinks items={menuItems} columns={3} />
+            ) : null}
+          </nav>
+
+          <div className="md:col-span-1 md:justify-self-end">
+            <LanguageSwitcher align="end" />
+          </div>
         </div>
-        <LanguageSwitcher />
       </div>
     </footer>
   );

@@ -86,7 +86,11 @@ function buildHref(
   };
 }
 
-export function LanguageSwitcher() {
+export function LanguageSwitcher({
+  align = "end",
+}: {
+  align?: "start" | "end";
+}) {
   const locale = useLocale();
   const pathname = usePathname();
   const params = useParams();
@@ -94,7 +98,9 @@ export function LanguageSwitcher() {
 
   return (
     <div
-      className="flex items-center justify-end gap-1.5"
+      className={`flex items-start gap-1.5 ${
+        align === "end" ? "justify-end" : "justify-start"
+      }`}
       role="navigation"
       aria-label="Language"
     >

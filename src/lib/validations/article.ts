@@ -163,3 +163,34 @@ export const reorderMenuSchema = z.object({
   location: z.enum(["navigation", "footer"]),
   orderedIds: z.array(z.string().min(1)).min(1),
 });
+
+const siteLocaleSchema = z.object({
+  siteName: z.string().trim(),
+  siteTitle: z.string().trim(),
+  tagline: z.string().trim(),
+  copyright: z.string().trim(),
+  metaTitle: z.string().trim(),
+  metaDescription: z.string().trim(),
+});
+
+export const siteSettingsFormSchema = z
+  .object({
+    logoUrl: z.string().trim(),
+    faviconUrl: z.string().trim(),
+    ogImageUrl: z.string().trim(),
+    locales: z.object({
+      vi: siteLocaleSchema,
+      en: siteLocaleSchema,
+    }),
+  })
+  .superRefine((data, ctx) => {
+    if (!data.locales.vi.siteName) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Vietnamese site name is required",
+        path: ["locales", "vi", "siteName"],
+      });
+    }
+  });
+
+export type SiteSettingsFormValues = z.infer<typeof siteSettingsFormSchema>;

@@ -6,7 +6,14 @@ import {
   type MenuLocation,
 } from "@/models/MenuItem";
 import { Page, type PageDocument, type PageLocaleContent } from "@/models/Page";
+import {
+  SITE_SETTINGS_KEY,
+  SiteSettings,
+  type SiteLocaleContent,
+  type SiteSettingsDocument,
+} from "@/models/SiteSettings";
 import type { AppLocale } from "@/i18n/routing";
+import type { SiteSettingsFormValues } from "@/lib/validations/article";
 
 function localeKey(locale: AppLocale): "vi" | "en" {
   return locale === "en" ? "en" : "vi";
@@ -305,4 +312,109 @@ export async function listPublishedPagesForSitemap() {
   return Page.find({ status: "published" })
     .select("locales updatedAt")
     .lean<PageDocument[]>();
+}
+
+const DEFAULT_SITE_LOCALES: Record<"vi" | "en", SiteLocaleContent> = {
+  vi: {
+    siteName: "VARC",
+    siteTitle: "Hiệp hội Vô tuyến Nghiệp dư Việt Nam",
+    tagline: "Cổng thông tin chính thức của cộng đồng vô tuyến nghiệp dư Việt Nam.",
+    copyright: "Hiệp hội Vô tuyến Nghiệp dư Việt Nam.",
+    metaTitle: "VARC",
+    metaDescription:
+      "Cổng thông tin Hiệp hội Vô tuyến Nghiệp dư Việt Nam / Vietnam Amateur Radio Club portal",
+  },
+  en: {
+    siteName: "VARC",
+    siteTitle: "Vietnam Amateur Radio Club",
+    tagline: "Official information portal for Vietnam's amateur radio community.",
+    copyright: "Vietnam Amateur Radio Club.",
+    metaTitle: "VARC",
+    metaDescription:
+      "Official information portal for Vietnam's amateur radio community.",
+  },
+};
+
+export type PublicSiteBranding = SiteLocaleContent & {
+  logoUrl: string;
+  faviconUrl: string;
+  ogImageUrl: string;
+};
+
+function mergeLocale(
+  preferred: Partial<SiteLocaleContent> | undefined,
+  fallback: SiteLocaleContent,
+): SiteLocaleContent {
+  return {
+    siteName: preferred?.siteName?.trim() || fallback.siteName,
+    siteTitle: preferred?.siteTitle?.trim() || fallback.siteTitle,
+    tagline: preferred?.tagline?.trim() || fallback.tagline,
+    copyright: preferred?.copyright?.trim() || fallback.copyright,
+    metaTitle: preferred?.metaTitle?.trim() || fallback.metaTitle,
+    metaDescription:
+      preferred?.metaDescription?.trim() || fallback.metaDescription,
+  };
+}
+
+export function getDefaultSiteSettingsForm(): SiteSettingsFormValues {
+  return {
+    logoUrl: "",
+    faviconUrl: "",
+    ogImageUrl: "",
+    locales: {
+      vi: { ...DEFAULT_SITE_LOCALES.vi },
+      en: { ...DEFAULT_SITE_LOCALES.en },
+    },
+  };
+}
+
+export async function getSiteSettingsDocument() {
+  await connectDb();
+  return SiteSettings.findOne({ key: SITE_SETTINGS_KEY }).lean<SiteSettingsDocument | null>();
+}
+
+export async function getSiteSettingsFormValues(): Promise<SiteSettingsFormValues> {
+  const doc = await getSiteSettingsDocument();
+  if (!doc) return getDefaultSiteSettingsForm();
+
+  return {
+    logoUrl: doc.logoUrl ?? "",
+    faviconUrl: doc.faviconUrl ?? "",
+    ogImageUrl: doc.ogImageUrl ?? "",
+    locales: {
+      vi: mergeLocale(doc.locales?.vi, DEFAULT_SITE_LOCALES.vi),
+      en: mergeLocale(doc.locales?.en, DEFAULT_SITE_LOCALES.en),
+    },
+  };
+}
+
+export async function getPublicSiteBranding(
+  locale: AppLocale,
+): Promise<PublicSiteBranding> {
+  const key = localeKey(locale);
+  const doc = await getSiteSettingsDocument();
+  const defaults = DEFAULT_SITE_LOCALES[key];
+
+  if (!doc) {
+    return {
+      ...defaults,
+      logoUrl: "",
+      faviconUrl: "",
+      ogImageUrl: "",
+    };
+  }
+
+  const preferred = doc.locales?.[key];
+  const fallback = doc.locales?.[key === "en" ? "vi" : "en"];
+  const localeContent = mergeLocale(
+    preferred,
+    mergeLocale(fallback, defaults),
+  );
+
+  return {
+    ...localeContent,
+    logoUrl: doc.logoUrl ?? "",
+    faviconUrl: doc.faviconUrl ?? "",
+    ogImageUrl: doc.ogImageUrl ?? "",
+  };
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { deletePageAction, savePageAction } from "@/lib/actions";
 import { isEmptyHtml } from "@/lib/html";
@@ -164,9 +165,9 @@ export function PageEditor({ pageId, initial }: Props) {
           </label>
           <p className="text-gray-500">
             Prefer{" "}
-            <a href="/admin/menu" className="underline">
+            <Link href="/admin/menu" className="underline">
               Menus
-            </a>{" "}
+            </Link>{" "}
             to manage Navigation and Footer order.
           </p>
         </div>

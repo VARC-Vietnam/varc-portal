@@ -14,11 +14,13 @@ import {
   menuItemFormSchema,
   pageFormSchema,
   reorderMenuSchema,
+  siteSettingsFormSchema,
 } from "@/lib/validations/article";
 import { Article } from "@/models/Article";
 import { Category } from "@/models/Category";
 import { MenuItem } from "@/models/MenuItem";
 import { Page } from "@/models/Page";
+import { SITE_SETTINGS_KEY, SiteSettings } from "@/models/SiteSettings";
 import { User } from "@/models/User";
 
 async function requireAdmin() {
@@ -47,6 +49,7 @@ function revalidatePortal() {
   revalidatePath("/en/news", "layout");
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/menu");
+  revalidatePath("/admin/settings");
 }
 
 async function articleSlugTaken(
@@ -576,4 +579,61 @@ export async function createUserAction(
 
 export async function signOutAction() {
   await signOut({ redirectTo: "/" });
+}
+
+export async function saveSiteSettingsAction(
+  raw: unknown,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await requireAdmin();
+    const parsed = siteSettingsFormSchema.safeParse(raw);
+    if (!parsed.success) {
+      return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid data" };
+    }
+
+    const data = parsed.data;
+    await connectDb();
+
+    const locales = {
+      vi: {
+        siteName: data.locales.vi.siteName.trim(),
+        siteTitle: data.locales.vi.siteTitle.trim(),
+        tagline: data.locales.vi.tagline.trim(),
+        copyright: data.locales.vi.copyright.trim(),
+        metaTitle: data.locales.vi.metaTitle.trim(),
+        metaDescription: data.locales.vi.metaDescription.trim(),
+      },
+      en: {
+        siteName: data.locales.en.siteName.trim(),
+        siteTitle: data.locales.en.siteTitle.trim(),
+        tagline: data.locales.en.tagline.trim(),
+        copyright: data.locales.en.copyright.trim(),
+        metaTitle: data.locales.en.metaTitle.trim(),
+        metaDescription: data.locales.en.metaDescription.trim(),
+      },
+    };
+
+    await SiteSettings.findOneAndUpdate(
+      { key: SITE_SETTINGS_KEY },
+      {
+        $set: {
+          key: SITE_SETTINGS_KEY,
+          logoUrl: data.logoUrl.trim(),
+          faviconUrl: data.faviconUrl.trim(),
+          ogImageUrl: data.ogImageUrl.trim(),
+          locales,
+        },
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true },
+    );
+
+    revalidatePortal();
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error ? error.message : "Failed to save site settings",
+    };
+  }
 }

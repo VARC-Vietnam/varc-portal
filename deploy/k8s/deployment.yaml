@@ -19,7 +19,7 @@ spec:
         - name: ghcr-pull
       containers:
         - name: web
-          image: ghcr.io/varc-vietnam/varc-portal:v0.0.11
+          image: ghcr.io/varc-vietnam/varc-portal:v0.0.13
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3099

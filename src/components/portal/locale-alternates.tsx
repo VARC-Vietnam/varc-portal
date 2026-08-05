@@ -10,13 +10,9 @@ import {
   type ReactNode,
 } from "react";
 import type { AppLocale } from "@/i18n/routing";
+import type { LocaleHref } from "@/lib/locale-hrefs";
 
-export type LocaleHref =
-  | "/"
-  | {
-      pathname: "/news/[slug]" | "/pages/[slug]";
-      params: { slug: string };
-    };
+export type { LocaleHref };
 
 type Alternates = Partial<Record<AppLocale, LocaleHref>>;
 
@@ -74,12 +70,4 @@ export function SetLocaleAlternates({
   }, [setAlternates, vi, en, viSlug, enSlug]);
 
   return null;
-}
-
-export function pageHref(slug: string): LocaleHref {
-  return { pathname: "/pages/[slug]", params: { slug } };
-}
-
-export function newsHref(slug: string): LocaleHref {
-  return { pathname: "/news/[slug]", params: { slug } };
 }

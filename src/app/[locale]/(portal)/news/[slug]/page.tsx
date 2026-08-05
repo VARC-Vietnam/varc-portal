@@ -10,10 +10,8 @@ import {
 import { getPublicSiteBranding } from "@/lib/cms";
 import type { AppLocale } from "@/i18n/routing";
 import { HtmlContent } from "@/components/portal/html-content";
-import {
-  SetLocaleAlternates,
-  newsHref,
-} from "@/components/portal/locale-alternates";
+import { SetLocaleAlternates } from "@/components/portal/locale-alternates";
+import { newsHref } from "@/lib/locale-hrefs";
 import { coverFocusObjectPosition, normalizeCoverFocus } from "@/lib/cover-focus";
 
 export const dynamic = "force-dynamic";

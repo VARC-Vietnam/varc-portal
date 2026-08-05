@@ -21,6 +21,7 @@ import { normalizeCoverFocus } from "@/lib/cover-focus";
 import {
   ensureUncategorizedCategory,
   notDeletedFilter,
+  deletedFilter,
   UNCATEGORIZED_KEY,
 } from "@/lib/soft-delete";
 import {
@@ -88,6 +89,14 @@ async function requireSiteManager() {
     throw new Error("Forbidden");
   }
   return session;
+}
+
+async function markNavigationMenuInitialized() {
+  await SiteSettings.findOneAndUpdate(
+    { key: SITE_SETTINGS_KEY },
+    { $set: { menuNavImported: true } },
+    { upsert: true },
+  );
 }
 
 function revalidatePortal() {
@@ -294,6 +303,46 @@ export async function restoreArticleAction(
   }
 }
 
+export async function permanentlyDeleteArticleAction(
+  id: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await requireArticleManager();
+    await connectDb();
+    const existing = await Article.findOne({ _id: id, ...deletedFilter });
+    if (!existing) {
+      return { ok: false, error: "Trashed article not found" };
+    }
+    await Article.findByIdAndDelete(id);
+    revalidatePortal();
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error ? error.message : "Failed to delete permanently",
+    };
+  }
+}
+
+export async function emptyArticlesTrashAction(): Promise<
+  { ok: true; deleted: number } | { ok: false; error: string }
+> {
+  try {
+    await requireArticleManager();
+    await connectDb();
+    const result = await Article.deleteMany(deletedFilter);
+    revalidatePortal();
+    return { ok: true, deleted: result.deletedCount };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error ? error.message : "Failed to empty trash",
+    };
+  }
+}
+
 export async function saveCategoryAction(
   id: string | null,
   raw: unknown,
@@ -425,6 +474,56 @@ export async function restoreCategoryAction(
   }
 }
 
+export async function permanentlyDeleteCategoryAction(
+  id: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await requireCategoryManager();
+    await connectDb();
+    const existing = await Category.findOne({ _id: id, ...deletedFilter });
+    if (!existing) {
+      return { ok: false, error: "Trashed category not found" };
+    }
+    if (existing.isSystem || existing.key === UNCATEGORIZED_KEY) {
+      return {
+        ok: false,
+        error: "The Uncategorized category cannot be deleted permanently",
+      };
+    }
+    await Category.findByIdAndDelete(id);
+    revalidatePortal();
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error ? error.message : "Failed to delete permanently",
+    };
+  }
+}
+
+export async function emptyCategoriesTrashAction(): Promise<
+  { ok: true; deleted: number } | { ok: false; error: string }
+> {
+  try {
+    await requireCategoryManager();
+    await connectDb();
+    const result = await Category.deleteMany({
+      ...deletedFilter,
+      key: { $ne: UNCATEGORIZED_KEY },
+      isSystem: { $ne: true },
+    });
+    revalidatePortal();
+    return { ok: true, deleted: result.deletedCount };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error ? error.message : "Failed to empty trash",
+    };
+  }
+}
+
 export async function savePageAction(
   id: string | null,
   raw: unknown,
@@ -537,6 +636,46 @@ export async function restorePageAction(
   }
 }
 
+export async function permanentlyDeletePageAction(
+  id: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await requireSiteManager();
+    await connectDb();
+    const existing = await Page.findOne({ _id: id, ...deletedFilter });
+    if (!existing) {
+      return { ok: false, error: "Trashed page not found" };
+    }
+    await Page.findByIdAndDelete(id);
+    revalidatePortal();
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error ? error.message : "Failed to delete permanently",
+    };
+  }
+}
+
+export async function emptyPagesTrashAction(): Promise<
+  { ok: true; deleted: number } | { ok: false; error: string }
+> {
+  try {
+    await requireSiteManager();
+    await connectDb();
+    const result = await Page.deleteMany(deletedFilter);
+    revalidatePortal();
+    return { ok: true, deleted: result.deletedCount };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error ? error.message : "Failed to empty trash",
+    };
+  }
+}
+
 export async function saveMenuItemAction(
   id: string | null,
   raw: unknown,
@@ -570,6 +709,9 @@ export async function saveMenuItemAction(
     if (id) {
       const existing = await MenuItem.findById(id);
       if (!existing) return { ok: false, error: "Menu item not found" };
+      if (existing.deletedAt) {
+        return { ok: false, error: "Restore this menu item before editing" };
+      }
       if (existing.location !== data.location) {
         return { ok: false, error: "Cannot change menu location" };
       }
@@ -582,11 +724,17 @@ export async function saveMenuItemAction(
       existing.enabled = data.enabled;
       existing.openInNewTab = data.openInNewTab;
       await existing.save();
+      if (data.location === "navigation") {
+        await markNavigationMenuInitialized();
+      }
       revalidatePortal();
       return { ok: true, id: String(existing._id) };
     }
 
-    const max = await MenuItem.find({ location: data.location })
+    const max = await MenuItem.find({
+      location: data.location,
+      ...notDeletedFilter,
+    })
       .sort({ sortOrder: -1 })
       .limit(1)
       .lean();
@@ -604,6 +752,9 @@ export async function saveMenuItemAction(
       openInNewTab: data.openInNewTab,
       sortOrder: nextOrder,
     });
+    if (data.location === "navigation") {
+      await markNavigationMenuInitialized();
+    }
     revalidatePortal();
     return { ok: true, id: String(created._id) };
   } catch (error) {
@@ -620,7 +771,13 @@ export async function deleteMenuItemAction(
   try {
     await requireSiteManager();
     await connectDb();
-    await MenuItem.findByIdAndDelete(id);
+    const existing = await MenuItem.findOne({ _id: id, ...notDeletedFilter });
+    if (!existing) return { ok: false, error: "Menu item not found" };
+    existing.deletedAt = new Date();
+    await existing.save();
+    if (existing.location === "navigation") {
+      await markNavigationMenuInitialized();
+    }
     revalidatePortal();
     return { ok: true };
   } catch (error) {
@@ -628,6 +785,79 @@ export async function deleteMenuItemAction(
       ok: false,
       error:
         error instanceof Error ? error.message : "Failed to delete menu item",
+    };
+  }
+}
+
+export async function restoreMenuItemAction(
+  id: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await requireSiteManager();
+    await connectDb();
+    const existing = await MenuItem.findById(id);
+    if (!existing?.deletedAt) {
+      return { ok: false, error: "Deleted menu item not found" };
+    }
+    existing.deletedAt = null;
+    await existing.save();
+    revalidatePortal();
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error ? error.message : "Failed to restore menu item",
+    };
+  }
+}
+
+export async function permanentlyDeleteMenuItemAction(
+  id: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await requireSiteManager();
+    await connectDb();
+    const existing = await MenuItem.findOne({ _id: id, ...deletedFilter });
+    if (!existing) {
+      return { ok: false, error: "Trashed menu item not found" };
+    }
+    if (existing.location === "navigation") {
+      await markNavigationMenuInitialized();
+    }
+    await MenuItem.findByIdAndDelete(id);
+    revalidatePortal();
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error ? error.message : "Failed to delete permanently",
+    };
+  }
+}
+
+export async function emptyMenuTrashAction(): Promise<
+  { ok: true; deleted: number } | { ok: false; error: string }
+> {
+  try {
+    await requireSiteManager();
+    await connectDb();
+    const hadNavTrash = await MenuItem.exists({
+      location: "navigation",
+      ...deletedFilter,
+    });
+    if (hadNavTrash) {
+      await markNavigationMenuInitialized();
+    }
+    const result = await MenuItem.deleteMany(deletedFilter);
+    revalidatePortal();
+    return { ok: true, deleted: result.deletedCount };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error ? error.message : "Failed to empty trash",
     };
   }
 }
@@ -648,6 +878,7 @@ export async function reorderMenuItemsAction(
     const items = await MenuItem.find({
       location,
       _id: { $in: orderedIds },
+      ...notDeletedFilter,
     });
     if (items.length !== orderedIds.length) {
       return { ok: false, error: "One or more menu items were not found" };

@@ -9,12 +9,20 @@ import {
 import { useRouter } from "next/navigation";
 import {
   deleteMenuItemAction,
+  permanentlyDeleteMenuItemAction,
   reorderMenuItemsAction,
+  restoreMenuItemAction,
   saveMenuItemAction,
 } from "@/lib/actions";
 import type { AdminMenuItem } from "@/lib/cms";
 import type { MenuItemFormValues } from "@/lib/validations/article";
 import type { MenuLocation } from "@/models/MenuItem";
+import { EditIcon, TrashIcon } from "@/components/admin/admin-action-icons";
+import {
+  IconActionButton,
+  RowActionsGroup,
+} from "@/components/admin/icon-action-button";
+import { TrashRowActions } from "@/components/admin/trash-row-actions";
 
 type PageOption = {
   id: string;
@@ -25,6 +33,7 @@ type PageOption = {
 type Props = {
   initialItems: AdminMenuItem[];
   pages: PageOption[];
+  trash?: boolean;
 };
 
 const emptyForm = (location: MenuLocation): MenuItemFormValues => ({
@@ -48,7 +57,7 @@ function sortForLocation(
     .sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
-export function MenuManager({ initialItems, pages }: Props) {
+export function MenuManager({ initialItems, pages, trash = false }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -108,7 +117,7 @@ export function MenuManager({ initialItems, pages }: Props) {
   }
 
   function onDelete(id: string) {
-    if (!confirm("Delete this menu item?")) return;
+    if (!confirm("Move this menu item to trash?")) return;
     setError(null);
     startTransition(async () => {
       const result = await deleteMenuItemAction(id);
@@ -204,6 +213,79 @@ export function MenuManager({ initialItems, pages }: Props) {
     setError(null);
     setDragId(null);
     setOverId(null);
+  }
+
+  const trashItems = useMemo(
+    () =>
+      [...initialItems].sort((a, b) => {
+        const aTime = a.deletedAt ? new Date(a.deletedAt).getTime() : 0;
+        const bTime = b.deletedAt ? new Date(b.deletedAt).getTime() : 0;
+        return bTime - aTime;
+      }),
+    [initialItems],
+  );
+
+  if (trash) {
+    return (
+      <div className="space-y-4">
+        {error ? (
+          <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {error}
+          </p>
+        ) : null}
+
+        {trashItems.length === 0 ? (
+          <p className="text-gray-600">Trash is empty.</p>
+        ) : (
+          <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+            <table className="min-w-full text-left text-sm">
+              <thead className="border-b border-gray-200 bg-gray-50 text-gray-600">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Label</th>
+                  <th className="px-4 py-3 font-medium">Menu</th>
+                  <th className="px-4 py-3 font-medium">Type</th>
+                  <th className="px-4 py-3 font-medium">Deleted</th>
+                  <th className="px-4 py-3 font-medium text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {trashItems.map((item) => {
+                  const label =
+                    item.locales.vi.label ||
+                    item.pageTitle ||
+                    item.locales.en.label ||
+                    "(untitled)";
+                  return (
+                    <tr key={item.id} className="border-b border-gray-100">
+                      <td className="px-4 py-3 font-medium">{label}</td>
+                      <td className="px-4 py-3 capitalize">{item.location}</td>
+                      <td className="px-4 py-3 capitalize">
+                        {item.type === "page" ? "Page" : "Custom"}
+                      </td>
+                      <td className="px-4 py-3 text-gray-500">
+                        {item.deletedAt
+                          ? new Date(item.deletedAt).toLocaleString("vi-VN")
+                          : "-"}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <TrashRowActions
+                          restoreAction={restoreMenuItemAction.bind(null, item.id)}
+                          deleteAction={permanentlyDeleteMenuItemAction.bind(
+                            null,
+                            item.id,
+                          )}
+                          itemLabel={label}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -487,7 +569,7 @@ export function MenuManager({ initialItems, pages }: Props) {
                 <th className="px-4 py-3 font-medium">Label</th>
                 <th className="px-4 py-3 font-medium">Type</th>
                 <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Actions</th>
+                <th className="px-4 py-3 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -562,23 +644,23 @@ export function MenuManager({ initialItems, pages }: Props) {
                         {item.enabled ? "Enabled" : "Disabled"}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
+                    <td className="px-4 py-3 text-right">
+                      <RowActionsGroup>
+                        <IconActionButton
+                          label="Edit"
                           onClick={() => openEdit(item)}
-                          className="text-sm text-gray-700 underline"
                         >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
+                          <EditIcon />
+                        </IconActionButton>
+                        <IconActionButton
+                          label="Move to trash"
+                          variant="danger"
+                          disabled={pending}
                           onClick={() => onDelete(item.id)}
-                          className="text-sm text-red-700 underline"
                         >
-                          Delete
-                        </button>
-                      </div>
+                          <TrashIcon />
+                        </IconActionButton>
+                      </RowActionsGroup>
                     </td>
                   </tr>
                 );

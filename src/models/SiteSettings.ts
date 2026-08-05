@@ -23,6 +23,8 @@ const SiteSettingsSchema = new Schema(
     logoUrl: { type: String, default: "" },
     faviconUrl: { type: String, default: "" },
     ogImageUrl: { type: String, default: "" },
+    /** Set after nav menu is first seeded or manually edited — prevents re-import. */
+    menuNavImported: { type: Boolean, default: false },
     locales: {
       vi: { type: SiteLocaleSchema, required: true },
       en: { type: SiteLocaleSchema, required: true },

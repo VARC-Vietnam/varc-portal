@@ -4,10 +4,8 @@ import { useParams } from "next/navigation";
 import { useLocale } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import type { AppLocale } from "@/i18n/routing";
-import {
-  useLocaleAlternates,
-  type LocaleHref,
-} from "@/components/portal/locale-alternates";
+import { useLocaleAlternates } from "@/components/portal/locale-alternates";
+import type { LocaleHref } from "@/lib/locale-hrefs";
 
 function FlagVN({ className }: { className?: string }) {
   return (

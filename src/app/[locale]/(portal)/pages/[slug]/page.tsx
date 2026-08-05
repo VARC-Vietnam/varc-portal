@@ -5,10 +5,8 @@ import { Link } from "@/i18n/navigation";
 import { getPageLocale, getPublishedPageBySlug, getPublicSiteBranding } from "@/lib/cms";
 import type { AppLocale } from "@/i18n/routing";
 import { HtmlContent } from "@/components/portal/html-content";
-import {
-  SetLocaleAlternates,
-  pageHref,
-} from "@/components/portal/locale-alternates";
+import { SetLocaleAlternates } from "@/components/portal/locale-alternates";
+import { pageHref } from "@/lib/locale-hrefs";
 
 export const dynamic = "force-dynamic";
 

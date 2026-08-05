@@ -2,6 +2,7 @@ import { connectDb } from "@/lib/db";
 import {
   ensureUncategorizedCategory,
   notDeletedFilter,
+  deletedFilter,
 } from "@/lib/soft-delete";
 import { Category, type CategoryDocument } from "@/models/Category";
 import {
@@ -128,6 +129,7 @@ export type AdminMenuItem = {
   enabled: boolean;
   openInNewTab: boolean;
   sortOrder: number;
+  deletedAt?: Date | string | null;
 };
 
 function pageNavFields(
@@ -177,12 +179,20 @@ export async function listNavPages(locale: AppLocale): Promise<NavPageItem[]> {
 }
 
 export async function listMenuItemsAdmin(
-  location?: MenuLocation,
+  options?: { location?: MenuLocation; trash?: boolean },
 ): Promise<AdminMenuItem[]> {
   await connectDb();
-  const filter = location ? { location } : {};
+  const filter: Record<string, unknown> = options?.trash
+    ? { ...deletedFilter }
+    : { ...notDeletedFilter };
+  if (options?.location) filter.location = options.location;
+
   const items = await MenuItem.find(filter)
-    .sort({ location: 1, sortOrder: 1, updatedAt: -1 })
+    .sort(
+      options?.trash
+        ? { deletedAt: -1 }
+        : { location: 1, sortOrder: 1, updatedAt: -1 },
+    )
     .lean<MenuItemDocument[]>();
 
   const pageIds = items
@@ -220,8 +230,21 @@ export async function listMenuItemsAdmin(
       enabled: Boolean(item.enabled),
       openInNewTab: Boolean(item.openInNewTab),
       sortOrder: item.sortOrder ?? 0,
+      deletedAt: item.deletedAt ?? null,
     };
   });
+}
+
+export async function countMenuItems(options?: {
+  location?: MenuLocation;
+  trash?: boolean;
+}): Promise<number> {
+  await connectDb();
+  const filter: Record<string, unknown> = options?.trash
+    ? { ...deletedFilter }
+    : { ...notDeletedFilter };
+  if (options?.location) filter.location = options.location;
+  return MenuItem.countDocuments(filter);
 }
 
 export async function listPublicMenuLinks(
@@ -229,7 +252,7 @@ export async function listPublicMenuLinks(
   locale: AppLocale,
 ): Promise<PublicMenuLink[]> {
   await connectDb();
-  const items = await MenuItem.find({ location, enabled: true })
+  const items = await MenuItem.find({ location, enabled: true, ...notDeletedFilter })
     .sort({ sortOrder: 1, updatedAt: -1 })
     .lean<MenuItemDocument[]>();
 
@@ -300,12 +323,25 @@ export async function listPublicMenuLinks(
 }
 
 /**
- * Import published showInNav pages into the Navigation menu when it is empty.
+ * Import published showInNav pages into the Navigation menu on first setup only.
+ * Does not run again after the admin has created, imported, or trashed menu items.
  */
 export async function importNavPagesIntoMenuIfEmpty(): Promise<number> {
   await connectDb();
-  const existing = await MenuItem.countDocuments({ location: "navigation" });
-  if (existing > 0) return 0;
+
+  if (await MenuItem.exists({ location: "navigation" })) {
+    await SiteSettings.findOneAndUpdate(
+      { key: SITE_SETTINGS_KEY },
+      { $set: { menuNavImported: true } },
+      { upsert: true },
+    );
+    return 0;
+  }
+
+  const settings = await SiteSettings.findOne({ key: SITE_SETTINGS_KEY }).lean();
+  if (settings?.menuNavImported) {
+    return 0;
+  }
 
   const pages = await Page.find({
     ...notDeletedFilter,
@@ -327,6 +363,12 @@ export async function importNavPagesIntoMenuIfEmpty(): Promise<number> {
       openInNewTab: false,
       sortOrder: index,
     })),
+  );
+
+  await SiteSettings.findOneAndUpdate(
+    { key: SITE_SETTINGS_KEY },
+    { $set: { menuNavImported: true } },
+    { upsert: true },
   );
 
   return pages.length;

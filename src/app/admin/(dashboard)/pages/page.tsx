@@ -1,8 +1,15 @@
 import Link from "next/link";
 import { listPages, getPageLocale } from "@/lib/cms";
-import { restorePageAction } from "@/lib/actions";
+import {
+  deletePageAction,
+  restorePageAction,
+  permanentlyDeletePageAction,
+  emptyPagesTrashAction,
+} from "@/lib/actions";
 import { AdminListTabs } from "@/components/admin/admin-list-tabs";
-import { RestoreButton } from "@/components/admin/restore-button";
+import { ActiveRowActions } from "@/components/admin/active-row-actions";
+import { TrashRowActions } from "@/components/admin/trash-row-actions";
+import { EmptyTrashButton } from "@/components/admin/empty-trash-button";
 import { requireSitePage } from "@/lib/admin-access";
 
 export const dynamic = "force-dynamic";
@@ -26,14 +33,20 @@ export default async function AdminPagesPage({ searchParams }: Props) {
     <div>
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold">Pages</h1>
-        {!trash ? (
+        {trash ? (
+          <EmptyTrashButton
+            count={trashItems.length}
+            itemLabel="pages"
+            emptyAction={emptyPagesTrashAction}
+          />
+        ) : (
           <Link
             href="/admin/pages/new"
             className="rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-black"
           >
             New page
           </Link>
-        ) : null}
+        )}
       </div>
 
       <AdminListTabs
@@ -56,12 +69,10 @@ export default async function AdminPagesPage({ searchParams }: Props) {
                 <th className="px-4 py-3 font-medium">Slug</th>
                 <th className="px-4 py-3 font-medium">Nav</th>
                 <th className="px-4 py-3 font-medium">Status</th>
-                {trash ? (
-                  <>
-                    <th className="px-4 py-3 font-medium">Deleted</th>
-                    <th className="px-4 py-3 font-medium text-right">Actions</th>
-                  </>
-                ) : null}
+                <th className="px-4 py-3 font-medium">
+                  {trash ? "Deleted" : "Updated"}
+                </th>
+                <th className="px-4 py-3 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -70,19 +81,8 @@ export default async function AdminPagesPage({ searchParams }: Props) {
                 const id = String(page._id);
                 return (
                   <tr key={id} className="border-b border-gray-100">
-                    <td className="px-4 py-3">
-                      {trash ? (
-                        <span className="font-medium">
-                          {vi.title || "(untitled)"}
-                        </span>
-                      ) : (
-                        <Link
-                          href={`/admin/pages/${id}`}
-                          className="font-medium hover:underline"
-                        >
-                          {vi.title || "(untitled)"}
-                        </Link>
-                      )}
+                    <td className="px-4 py-3 font-medium">
+                      {vi.title || "(untitled)"}
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-gray-500">
                       {vi.slug || "—"}
@@ -101,20 +101,30 @@ export default async function AdminPagesPage({ searchParams }: Props) {
                         {page.status}
                       </span>
                     </td>
-                    {trash ? (
-                      <>
-                        <td className="px-4 py-3 text-gray-500">
-                          {page.deletedAt
-                            ? new Date(page.deletedAt).toLocaleString("vi-VN")
-                            : "-"}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <RestoreButton
-                            restoreAction={restorePageAction.bind(null, id)}
-                          />
-                        </td>
-                      </>
-                    ) : null}
+                    <td className="px-4 py-3 text-gray-500">
+                      {trash
+                        ? page.deletedAt
+                          ? new Date(page.deletedAt).toLocaleString("vi-VN")
+                          : "-"
+                        : page.updatedAt
+                          ? new Date(page.updatedAt).toLocaleString("vi-VN")
+                          : "-"}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {trash ? (
+                        <TrashRowActions
+                          restoreAction={restorePageAction.bind(null, id)}
+                          deleteAction={permanentlyDeletePageAction.bind(null, id)}
+                          itemLabel={vi.title || "this page"}
+                        />
+                      ) : (
+                        <ActiveRowActions
+                          editHref={`/admin/pages/${id}`}
+                          deleteAction={deletePageAction.bind(null, id)}
+                          deleteConfirmMessage="Move this page to trash?"
+                        />
+                      )}
+                    </td>
                   </tr>
                 );
               })}

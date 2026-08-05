@@ -40,6 +40,7 @@ const MenuItemSchema = new Schema(
     enabled: { type: Boolean, default: true },
     openInNewTab: { type: Boolean, default: false },
     sortOrder: { type: Number, default: 0, index: true },
+    deletedAt: { type: Date, default: null, index: true },
   },
   { timestamps: true },
 );

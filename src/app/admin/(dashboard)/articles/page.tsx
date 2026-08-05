@@ -1,9 +1,16 @@
 import Link from "next/link";
 import { listAllArticles, getLocaleContent } from "@/lib/articles";
 import { listCategories, getCategoryLocale } from "@/lib/cms";
-import { restoreArticleAction } from "@/lib/actions";
+import {
+  deleteArticleAction,
+  restoreArticleAction,
+  permanentlyDeleteArticleAction,
+  emptyArticlesTrashAction,
+} from "@/lib/actions";
 import { AdminListTabs } from "@/components/admin/admin-list-tabs";
-import { RestoreButton } from "@/components/admin/restore-button";
+import { ActiveRowActions } from "@/components/admin/active-row-actions";
+import { TrashRowActions } from "@/components/admin/trash-row-actions";
+import { EmptyTrashButton } from "@/components/admin/empty-trash-button";
 import { requireEditorialPage } from "@/lib/admin-access";
 
 export const dynamic = "force-dynamic";
@@ -38,14 +45,20 @@ export default async function AdminArticlesPage({ searchParams }: Props) {
     <div>
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold">Articles</h1>
-        {!trash ? (
+        {trash ? (
+          <EmptyTrashButton
+            count={trashItems.length}
+            itemLabel="articles"
+            emptyAction={emptyArticlesTrashAction}
+          />
+        ) : (
           <Link
             href="/admin/articles/new"
             className="rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-black"
           >
             New article
           </Link>
-        ) : null}
+        )}
       </div>
 
       <AdminListTabs
@@ -72,9 +85,7 @@ export default async function AdminArticlesPage({ searchParams }: Props) {
                 <th className="px-4 py-3 font-medium">
                   {trash ? "Deleted" : "Updated"}
                 </th>
-                {trash ? (
-                  <th className="px-4 py-3 font-medium text-right">Actions</th>
-                ) : null}
+                <th className="px-4 py-3 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -87,19 +98,8 @@ export default async function AdminArticlesPage({ searchParams }: Props) {
                   .filter(Boolean);
                 return (
                   <tr key={id} className="border-b border-gray-100">
-                    <td className="px-4 py-3">
-                      {trash ? (
-                        <span className="font-medium text-gray-900">
-                          {vi.title || "(untitled)"}
-                        </span>
-                      ) : (
-                        <Link
-                          href={`/admin/articles/${id}`}
-                          className="font-medium text-gray-900 hover:underline"
-                        >
-                          {vi.title || "(untitled)"}
-                        </Link>
-                      )}
+                    <td className="px-4 py-3 font-medium text-gray-900">
+                      {vi.title || "(untitled)"}
                     </td>
                     <td className="px-4 py-3 text-gray-600">
                       {categoryNames.length > 0
@@ -132,13 +132,21 @@ export default async function AdminArticlesPage({ searchParams }: Props) {
                           ? new Date(article.updatedAt).toLocaleString("vi-VN")
                           : "-"}
                     </td>
-                    {trash ? (
-                      <td className="px-4 py-3 text-right">
-                        <RestoreButton
+                    <td className="px-4 py-3 text-right">
+                      {trash ? (
+                        <TrashRowActions
                           restoreAction={restoreArticleAction.bind(null, id)}
+                          deleteAction={permanentlyDeleteArticleAction.bind(null, id)}
+                          itemLabel={vi.title || "this article"}
                         />
-                      </td>
-                    ) : null}
+                      ) : (
+                        <ActiveRowActions
+                          editHref={`/admin/articles/${id}`}
+                          deleteAction={deleteArticleAction.bind(null, id)}
+                          deleteConfirmMessage="Move this article to trash?"
+                        />
+                      )}
+                    </td>
                   </tr>
                 );
               })}

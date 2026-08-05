@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  useEffect,
   useMemo,
   useState,
   useTransition,
@@ -204,11 +203,6 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const [dropMode, setDropMode] = useState<DropMode>("before");
-  // Avoid disabled/class mismatches between Node SSR and browser hydration.
-  const [moveControlsReady, setMoveControlsReady] = useState(false);
-  useEffect(() => {
-    setMoveControlsReady(true);
-  }, []);
 
   const serverItems = useMemo(
     () =>
@@ -907,10 +901,6 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
                   };
                   const canMoveUp = meta.index > 0;
                   const canMoveDown = meta.index < meta.count - 1;
-                  const blockUp =
-                    moveControlsReady && (pending || !canMoveUp);
-                  const blockDown =
-                    moveControlsReady && (pending || !canMoveDown);
                   const isDragging = dragId === item.id;
                   const isOver = overId === item.id && dragId !== item.id;
                   const childCount = displayItems.filter(
@@ -959,13 +949,17 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
                         <div className="flex items-center gap-1">
                           <button
                             type="button"
-                            aria-disabled={blockUp ? true : undefined}
+                            aria-disabled={
+                              pending || !canMoveUp ? true : undefined
+                            }
                             onClick={() => {
-                              if (blockUp || !canMoveUp || pending) return;
+                              if (!canMoveUp || pending) return;
                               moveSibling(item.id, -1);
                             }}
                             className={`rounded border border-gray-300 px-2 py-1 text-xs ${
-                              blockUp ? "cursor-not-allowed opacity-40" : ""
+                              pending || !canMoveUp
+                                ? "cursor-not-allowed opacity-40"
+                                : ""
                             }`}
                             aria-label="Move up"
                           >
@@ -973,13 +967,17 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
                           </button>
                           <button
                             type="button"
-                            aria-disabled={blockDown ? true : undefined}
+                            aria-disabled={
+                              pending || !canMoveDown ? true : undefined
+                            }
                             onClick={() => {
-                              if (blockDown || !canMoveDown || pending) return;
+                              if (!canMoveDown || pending) return;
                               moveSibling(item.id, 1);
                             }}
                             className={`rounded border border-gray-300 px-2 py-1 text-xs ${
-                              blockDown ? "cursor-not-allowed opacity-40" : ""
+                              pending || !canMoveDown
+                                ? "cursor-not-allowed opacity-40"
+                                : ""
                             }`}
                             aria-label="Move down"
                           >

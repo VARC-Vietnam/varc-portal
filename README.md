@@ -55,11 +55,11 @@ Files are stored under `uploads/` and served at `/media/...` (rewritten to `/api
 STORAGE_DRIVER=s3
 S3_ENDPOINT=http://localhost:9000
 S3_REGION=us-east-1
-S3_BUCKET=varc-media
+S3_BUCKET=varc-portal-media
 S3_ACCESS_KEY=minioadmin
 S3_SECRET_KEY=minioadmin
 S3_FORCE_PATH_STYLE=true
-S3_PUBLIC_URL=http://localhost:9000/varc-media
+S3_PUBLIC_URL=http://localhost:9000/varc-portal-media
 ```
 
 Quick MinIO:
@@ -70,7 +70,7 @@ docker run -d --name varc-minio -p 9000:9000 -p 9001:9001 \
   minio/minio server /data --console-address ":9001"
 ```
 
-Create a public-read bucket named `varc-media` in the console at http://localhost:9001.
+Create a public-read bucket named `varc-portal-media` in the console at http://localhost:9001.
 
 Production should use `STORAGE_DRIVER=s3` (see `deploy/k8s/configmap.yaml` + S3 keys in the secret). Prefer MinIO over a PVC so portal pods stay ephemeral.
 

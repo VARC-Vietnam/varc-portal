@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import createMiddleware from "next-intl/middleware";
-import { isAdminRole, type Role } from "@/lib/roles";
+import { isAdminRole, canManageSite, canManageUsers, canManageRoles, type Role } from "@/lib/roles";
 import { routing } from "@/i18n/routing";
 
 const intlMiddleware = createMiddleware(routing);
+
+function pathMatches(pathname: string, base: string) {
+  return pathname === base || pathname.startsWith(`${base}/`);
+}
 
 /**
  * TLS terminates at Cloudflare / NPM. Rebuild the request as the public https
@@ -84,6 +88,24 @@ export default async function proxy(req: NextRequest) {
 
     if (isLogin && allowed) {
       return NextResponse.redirect(new URL("/admin", origin));
+    }
+
+    if (allowed) {
+      const adminHome = new URL("/admin", origin);
+      if (
+        (pathMatches(pathname, "/admin/settings") ||
+          pathMatches(pathname, "/admin/pages") ||
+          pathMatches(pathname, "/admin/menu")) &&
+        !canManageSite(role)
+      ) {
+        return NextResponse.redirect(adminHome);
+      }
+      if (pathMatches(pathname, "/admin/users") && !canManageUsers(role)) {
+        return NextResponse.redirect(adminHome);
+      }
+      if (pathMatches(pathname, "/admin/roles") && !canManageRoles(role)) {
+        return NextResponse.redirect(adminHome);
+      }
     }
 
     return NextResponse.next();

@@ -3,6 +3,7 @@ import { listPages, getPageLocale } from "@/lib/cms";
 import { restorePageAction } from "@/lib/actions";
 import { AdminListTabs } from "@/components/admin/admin-list-tabs";
 import { RestoreButton } from "@/components/admin/restore-button";
+import { requireSitePage } from "@/lib/admin-access";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,8 @@ type Props = {
 };
 
 export default async function AdminPagesPage({ searchParams }: Props) {
+  await requireSitePage();
+
   const { tab } = await searchParams;
   const trash = tab === "trash";
   const [activeItems, trashItems] = await Promise.all([

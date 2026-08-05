@@ -1,9 +1,12 @@
 import { getSiteSettingsFormValues } from "@/lib/cms";
 import { SiteSettingsEditor } from "@/components/admin/site-settings-editor";
+import { requireSitePage } from "@/lib/admin-access";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminSiteSettingsPage() {
+  await requireSitePage();
+
   const initial = await getSiteSettingsFormValues();
 
   return (

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { PageEditor, emptyPageForm } from "@/components/admin/page-editor";
+import { requireSitePage } from "@/lib/admin-access";
 import { getPageById, getPageLocale } from "@/lib/cms";
 import { normalizeEditorHtml } from "@/lib/html";
 
@@ -10,6 +11,8 @@ type Props = {
 };
 
 export default async function EditPagePage({ params }: Props) {
+  await requireSitePage();
+
   const { id } = await params;
   const page = await getPageById(id);
   if (!page || page.deletedAt) notFound();

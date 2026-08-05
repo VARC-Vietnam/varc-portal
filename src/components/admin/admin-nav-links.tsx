@@ -5,11 +5,11 @@ import { usePathname } from "next/navigation";
 
 const links = [
   { href: "/admin", label: "Dashboard", flag: "always" as const },
-  { href: "/admin/settings", label: "Site Settings", flag: "always" as const },
-  { href: "/admin/articles", label: "Articles", flag: "always" as const },
-  { href: "/admin/categories", label: "Categories", flag: "always" as const },
-  { href: "/admin/pages", label: "Pages", flag: "always" as const },
-  { href: "/admin/menu", label: "Menus", flag: "always" as const },
+  { href: "/admin/articles", label: "Articles", flag: "editorial" as const },
+  { href: "/admin/categories", label: "Categories", flag: "editorial" as const },
+  { href: "/admin/settings", label: "Site Settings", flag: "site" as const },
+  { href: "/admin/pages", label: "Pages", flag: "site" as const },
+  { href: "/admin/menu", label: "Menus", flag: "site" as const },
   { href: "/admin/users", label: "Users", flag: "users" as const },
   { href: "/admin/roles", label: "Roles", flag: "roles" as const },
 ];
@@ -20,9 +20,13 @@ function isActive(href: string, pathname: string) {
 }
 
 export function AdminNavLinks({
+  showEditorial,
+  showSite,
   showUsers,
   showRoles,
 }: {
+  showEditorial: boolean;
+  showSite: boolean;
   showUsers: boolean;
   showRoles: boolean;
 }) {
@@ -32,6 +36,8 @@ export function AdminNavLinks({
     <>
       {links
         .filter((link) => {
+          if (link.flag === "editorial") return showEditorial;
+          if (link.flag === "site") return showSite;
           if (link.flag === "users") return showUsers;
           if (link.flag === "roles") return showRoles;
           return true;

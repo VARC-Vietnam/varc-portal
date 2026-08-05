@@ -16,6 +16,7 @@ export type PublicRole = {
   isSystem: boolean;
   canAccessAdmin: boolean;
   canManageContent: boolean;
+  canManageSite: boolean;
   canManageUsers: boolean;
   canManageRoles: boolean;
   enabled: boolean;
@@ -31,6 +32,7 @@ function toPublicRole(doc: AppRoleDocument): PublicRole {
     isSystem: Boolean(doc.isSystem),
     canAccessAdmin: Boolean(doc.canAccessAdmin),
     canManageContent: Boolean(doc.canManageContent),
+    canManageSite: Boolean(doc.canManageSite),
     canManageUsers: Boolean(doc.canManageUsers),
     canManageRoles: Boolean(doc.canManageRoles),
     enabled: doc.enabled !== false,
@@ -57,10 +59,12 @@ export async function ensureDefaultRoles(): Promise<PublicRole[]> {
     existing.isSystem = true;
     existing.canAccessAdmin = role.canAccessAdmin;
     existing.canManageContent = role.canManageContent;
+    existing.canManageSite = role.canManageSite;
     existing.canManageUsers = role.canManageUsers;
     existing.canManageRoles = role.canManageRoles;
+    // Keep built-in copy in sync with code defaults.
+    existing.description = role.description;
     if (!existing.label?.trim()) existing.label = role.label;
-    if (!existing.description?.trim()) existing.description = role.description;
     if (typeof existing.sortOrder !== "number") existing.sortOrder = role.sortOrder;
     await existing.save();
   }

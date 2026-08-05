@@ -12,7 +12,8 @@ type Props = {
 function capabilityBadges(role: PublicRole) {
   const items: string[] = [];
   if (role.canAccessAdmin) items.push("Admin");
-  if (role.canManageContent) items.push("Content");
+  if (role.canManageContent) items.push("Articles & Categories");
+  if (role.canManageSite) items.push("Site");
   if (role.canManageUsers) items.push("Users");
   if (role.canManageRoles) items.push("Roles");
   return items;
@@ -188,8 +189,8 @@ function RoleEditModal({
             <span>Enabled for assignment</span>
           </label>
           <p className="text-xs text-gray-500">
-            Capability flags (Admin, Content, Users, Roles) are fixed for
-            built-in system roles.
+            Capability flags are fixed for built-in roles. Editor can manage
+            articles and categories only.
           </p>
         </div>
 

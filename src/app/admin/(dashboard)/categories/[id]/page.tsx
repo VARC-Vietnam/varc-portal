@@ -3,6 +3,7 @@ import {
   CategoryEditor,
   emptyCategoryForm,
 } from "@/components/admin/category-editor";
+import { requireEditorialPage } from "@/lib/admin-access";
 import { getCategoryById, getCategoryLocale } from "@/lib/cms";
 import { UNCATEGORIZED_KEY } from "@/lib/soft-delete";
 
@@ -13,6 +14,8 @@ type Props = {
 };
 
 export default async function EditCategoryPage({ params }: Props) {
+  await requireEditorialPage();
+
   const { id } = await params;
   const category = await getCategoryById(id);
   if (!category || category.deletedAt) notFound();

@@ -4,11 +4,14 @@ import {
   listMenuItemsAdmin,
   listPages,
 } from "@/lib/cms";
+import { requireSitePage } from "@/lib/admin-access";
 import { MenuManager } from "@/components/admin/menu-manager";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminMenuPage() {
+  await requireSitePage();
+
   const imported = await importNavPagesIntoMenuIfEmpty();
   const [items, pages] = await Promise.all([
     listMenuItemsAdmin(),

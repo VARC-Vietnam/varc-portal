@@ -16,6 +16,7 @@ const AppRoleSchema = new Schema(
     isSystem: { type: Boolean, default: true },
     canAccessAdmin: { type: Boolean, default: false },
     canManageContent: { type: Boolean, default: false },
+    canManageSite: { type: Boolean, default: false },
     canManageUsers: { type: Boolean, default: false },
     canManageRoles: { type: Boolean, default: false },
     enabled: { type: Boolean, default: true },

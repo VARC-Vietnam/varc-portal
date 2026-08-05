@@ -7,6 +7,9 @@ import { auth, signOut } from "@/auth";
 import { connectDb } from "@/lib/db";
 import {
   canChangeUserRole,
+  canManageArticles,
+  canManageCategories,
+  canManageSite,
   canManageUsers,
   isAdminRole,
   isSystemAdmin,
@@ -58,6 +61,30 @@ async function requireSystemAdmin() {
 async function requireUserManager() {
   const session = await requireAdmin();
   if (!canManageUsers(session.user.role)) {
+    throw new Error("Forbidden");
+  }
+  return session;
+}
+
+async function requireArticleManager() {
+  const session = await requireAdmin();
+  if (!canManageArticles(session.user.role)) {
+    throw new Error("Forbidden");
+  }
+  return session;
+}
+
+async function requireCategoryManager() {
+  const session = await requireAdmin();
+  if (!canManageCategories(session.user.role)) {
+    throw new Error("Forbidden");
+  }
+  return session;
+}
+
+async function requireSiteManager() {
+  const session = await requireAdmin();
+  if (!canManageSite(session.user.role)) {
     throw new Error("Forbidden");
   }
   return session;
@@ -127,7 +154,7 @@ export async function saveArticleAction(
   raw: unknown,
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   try {
-    const session = await requireAdmin();
+    const session = await requireArticleManager();
     const parsed = articleFormSchema.safeParse(raw);
     if (!parsed.success) {
       return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid data" };
@@ -229,7 +256,7 @@ export async function deleteArticleAction(
   id: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
-    await requireAdmin();
+    await requireArticleManager();
     await connectDb();
     const existing = await Article.findOne({ _id: id, ...notDeletedFilter });
     if (!existing) return { ok: false, error: "Article not found" };
@@ -249,7 +276,7 @@ export async function restoreArticleAction(
   id: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
-    await requireAdmin();
+    await requireArticleManager();
     await connectDb();
     const existing = await Article.findById(id);
     if (!existing?.deletedAt) {
@@ -272,7 +299,7 @@ export async function saveCategoryAction(
   raw: unknown,
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   try {
-    await requireAdmin();
+    await requireCategoryManager();
     const parsed = categoryFormSchema.safeParse(raw);
     if (!parsed.success) {
       return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid data" };
@@ -332,7 +359,7 @@ export async function deleteCategoryAction(
   id: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
-    await requireAdmin();
+    await requireCategoryManager();
     await connectDb();
     const existing = await Category.findOne({ _id: id, ...notDeletedFilter });
     if (!existing) return { ok: false, error: "Category not found" };
@@ -379,7 +406,7 @@ export async function restoreCategoryAction(
   id: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
-    await requireAdmin();
+    await requireCategoryManager();
     await connectDb();
     const existing = await Category.findById(id);
     if (!existing?.deletedAt) {
@@ -403,7 +430,7 @@ export async function savePageAction(
   raw: unknown,
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   try {
-    await requireAdmin();
+    await requireSiteManager();
     const parsed = pageFormSchema.safeParse(raw);
     if (!parsed.success) {
       return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid data" };
@@ -472,7 +499,7 @@ export async function deletePageAction(
   id: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
-    await requireAdmin();
+    await requireSiteManager();
     await connectDb();
     const existing = await Page.findOne({ _id: id, ...notDeletedFilter });
     if (!existing) return { ok: false, error: "Page not found" };
@@ -492,7 +519,7 @@ export async function restorePageAction(
   id: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
-    await requireAdmin();
+    await requireSiteManager();
     await connectDb();
     const existing = await Page.findById(id);
     if (!existing?.deletedAt) {
@@ -515,7 +542,7 @@ export async function saveMenuItemAction(
   raw: unknown,
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   try {
-    await requireAdmin();
+    await requireSiteManager();
     const parsed = menuItemFormSchema.safeParse(raw);
     if (!parsed.success) {
       return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid data" };
@@ -591,7 +618,7 @@ export async function deleteMenuItemAction(
   id: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
-    await requireAdmin();
+    await requireSiteManager();
     await connectDb();
     await MenuItem.findByIdAndDelete(id);
     revalidatePortal();
@@ -609,7 +636,7 @@ export async function reorderMenuItemsAction(
   raw: unknown,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
-    await requireAdmin();
+    await requireSiteManager();
     const parsed = reorderMenuSchema.safeParse(raw);
     if (!parsed.success) {
       return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid data" };
@@ -735,7 +762,7 @@ export async function saveSiteSettingsAction(
   raw: unknown,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
-    await requireAdmin();
+    await requireSiteManager();
     const parsed = siteSettingsFormSchema.safeParse(raw);
     if (!parsed.success) {
       return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid data" };

@@ -3,6 +3,7 @@ import {
   ArticleEditor,
   emptyArticleForm,
 } from "@/components/admin/article-editor";
+import { requireEditorialPage } from "@/lib/admin-access";
 import { getArticleById, getLocaleContent } from "@/lib/articles";
 import { listCategories, getCategoryLocale } from "@/lib/cms";
 import { normalizeEditorHtml } from "@/lib/html";
@@ -15,6 +16,8 @@ type Props = {
 };
 
 export default async function EditArticlePage({ params }: Props) {
+  await requireEditorialPage();
+
   const { id } = await params;
   const [article, categories] = await Promise.all([
     getArticleById(id),

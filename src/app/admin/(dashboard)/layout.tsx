@@ -1,6 +1,11 @@
 import { auth, signOut } from "@/auth";
 import Link from "next/link";
-import { canManageRoles, canManageUsers } from "@/lib/roles";
+import {
+  canManageEditorial,
+  canManageRoles,
+  canManageSite,
+  canManageUsers,
+} from "@/lib/roles";
 import { AdminNavLinks } from "@/components/admin/admin-nav-links";
 
 export default async function AdminDashboardLayout({
@@ -9,8 +14,11 @@ export default async function AdminDashboardLayout({
   children: React.ReactNode;
 }) {
   const session = await auth();
-  const showUsers = canManageUsers(session?.user?.role);
-  const showRoles = canManageRoles(session?.user?.role);
+  const role = session?.user?.role;
+  const showEditorial = canManageEditorial(role);
+  const showSite = canManageSite(role);
+  const showUsers = canManageUsers(role);
+  const showRoles = canManageRoles(role);
 
   return (
     <div className="min-h-[100dvh] bg-[var(--admin-bg)] text-[var(--admin-ink)]">
@@ -20,7 +28,12 @@ export default async function AdminDashboardLayout({
             <Link href="/admin" className="shrink-0 font-semibold">
               VARC Admin
             </Link>
-            <AdminNavLinks showUsers={showUsers} showRoles={showRoles} />
+            <AdminNavLinks
+              showEditorial={showEditorial}
+              showSite={showSite}
+              showUsers={showUsers}
+              showRoles={showRoles}
+            />
             <a
               href="/"
               target="_blank"

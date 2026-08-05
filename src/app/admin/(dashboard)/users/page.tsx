@@ -1,14 +1,12 @@
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
 import { CreateUserForm } from "@/components/admin/create-user-form";
 import { UserRoleControls } from "@/components/admin/user-role-controls";
+import { requireUsersPage } from "@/lib/admin-access";
 import { listAssignableRoles } from "@/lib/app-roles";
 import { connectDb } from "@/lib/db";
 import {
   assignableRolesForActor,
   canChangeUserRole,
   canManageUsers,
-  isAdminRole,
   isSystemAdmin,
   normalizeRoleKey,
 } from "@/lib/roles";
@@ -17,13 +15,10 @@ import { User } from "@/models/User";
 export const dynamic = "force-dynamic";
 
 export default async function AdminUsersPage() {
-  const session = await auth();
-  if (!isAdminRole(session?.user?.role)) {
-    redirect("/admin/login");
-  }
+  const session = await requireUsersPage();
 
-  const actorRole = session?.user?.role;
-  const actorUserId = session?.user?.id ?? "";
+  const actorRole = session.user.role;
+  const actorUserId = session.user.id ?? "";
   const canManage = canManageUsers(actorRole);
   const canCreate = isSystemAdmin(actorRole);
   const allRoles = await listAssignableRoles();

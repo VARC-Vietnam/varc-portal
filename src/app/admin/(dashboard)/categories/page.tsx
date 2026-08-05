@@ -3,6 +3,7 @@ import { listCategories, getCategoryLocale } from "@/lib/cms";
 import { restoreCategoryAction } from "@/lib/actions";
 import { AdminListTabs } from "@/components/admin/admin-list-tabs";
 import { RestoreButton } from "@/components/admin/restore-button";
+import { requireEditorialPage } from "@/lib/admin-access";
 import { UNCATEGORIZED_KEY } from "@/lib/soft-delete";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +13,8 @@ type Props = {
 };
 
 export default async function AdminCategoriesPage({ searchParams }: Props) {
+  await requireEditorialPage();
+
   const { tab } = await searchParams;
   const trash = tab === "trash";
   const [activeItems, trashItems] = await Promise.all([

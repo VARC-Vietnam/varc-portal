@@ -1,16 +1,11 @@
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
 import { ensureDefaultRoles } from "@/lib/app-roles";
-import { canManageRoles } from "@/lib/roles";
+import { requireRolesPage } from "@/lib/admin-access";
 import { RolesBoard } from "@/components/admin/roles-board";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminRolesPage() {
-  const session = await auth();
-  if (!canManageRoles(session?.user?.role)) {
-    redirect("/admin");
-  }
+  await requireRolesPage();
 
   const roles = await ensureDefaultRoles();
 

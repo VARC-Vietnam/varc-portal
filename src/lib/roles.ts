@@ -22,6 +22,7 @@ export const DEFAULT_ROLES: Array<{
   sortOrder: number;
   canAccessAdmin: boolean;
   canManageContent: boolean;
+  canManageSite: boolean;
   canManageUsers: boolean;
   canManageRoles: boolean;
 }> = [
@@ -32,6 +33,7 @@ export const DEFAULT_ROLES: Array<{
     sortOrder: 0,
     canAccessAdmin: true,
     canManageContent: true,
+    canManageSite: true,
     canManageUsers: true,
     canManageRoles: true,
   },
@@ -42,16 +44,18 @@ export const DEFAULT_ROLES: Array<{
     sortOrder: 1,
     canAccessAdmin: true,
     canManageContent: true,
+    canManageSite: true,
     canManageUsers: true,
     canManageRoles: false,
   },
   {
     key: "editor",
     label: "Editor",
-    description: "Create and edit articles, pages, and categories.",
+    description: "Create and edit articles and categories only.",
     sortOrder: 2,
     canAccessAdmin: true,
     canManageContent: true,
+    canManageSite: false,
     canManageUsers: false,
     canManageRoles: false,
   },
@@ -62,6 +66,7 @@ export const DEFAULT_ROLES: Array<{
     sortOrder: 3,
     canAccessAdmin: false,
     canManageContent: false,
+    canManageSite: false,
     canManageUsers: false,
     canManageRoles: false,
   },
@@ -96,6 +101,26 @@ export function canManageUsers(role?: string | null): boolean {
 
 export function canManageRoles(role?: string | null): boolean {
   return isSystemAdmin(role);
+}
+
+/** Articles + categories (Editor and above). */
+export function canManageEditorial(role?: string | null): boolean {
+  const key = normalizeRoleKey(role);
+  return key === "setup_admin" || key === "administrator" || key === "editor";
+}
+
+export function canManageArticles(role?: string | null): boolean {
+  return canManageEditorial(role);
+}
+
+export function canManageCategories(role?: string | null): boolean {
+  return canManageEditorial(role);
+}
+
+/** Site settings, pages, and menus (not Editor). */
+export function canManageSite(role?: string | null): boolean {
+  const key = normalizeRoleKey(role);
+  return key === "setup_admin" || key === "administrator";
 }
 
 /**

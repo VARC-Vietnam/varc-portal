@@ -286,7 +286,7 @@ export function ArticleEditor({
   return (
     <>
       <div
-        className={`min-w-0 transition-[padding] duration-200 ease-out ${
+        className={`w-full min-w-0 transition-[padding] duration-200 ease-out ${
           asideExpanded
             ? ARTICLE_ASIDE_PAD_EXPANDED
             : ARTICLE_ASIDE_PAD_COLLAPSED

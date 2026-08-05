@@ -44,6 +44,8 @@
 }
 
 .simple-editor-content .tiptap.ProseMirror.simple-editor {
+  width: 100%;
+  max-width: none;
   min-height: 16rem;
   height: auto;
   flex: none;

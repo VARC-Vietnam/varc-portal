@@ -182,6 +182,16 @@ export async function getArticleById(id: string) {
   return Article.findById(id).lean<ArticleDocument | null>();
 }
 
+/** Any non-deleted article (draft or published) for editorial preview. */
+export async function getArticleForPreview(id: string) {
+  await connectDb();
+  if (!mongoose.isValidObjectId(id)) return null;
+  return Article.findOne({
+    _id: id,
+    ...notDeletedFilter,
+  }).lean<ArticleDocument | null>();
+}
+
 export async function listPublishedForSitemap() {
   await connectDb();
   return Article.find({ ...notDeletedFilter, status: "published" })

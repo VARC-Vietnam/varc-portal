@@ -7,6 +7,7 @@ import {
   emptyCategoriesTrashAction,
 } from "@/lib/actions";
 import { AdminListTabs } from "@/components/admin/admin-list-tabs";
+import { AdminLocaleStatus } from "@/components/admin/admin-locale-status";
 import { ActiveRowActions } from "@/components/admin/active-row-actions";
 import { TrashRowActions } from "@/components/admin/trash-row-actions";
 import { EmptyTrashButton } from "@/components/admin/empty-trash-button";
@@ -18,6 +19,10 @@ export const dynamic = "force-dynamic";
 type Props = {
   searchParams: Promise<{ tab?: string }>;
 };
+
+function categoryLocaleReady(locale: { name: string; slug: string }) {
+  return Boolean(locale.name.trim() && locale.slug.trim());
+}
 
 export default async function AdminCategoriesPage({ searchParams }: Props) {
   await requireEditorialPage();
@@ -68,7 +73,7 @@ export default async function AdminCategoriesPage({ searchParams }: Props) {
               <tr>
                 <th className="px-4 py-3 font-medium">Name (VI)</th>
                 <th className="px-4 py-3 font-medium">Slug</th>
-                <th className="px-4 py-3 font-medium">EN</th>
+                <th className="px-4 py-3 font-medium">Languages</th>
                 {trash ? (
                   <th className="px-4 py-3 font-medium">Deleted</th>
                 ) : null}
@@ -96,8 +101,11 @@ export default async function AdminCategoriesPage({ searchParams }: Props) {
                     <td className="px-4 py-3 font-mono text-xs text-gray-500">
                       {vi.slug || "—"}
                     </td>
-                    <td className="px-4 py-3 text-gray-600">
-                      {en.name || "Missing"}
+                    <td className="px-4 py-3">
+                      <AdminLocaleStatus
+                        viReady={categoryLocaleReady(vi)}
+                        enReady={categoryLocaleReady(en)}
+                      />
                     </td>
                     {trash ? (
                       <td className="px-4 py-3 text-gray-500">

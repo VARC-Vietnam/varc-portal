@@ -11,6 +11,7 @@ type Props = {
   imageUrl: string;
   value: CoverFocusRect;
   onChange: (value: CoverFocusRect) => void;
+  compact?: boolean;
 };
 
 type ImageBox = {
@@ -78,7 +79,12 @@ function rectFromCorners(
   });
 }
 
-export function CoverFocusPicker({ imageUrl, value, onChange }: Props) {
+export function CoverFocusPicker({
+  imageUrl,
+  value,
+  onChange,
+  compact = false,
+}: Props) {
   const stageRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const dragOriginRef = useRef<{ x: number; y: number } | null>(null);
@@ -124,9 +130,15 @@ export function CoverFocusPicker({ imageUrl, value, onChange }: Props) {
         };
 
   return (
-    <div>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-        <div>
+    <div className="min-w-0 overflow-hidden">
+      <div
+        className={`mb-3 flex gap-3 ${
+          compact
+            ? "flex-col items-stretch"
+            : "flex-wrap items-center justify-between"
+        }`}
+      >
+        <div className="min-w-0">
           <p className="text-sm font-medium text-gray-900">Cover focus</p>
           <p className="mt-0.5 text-xs text-gray-500">
             {editing
@@ -141,6 +153,8 @@ export function CoverFocusPicker({ imageUrl, value, onChange }: Props) {
             setEditing((prev) => !prev);
           }}
           className={`rounded border px-3 py-1.5 text-sm transition-colors ${
+            compact ? "w-full" : ""
+          } ${
             editing
               ? "border-gray-900 bg-gray-900 text-white"
               : "border-gray-300 bg-white text-gray-800 hover:bg-gray-50"
@@ -210,7 +224,9 @@ export function CoverFocusPicker({ imageUrl, value, onChange }: Props) {
             dragOriginRef.current = null;
             setDraft(null);
           }}
-          className="relative aspect-[16/10] cursor-crosshair select-none overflow-hidden rounded-md border border-gray-300 bg-gray-900 touch-none"
+          className={`relative w-full cursor-crosshair touch-none select-none overflow-hidden rounded-md border border-gray-300 bg-gray-900 ${
+            compact ? "aspect-video" : "aspect-[16/10]"
+          }`}
           role="application"
           aria-label="Drag to draw cover focus rectangle"
         >
@@ -239,7 +255,11 @@ export function CoverFocusPicker({ imageUrl, value, onChange }: Props) {
           </div>
         </div>
       ) : (
-        <div className="aspect-[21/9] overflow-hidden rounded-md border border-gray-200 bg-gray-100">
+        <div
+          className={`w-full overflow-hidden rounded-md border border-gray-200 bg-gray-100 ${
+            compact ? "aspect-video" : "aspect-[21/9]"
+          }`}
+        >
           <FocusedCoverImage
             src={imageUrl}
             focus={value}
@@ -249,9 +269,10 @@ export function CoverFocusPicker({ imageUrl, value, onChange }: Props) {
         </div>
       )}
 
-      <p className="mt-2 text-xs text-gray-500">
-        Region {Math.round(displayRect.width)}% × {Math.round(displayRect.height)}%
-        at ({Math.round(displayRect.x)}%, {Math.round(displayRect.y)}%)
+      <p className="mt-2 text-xs break-words text-gray-500">
+        Region {Math.round(displayRect.width)}% ×{" "}
+        {Math.round(displayRect.height)}% at ({Math.round(displayRect.x)}%,{" "}
+        {Math.round(displayRect.y)}%)
         {editing
           ? " — drag to redraw; that region will be centered in the hero."
           : " — centered and zoomed to fill the hero frame."}

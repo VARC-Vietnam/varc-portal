@@ -7,6 +7,7 @@ import {
   emptyPagesTrashAction,
 } from "@/lib/actions";
 import { AdminListTabs } from "@/components/admin/admin-list-tabs";
+import { AdminLocaleStatus } from "@/components/admin/admin-locale-status";
 import { ActiveRowActions } from "@/components/admin/active-row-actions";
 import { TrashRowActions } from "@/components/admin/trash-row-actions";
 import { EmptyTrashButton } from "@/components/admin/empty-trash-button";
@@ -17,6 +18,10 @@ export const dynamic = "force-dynamic";
 type Props = {
   searchParams: Promise<{ tab?: string }>;
 };
+
+function pageLocaleReady(locale: { title: string; slug: string }) {
+  return Boolean(locale.title.trim() && locale.slug.trim());
+}
 
 export default async function AdminPagesPage({ searchParams }: Props) {
   await requireSitePage();
@@ -67,6 +72,7 @@ export default async function AdminPagesPage({ searchParams }: Props) {
               <tr>
                 <th className="px-4 py-3 font-medium">Title (VI)</th>
                 <th className="px-4 py-3 font-medium">Slug</th>
+                <th className="px-4 py-3 font-medium">Languages</th>
                 <th className="px-4 py-3 font-medium">Nav</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">
@@ -78,6 +84,7 @@ export default async function AdminPagesPage({ searchParams }: Props) {
             <tbody>
               {pages.map((page) => {
                 const vi = getPageLocale(page, "vi");
+                const en = getPageLocale(page, "en");
                 const id = String(page._id);
                 return (
                   <tr key={id} className="border-b border-gray-100">
@@ -86,6 +93,12 @@ export default async function AdminPagesPage({ searchParams }: Props) {
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-gray-500">
                       {vi.slug || "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <AdminLocaleStatus
+                        viReady={pageLocaleReady(vi)}
+                        enReady={pageLocaleReady(en)}
+                      />
                     </td>
                     <td className="px-4 py-3">
                       {page.showInNav ? "Yes" : "No"}

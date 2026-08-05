@@ -44,6 +44,7 @@ type NavItem = {
   label: string;
   flag: NavFlag;
   icon: ReactNode;
+  external?: boolean;
 };
 
 type NavGroup = {
@@ -81,6 +82,19 @@ const navGroups: NavGroup[] = [
         icon: (
           <Icon>
             <path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1v-9.5Z" />
+          </Icon>
+        ),
+      },
+      {
+        href: "/",
+        label: "View site",
+        flag: "always",
+        external: true,
+        icon: (
+          <Icon>
+            <path d="M14 4h6v6" />
+            <path d="M10 14 20 4" />
+            <path d="M20 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h5" />
           </Icon>
         ),
       },
@@ -295,7 +309,32 @@ export function AdminSidebar({
               )
             ) : null}
             {group.items.map((link) => {
-              const active = isActive(link.href, pathname);
+              const active = !link.external && isActive(link.href, pathname);
+              const className = `flex items-center gap-3 rounded-md px-2.5 py-2 text-sm transition ${
+                expanded ? "" : "justify-center"
+              } ${
+                active
+                  ? "bg-gray-900 text-white"
+                  : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+              }`;
+
+              if (link.external) {
+                return (
+                  <a
+                    key={link.href}
+                    href={link.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title={link.label}
+                    onClick={() => setMobileOpen(false)}
+                    className={className}
+                  >
+                    {link.icon}
+                    {expanded ? <span className="truncate">{link.label}</span> : null}
+                  </a>
+                );
+              }
+
               return (
                 <Link
                   key={link.href}
@@ -303,13 +342,7 @@ export function AdminSidebar({
                   title={link.label}
                   aria-current={active ? "page" : undefined}
                   onClick={() => setMobileOpen(false)}
-                  className={`flex items-center gap-3 rounded-md px-2.5 py-2 text-sm transition ${
-                    expanded ? "" : "justify-center"
-                  } ${
-                    active
-                      ? "bg-gray-900 text-white"
-                      : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-                  }`}
+                  className={className}
                 >
                   {link.icon}
                   {expanded ? (
@@ -323,23 +356,6 @@ export function AdminSidebar({
       </nav>
 
       <div className="space-y-2 border-t border-gray-200 p-2">
-        <a
-          href="/"
-          target="_blank"
-          rel="noopener noreferrer"
-          title="View site"
-          className={`flex items-center gap-3 rounded-md px-2.5 py-2 text-sm text-gray-700 transition hover:bg-gray-100 hover:text-gray-900 ${
-            expanded ? "" : "justify-center"
-          }`}
-        >
-          <Icon>
-            <path d="M14 4h6v6" />
-            <path d="M10 14 20 4" />
-            <path d="M20 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h5" />
-          </Icon>
-          {expanded ? <span>View site</span> : null}
-        </a>
-
         {expanded && userEmail ? (
           <p className="truncate px-2.5 text-xs text-gray-500" title={userEmail}>
             {userEmail}
@@ -394,12 +410,19 @@ export function AdminSidebar({
       ) : null}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 border-r border-gray-200 bg-white transition-[transform,width] duration-200 ease-out lg:sticky lg:top-0 lg:z-20 lg:h-[100dvh] lg:shrink-0 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 border-r border-gray-200 bg-white transition-[transform,width] duration-200 ease-out lg:translate-x-0 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         } ${expanded ? "lg:w-64" : "lg:w-[4.5rem]"}`}
       >
         {nav}
       </aside>
+      {/* Reserve horizontal space so main content isn't under the fixed sidebar */}
+      <div
+        className={`hidden shrink-0 lg:block ${
+          expanded ? "lg:w-64" : "lg:w-[4.5rem]"
+        }`}
+        aria-hidden
+      />
     </>
   );
 }

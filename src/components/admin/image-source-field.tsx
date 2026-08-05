@@ -11,6 +11,8 @@ type Props = {
   description?: string;
   value: string;
   onChange: (value: string) => void;
+  /** Stack controls for narrow side panels */
+  compact?: boolean;
 };
 
 function isUploadedValue(value: string): boolean {
@@ -36,6 +38,7 @@ export function ImageSourceField({
   description,
   value,
   onChange,
+  compact = false,
 }: Props) {
   const inputId = useId();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -110,159 +113,208 @@ export function ImageSourceField({
     });
   }
 
+  const modeToggle = (
+    <div
+      className={`inline-flex rounded-md border border-gray-300 bg-white p-0.5 text-xs ${
+        compact ? "w-full" : ""
+      }`}
+    >
+      <button
+        type="button"
+        onClick={() => switchMode("url")}
+        className={`rounded px-2.5 py-1.5 font-medium transition-colors ${
+          compact ? "flex-1" : ""
+        } ${
+          mode === "url"
+            ? "bg-gray-900 text-white"
+            : "text-gray-600 hover:text-gray-900"
+        }`}
+      >
+        {compact ? "URL" : "Remote URL"}
+      </button>
+      <button
+        type="button"
+        onClick={() => switchMode("upload")}
+        className={`rounded px-2.5 py-1.5 font-medium transition-colors ${
+          compact ? "flex-1" : ""
+        } ${
+          mode === "upload"
+            ? "bg-gray-900 text-white"
+            : "text-gray-600 hover:text-gray-900"
+        }`}
+      >
+        {compact ? "Upload" : "Upload file"}
+      </button>
+    </div>
+  );
+
+  const previewBox = (
+    <div
+      className={`flex items-center justify-center overflow-hidden rounded-md border border-gray-200 bg-white ${
+        compact ? "aspect-video w-full" : "aspect-video sm:aspect-square"
+      }`}
+    >
+      {preview ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={preview} alt="" className="h-full w-full object-cover" />
+      ) : (
+        <span className="px-3 text-center text-xs text-gray-400">
+          No image selected
+        </span>
+      )}
+    </div>
+  );
+
+  const controls = (
+    <div className="min-w-0 space-y-3">
+      <p className="text-xs text-gray-500">{modeHint}</p>
+
+      {mode === "url" ? (
+        <div className={`flex gap-2 ${compact ? "flex-col" : "flex-col sm:flex-row"}`}>
+          <input
+            id={`${inputId}-url`}
+            value={urlDraft}
+            onChange={(e) => setUrlDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                applyUrl();
+              }
+            }}
+            placeholder="https://example.com/image.jpg"
+            className="min-w-0 w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm"
+          />
+          <button
+            type="button"
+            onClick={applyUrl}
+            className={`shrink-0 rounded bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-black ${
+              compact ? "w-full" : ""
+            }`}
+          >
+            Apply
+          </button>
+        </div>
+      ) : (
+        <div
+          onDragEnter={(e) => {
+            e.preventDefault();
+            setDragOver(true);
+          }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragOver(true);
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            setDragOver(false);
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragOver(false);
+            readFile(e.dataTransfer.files?.[0]);
+          }}
+          className={`rounded-lg border border-dashed bg-white text-center transition-colors ${
+            compact ? "px-3 py-4" : "px-4 py-6"
+          } ${
+            dragOver
+              ? "border-gray-900 bg-gray-100"
+              : "border-gray-300 hover:border-gray-400"
+          }`}
+        >
+          <p className="text-sm text-gray-700">
+            {pending ? "Uploading…" : compact ? "Drop image here" : "Drag & drop an image here"}
+          </p>
+          {!compact ? <p className="mt-1 text-xs text-gray-500">or</p> : null}
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => fileInputRef.current?.click()}
+            className={`mt-2 rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-800 hover:bg-gray-50 disabled:opacity-50 ${
+              compact ? "w-full" : ""
+            }`}
+          >
+            Choose file
+          </button>
+          <input
+            ref={fileInputRef}
+            id={`${inputId}-file`}
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            onChange={(e) => {
+              readFile(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
+        </div>
+      )}
+
+      {error ? <p className="text-sm text-red-600 break-words">{error}</p> : null}
+
+      {preview ? (
+        <div
+          className={`flex gap-2 text-xs text-gray-500 ${
+            compact ? "flex-col items-stretch" : "flex-wrap items-center"
+          }`}
+        >
+          <span className="w-fit rounded bg-white px-2 py-1 ring-1 ring-gray-200">
+            {uploaded ? "Uploaded file" : "Remote URL"}
+          </span>
+          {!preview.startsWith("data:") ? (
+            <span
+              className="min-w-0 break-all font-mono leading-snug"
+              title={preview}
+            >
+              {preview}
+            </span>
+          ) : null}
+          <button
+            type="button"
+            onClick={clearImage}
+            className={`text-red-700 hover:underline ${
+              compact ? "w-full rounded border border-red-200 px-3 py-1.5 text-left" : "ml-auto"
+            }`}
+          >
+            Remove
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+
   return (
-    <div className="rounded-lg border border-gray-200 bg-gray-50/60 p-4">
-      <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-        <div>
+    <div
+      className={`min-w-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-50/60 ${
+        compact ? "p-3" : "p-4"
+      }`}
+    >
+      <div
+        className={`mb-3 flex gap-3 ${
+          compact
+            ? "flex-col items-stretch"
+            : "flex-wrap items-start justify-between"
+        }`}
+      >
+        <div className="min-w-0">
           <p className="text-sm font-medium text-gray-900">{label}</p>
           {description ? (
             <p className="mt-0.5 text-xs text-gray-500">{description}</p>
           ) : null}
         </div>
-        <div className="inline-flex rounded-md border border-gray-300 bg-white p-0.5 text-xs">
-          <button
-            type="button"
-            onClick={() => switchMode("url")}
-            className={`rounded px-2.5 py-1.5 font-medium transition-colors ${
-              mode === "url"
-                ? "bg-gray-900 text-white"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
-          >
-            Remote URL
-          </button>
-          <button
-            type="button"
-            onClick={() => switchMode("upload")}
-            className={`rounded px-2.5 py-1.5 font-medium transition-colors ${
-              mode === "upload"
-                ? "bg-gray-900 text-white"
-                : "text-gray-600 hover:text-gray-900"
-            }`}
-          >
-            Upload file
-          </button>
-        </div>
+        {modeToggle}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_11rem]">
-        <div className="min-w-0 space-y-3">
-          <p className="text-xs text-gray-500">{modeHint}</p>
-
-          {mode === "url" ? (
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <input
-                id={`${inputId}-url`}
-                value={urlDraft}
-                onChange={(e) => setUrlDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    applyUrl();
-                  }
-                }}
-                placeholder="https://example.com/image.jpg"
-                className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm"
-              />
-              <button
-                type="button"
-                onClick={applyUrl}
-                className="shrink-0 rounded bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-black"
-              >
-                Apply
-              </button>
-            </div>
-          ) : (
-            <div
-              onDragEnter={(e) => {
-                e.preventDefault();
-                setDragOver(true);
-              }}
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDragOver(true);
-              }}
-              onDragLeave={(e) => {
-                e.preventDefault();
-                setDragOver(false);
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                setDragOver(false);
-                readFile(e.dataTransfer.files?.[0]);
-              }}
-              className={`rounded-lg border border-dashed bg-white px-4 py-6 text-center transition-colors ${
-                dragOver
-                  ? "border-gray-900 bg-gray-100"
-                  : "border-gray-300 hover:border-gray-400"
-              }`}
-            >
-              <p className="text-sm text-gray-700">
-                {pending ? "Uploading…" : "Drag & drop an image here"}
-              </p>
-              <p className="mt-1 text-xs text-gray-500">or</p>
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => fileInputRef.current?.click()}
-                className="mt-2 rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-800 hover:bg-gray-50 disabled:opacity-50"
-              >
-                Choose file
-              </button>
-              <input
-                ref={fileInputRef}
-                id={`${inputId}-file`}
-                type="file"
-                accept="image/*"
-                className="sr-only"
-                onChange={(e) => {
-                  readFile(e.target.files?.[0]);
-                  e.target.value = "";
-                }}
-              />
-            </div>
-          )}
-
-          {error ? (
-            <p className="text-sm text-red-600">{error}</p>
-          ) : null}
-
-          {preview ? (
-            <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
-              <span className="rounded bg-white px-2 py-1 ring-1 ring-gray-200">
-                {uploaded ? "Uploaded file" : "Remote URL"}
-              </span>
-              {!preview.startsWith("data:") ? (
-                <span className="truncate font-mono" title={preview}>
-                  {preview}
-                </span>
-              ) : null}
-              <button
-                type="button"
-                onClick={clearImage}
-                className="ml-auto text-red-700 hover:underline"
-              >
-                Remove
-              </button>
-            </div>
-          ) : null}
+      {compact ? (
+        <div className="space-y-3">
+          {previewBox}
+          {controls}
         </div>
-
-        <div className="flex aspect-video items-center justify-center overflow-hidden rounded-md border border-gray-200 bg-white sm:aspect-square">
-          {preview ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={preview}
-              alt=""
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <span className="px-3 text-center text-xs text-gray-400">
-              No image selected
-            </span>
-          )}
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_11rem]">
+          {controls}
+          {previewBox}
         </div>
-      </div>
+      )}
     </div>
   );
 }

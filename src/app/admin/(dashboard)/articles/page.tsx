@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { listAllArticles, getLocaleContent } from "@/lib/articles";
+import { listAllArticles, getLocaleContent, hasLocaleContent } from "@/lib/articles";
 import { listCategories, getCategoryLocale } from "@/lib/cms";
 import {
   deleteArticleAction,
@@ -8,6 +8,7 @@ import {
   emptyArticlesTrashAction,
 } from "@/lib/actions";
 import { AdminListTabs } from "@/components/admin/admin-list-tabs";
+import { AdminLocaleStatus } from "@/components/admin/admin-locale-status";
 import { ActiveRowActions } from "@/components/admin/active-row-actions";
 import { TrashRowActions } from "@/components/admin/trash-row-actions";
 import { EmptyTrashButton } from "@/components/admin/empty-trash-button";
@@ -95,7 +96,7 @@ export default async function AdminArticlesPage({ searchParams }: Props) {
               <tr>
                 <th className="px-4 py-3 font-medium">Title (VI)</th>
                 <th className="px-4 py-3 font-medium">Category</th>
-                <th className="px-4 py-3 font-medium">EN</th>
+                <th className="px-4 py-3 font-medium">Languages</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="px-4 py-3 font-medium">
                   {trash ? "Deleted" : "Updated"}
@@ -106,7 +107,6 @@ export default async function AdminArticlesPage({ searchParams }: Props) {
             <tbody>
               {articles.map((article) => {
                 const vi = getLocaleContent(article, "vi");
-                const en = getLocaleContent(article, "en");
                 const id = String(article._id);
                 const categoryNames = (article.categoryIds ?? [])
                   .map((categoryId) => categoryNameById.get(String(categoryId)))
@@ -140,8 +140,11 @@ export default async function AdminArticlesPage({ searchParams }: Props) {
                         ? categoryNames.join(", ")
                         : "—"}
                     </td>
-                    <td className="relative z-10 pointer-events-none px-4 py-3 text-gray-600">
-                      {en.title ? "Ready" : "Missing"}
+                    <td className="relative z-10 pointer-events-none px-4 py-3">
+                      <AdminLocaleStatus
+                        viReady={hasLocaleContent(article, "vi")}
+                        enReady={hasLocaleContent(article, "en")}
+                      />
                     </td>
                     <td className="relative z-10 pointer-events-none px-4 py-3">
                       <span

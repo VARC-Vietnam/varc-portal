@@ -1,5 +1,5 @@
 import type { NextAuthConfig } from "next-auth";
-import { normalizeRoleKey, type Role } from "@/lib/roles";
+import { normalizeRoleKey } from "@/lib/roles";
 
 export const authConfig = {
   trustHost: true,

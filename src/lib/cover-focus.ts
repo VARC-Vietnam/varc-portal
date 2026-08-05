@@ -67,7 +67,7 @@ export function normalizeCoverFocus(value: unknown): CoverFocusRect {
     if (typeof record.x === "number" || typeof record.y === "number" || hasSize) {
       let x = clamp(typeof record.x === "number" ? record.x : 0, 0, 100);
       let y = clamp(typeof record.y === "number" ? record.y : 0, 0, 100);
-      let width = clamp(
+      const width = clamp(
         typeof record.width === "number"
           ? record.width
           : typeof record.w === "number"
@@ -76,7 +76,7 @@ export function normalizeCoverFocus(value: unknown): CoverFocusRect {
         MIN_SIZE,
         100,
       );
-      let height = clamp(
+      const height = clamp(
         typeof record.height === "number"
           ? record.height
           : typeof record.h === "number"

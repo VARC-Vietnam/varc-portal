@@ -52,7 +52,7 @@ export function HomeFeaturedSlider({
     if (count <= 1) return;
     const id = window.setInterval(() => onAutoAdvance(), 6500);
     return () => window.clearInterval(id);
-  }, [count, index, onAutoAdvance]);
+  }, [count, index]);
 
   if (count === 0) return null;
 

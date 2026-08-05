@@ -5,6 +5,10 @@ import { Link } from "@/i18n/navigation";
 import { getPageLocale, getPublishedPageBySlug, getPublicSiteBranding } from "@/lib/cms";
 import type { AppLocale } from "@/i18n/routing";
 import { HtmlContent } from "@/components/portal/html-content";
+import {
+  SetLocaleAlternates,
+  pageHref,
+} from "@/components/portal/locale-alternates";
 
 export const dynamic = "force-dynamic";
 
@@ -58,8 +62,15 @@ export default async function CmsPage({ params }: Props) {
     notFound();
   }
 
+  const vi = getPageLocale(page, "vi");
+  const en = getPageLocale(page, "en");
+
   return (
     <article className="mx-auto w-full max-w-6xl px-4 py-14 md:px-6">
+      <SetLocaleAlternates
+        vi={vi.slug ? pageHref(vi.slug) : null}
+        en={en.slug ? pageHref(en.slug) : null}
+      />
       <Link href="/" className="text-sm text-accent hover:underline">
         {t("backHome")}
       </Link>

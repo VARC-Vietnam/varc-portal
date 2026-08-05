@@ -10,6 +10,10 @@ import {
 import { getPublicSiteBranding } from "@/lib/cms";
 import type { AppLocale } from "@/i18n/routing";
 import { HtmlContent } from "@/components/portal/html-content";
+import {
+  SetLocaleAlternates,
+  newsHref,
+} from "@/components/portal/locale-alternates";
 import { coverFocusObjectPosition, normalizeCoverFocus } from "@/lib/cover-focus";
 
 export const dynamic = "force-dynamic";
@@ -67,6 +71,8 @@ export default async function ArticlePage({ params }: Props) {
   }
 
   const content = getLocaleContent(article, locale);
+  const vi = getLocaleContent(article, "vi");
+  const en = getLocaleContent(article, "en");
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3099";
   const path = `/${locale}/news/${content.slug}`;
 
@@ -84,6 +90,10 @@ export default async function ArticlePage({ params }: Props) {
 
   return (
     <article className="mx-auto w-full max-w-6xl px-4 py-14 md:px-6">
+      <SetLocaleAlternates
+        vi={vi.slug ? newsHref(vi.slug) : null}
+        en={en.slug ? newsHref(en.slug) : null}
+      />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

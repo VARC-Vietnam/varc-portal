@@ -3,6 +3,11 @@
 import { useParams } from "next/navigation";
 import { useLocale } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
+import type { AppLocale } from "@/i18n/routing";
+import {
+  useLocaleAlternates,
+  type LocaleHref,
+} from "@/components/portal/locale-alternates";
 
 function FlagVN({ className }: { className?: string }) {
   return (
@@ -71,19 +76,38 @@ function FlagGB({ className }: { className?: string }) {
 function buildHref(
   pathname: string,
   params: Record<string, string | string[] | undefined>,
-) {
+): LocaleHref {
   const dynamicParams = Object.fromEntries(
     Object.entries(params).filter(([key]) => key !== "locale"),
   );
 
   if (Object.keys(dynamicParams).length === 0) {
-    return pathname as "/";
+    return "/";
   }
 
   return {
     pathname: pathname as "/news/[slug]" | "/pages/[slug]",
     params: dynamicParams as { slug: string },
   };
+}
+
+function isSlugRoute(pathname: string) {
+  return pathname === "/news/[slug]" || pathname === "/pages/[slug]";
+}
+
+function hrefForLocale(
+  target: AppLocale,
+  pathname: string,
+  params: Record<string, string | string[] | undefined>,
+  alternates: Partial<Record<AppLocale, LocaleHref>> | null,
+): LocaleHref {
+  if (isSlugRoute(pathname)) {
+    const alternate = alternates?.[target];
+    if (alternate) return alternate;
+    // No translated slug for this locale — avoid keeping the other locale's slug.
+    return "/";
+  }
+  return buildHref(pathname, params);
 }
 
 export function LanguageSwitcher({
@@ -94,7 +118,11 @@ export function LanguageSwitcher({
   const locale = useLocale();
   const pathname = usePathname();
   const params = useParams();
-  const href = buildHref(pathname, params);
+  const alternates = useLocaleAlternates();
+  const paramRecord = params as Record<string, string | string[] | undefined>;
+
+  const hrefVi = hrefForLocale("vi", pathname, paramRecord, alternates);
+  const hrefEn = hrefForLocale("en", pathname, paramRecord, alternates);
 
   return (
     <div
@@ -105,7 +133,7 @@ export function LanguageSwitcher({
       aria-label="Language"
     >
       <Link
-        href={href}
+        href={hrefVi}
         locale="vi"
         aria-label="Tiếng Việt"
         aria-current={locale === "vi" ? "true" : undefined}
@@ -117,7 +145,7 @@ export function LanguageSwitcher({
         <FlagVN className="h-3.5 w-5" />
       </Link>
       <Link
-        href={href}
+        href={hrefEn}
         locale="en"
         aria-label="English"
         aria-current={locale === "en" ? "true" : undefined}

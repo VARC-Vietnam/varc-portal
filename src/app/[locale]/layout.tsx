@@ -8,6 +8,7 @@ import { getPublicSiteBranding, listPublicMenuLinks } from "@/lib/cms";
 import { isAdminRole } from "@/lib/roles";
 import { SiteFooter } from "@/components/portal/site-footer";
 import { SiteHeader } from "@/components/portal/site-header";
+import { LocaleAlternatesProvider } from "@/components/portal/locale-alternates";
 
 export const dynamic = "force-dynamic";
 
@@ -76,24 +77,26 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   return (
     <NextIntlClientProvider messages={messages}>
-      <div className="flex min-h-[100dvh] flex-col">
-        <SiteHeader
-          menuItems={navItems}
-          user={user}
-          branding={{
-            siteName: branding.siteName,
-            logoUrl: branding.logoUrl || undefined,
-          }}
-        />
-        <main className="flex-1">{children}</main>
-        <SiteFooter
-          menuItems={footerItems}
-          branding={{
-            siteName: branding.siteName,
-            copyright: branding.copyright,
-          }}
-        />
-      </div>
+      <LocaleAlternatesProvider>
+        <div className="flex min-h-[100dvh] flex-col">
+          <SiteHeader
+            menuItems={navItems}
+            user={user}
+            branding={{
+              siteName: branding.siteName,
+              logoUrl: branding.logoUrl || undefined,
+            }}
+          />
+          <main className="flex-1">{children}</main>
+          <SiteFooter
+            menuItems={footerItems}
+            branding={{
+              siteName: branding.siteName,
+              copyright: branding.copyright,
+            }}
+          />
+        </div>
+      </LocaleAlternatesProvider>
     </NextIntlClientProvider>
   );
 }

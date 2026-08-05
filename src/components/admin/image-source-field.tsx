@@ -3,14 +3,21 @@
 import { useId, useMemo, useRef, useState, useTransition } from "react";
 import { handleImageUpload, MAX_FILE_SIZE } from "@/lib/tiptap-utils";
 import { notifyError, notifySuccess } from "@/components/admin/admin-toast";
+import {
+  MediaPickerModal,
+  type MediaPickerSelection,
+} from "@/components/admin/media-picker-modal";
 
-type SourceMode = "url" | "upload";
+type SourceMode = "url" | "upload" | "library";
 
 type Props = {
   label: string;
   description?: string;
   value: string;
   onChange: (value: string) => void;
+  /** Optional preview alt when an image is selected (e.g. from library). */
+  alt?: string;
+  onAltChange?: (alt: string) => void;
   /** Stack controls for narrow side panels */
   compact?: boolean;
 };
@@ -38,6 +45,8 @@ export function ImageSourceField({
   description,
   value,
   onChange,
+  alt = "",
+  onAltChange,
   compact = false,
 }: Props) {
   const inputId = useId();
@@ -49,6 +58,8 @@ export function ImageSourceField({
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [previewAlt, setPreviewAlt] = useState(alt);
 
   const preview = value.trim();
   const uploaded = isUploadedValue(preview);
@@ -56,6 +67,9 @@ export function ImageSourceField({
   const modeHint = useMemo(() => {
     if (mode === "url") {
       return "Paste a public image URL (https://…).";
+    }
+    if (mode === "library") {
+      return "Pick an existing image from the Media library.";
     }
     return `Upload JPG, PNG, GIF, or WebP up to ${formatBytes(MAX_FILE_SIZE)}.`;
   }, [mode]);
@@ -65,6 +79,9 @@ export function ImageSourceField({
     setMode(next);
     if (next === "url" && !uploaded) {
       setUrlDraft(value);
+    }
+    if (next === "library") {
+      setPickerOpen(true);
     }
   }
 
@@ -80,12 +97,16 @@ export function ImageSourceField({
       return;
     }
     onChange(next);
+    setPreviewAlt("");
+    onAltChange?.("");
   }
 
   function clearImage() {
     setError(null);
     setUrlDraft("");
     onChange("");
+    setPreviewAlt("");
+    onAltChange?.("");
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -104,6 +125,9 @@ export function ImageSourceField({
         const url = await handleImageUpload(file);
         onChange(url);
         setMode("upload");
+        const nameAlt = file.name.replace(/\.[^/.]+$/, "") || "";
+        setPreviewAlt(nameAlt);
+        onAltChange?.(nameAlt);
         notifySuccess("Image uploaded");
       } catch (err) {
         const message = err instanceof Error ? err.message : "Upload failed";
@@ -111,6 +135,15 @@ export function ImageSourceField({
         notifyError(message);
       }
     });
+  }
+
+  function selectFromLibrary(media: MediaPickerSelection) {
+    onChange(media.url);
+    setMode("library");
+    setPreviewAlt(media.alt);
+    onAltChange?.(media.alt);
+    setError(null);
+    notifySuccess("Image selected from library");
   }
 
   const modeToggle = (
@@ -145,6 +178,19 @@ export function ImageSourceField({
       >
         {compact ? "Upload" : "Upload file"}
       </button>
+      <button
+        type="button"
+        onClick={() => switchMode("library")}
+        className={`rounded px-2.5 py-1.5 font-medium transition-colors ${
+          compact ? "flex-1" : ""
+        } ${
+          mode === "library"
+            ? "bg-gray-900 text-white"
+            : "text-gray-600 hover:text-gray-900"
+        }`}
+      >
+        Library
+      </button>
     </div>
   );
 
@@ -156,7 +202,11 @@ export function ImageSourceField({
     >
       {preview ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={preview} alt="" className="h-full w-full object-cover" />
+        <img
+          src={preview}
+          alt={previewAlt || ""}
+          className="h-full w-full object-cover"
+        />
       ) : (
         <span className="px-3 text-center text-xs text-gray-400">
           No image selected
@@ -192,6 +242,30 @@ export function ImageSourceField({
             }`}
           >
             Apply
+          </button>
+        </div>
+      ) : mode === "library" ? (
+        <div
+          className={`rounded-lg border border-dashed border-gray-300 bg-white text-center ${
+            compact ? "px-3 py-4" : "px-4 py-6"
+          }`}
+        >
+          <p className="text-sm text-gray-700">
+            {preview ? "Image selected from library" : "Choose an image from Media"}
+          </p>
+          {previewAlt ? (
+            <p className="mt-1 truncate px-2 text-xs text-gray-500" title={previewAlt}>
+              Alt: {previewAlt}
+            </p>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => setPickerOpen(true)}
+            className={`mt-2 rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-800 hover:bg-gray-50 ${
+              compact ? "w-full" : ""
+            }`}
+          >
+            {preview ? "Change image" : "Browse library"}
           </button>
         </div>
       ) : (
@@ -258,7 +332,11 @@ export function ImageSourceField({
           }`}
         >
           <span className="w-fit rounded bg-white px-2 py-1 ring-1 ring-gray-200">
-            {uploaded ? "Uploaded file" : "Remote URL"}
+            {mode === "library"
+              ? "Media library"
+              : uploaded
+                ? "Uploaded file"
+                : "Remote URL"}
           </span>
           {!preview.startsWith("data:") ? (
             <span
@@ -315,6 +393,14 @@ export function ImageSourceField({
           {previewBox}
         </div>
       )}
+
+      <MediaPickerModal
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onSelect={selectFromLibrary}
+        kind="image"
+        title={`Choose ${label.toLowerCase()}`}
+      />
     </div>
   );
 }

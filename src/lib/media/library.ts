@@ -48,11 +48,26 @@ export async function listMediaAdmin(options?: {
   trash?: boolean;
   page?: number;
   pageSize?: number;
+  kind?: MediaKind;
+  q?: string;
 }): Promise<MediaListResult> {
   await connectDb();
   const pageSize = Math.max(1, options?.pageSize ?? MEDIA_PAGE_SIZE);
   const requestedPage = Math.max(1, options?.page ?? 1);
-  const filter = options?.trash ? deletedFilter : notDeletedFilter;
+  const filter: Record<string, unknown> = {
+    ...(options?.trash ? deletedFilter : notDeletedFilter),
+  };
+  if (options?.kind) {
+    filter.kind = options.kind;
+  }
+  if (options?.q?.trim()) {
+    const q = options.q.trim();
+    filter.$or = [
+      { originalName: { $regex: q, $options: "i" } },
+      { alt: { $regex: q, $options: "i" } },
+      { key: { $regex: q, $options: "i" } },
+    ];
+  }
 
   const total = await Media.countDocuments(filter);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));

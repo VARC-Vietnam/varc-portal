@@ -36,6 +36,44 @@ pnpm dev
 
 Default seed credentials come from `.env` (`INITIAL_ADMIN_*`).
 
+## Media uploads
+
+Admin image uploads (article cover/OG, TipTap body images, site logo/favicon) go through `POST /api/media`.
+
+### Local disk (default)
+
+```bash
+STORAGE_DRIVER=local
+UPLOAD_DIR=./uploads
+```
+
+Files are stored under `uploads/` and served at `/media/...` (rewritten to `/api/media/...`).
+
+### MinIO / S3
+
+```bash
+STORAGE_DRIVER=s3
+S3_ENDPOINT=http://localhost:9000
+S3_REGION=us-east-1
+S3_BUCKET=varc-media
+S3_ACCESS_KEY=minioadmin
+S3_SECRET_KEY=minioadmin
+S3_FORCE_PATH_STYLE=true
+S3_PUBLIC_URL=http://localhost:9000/varc-media
+```
+
+Quick MinIO:
+
+```bash
+docker run -d --name varc-minio -p 9000:9000 -p 9001:9001 \
+  -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin \
+  minio/minio server /data --console-address ":9001"
+```
+
+Create a public-read bucket named `varc-media` in the console at http://localhost:9001.
+
+Production should use `STORAGE_DRIVER=s3` (see `deploy/k8s/configmap.yaml` + S3 keys in the secret). Prefer MinIO over a PVC so portal pods stay ephemeral.
+
 ## Google login
 
 Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. New Google users get role `user`. A `system_admin` grants `administrator` under **Admin → Users**. Role changes apply on the next sign-in.
@@ -128,6 +166,8 @@ Article, category, and page slugs are generated automatically from the title/nam
 | `/admin/pages` | Manage pages |
 | `/admin/users` | Manage users / roles |
 | `/api/health` | Health check |
+| `/api/media` | Admin image upload (`POST`) |
+| `/media/...` | Local uploaded media (`GET`) |
 
 ## Releases
 

@@ -375,7 +375,6 @@ export const handleImageUpload = async (
   onProgress?: (event: { progress: number }) => void,
   abortSignal?: AbortSignal
 ): Promise<string> => {
-  // Validate file
   if (!file) {
     throw new Error("No file provided")
   }
@@ -386,38 +385,29 @@ export const handleImageUpload = async (
     )
   }
 
-  // Inline as data URL until a real media upload endpoint exists.
-  return await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader()
+  const formData = new FormData()
+  formData.append("file", file)
 
-    const onAbort = () => {
-      reader.abort()
-      reject(new Error("Upload cancelled"))
-    }
+  onProgress?.({ progress: 10 })
 
-    abortSignal?.addEventListener("abort", onAbort, { once: true })
-
-    reader.onprogress = (event) => {
-      if (event.lengthComputable) {
-        onProgress?.({
-          progress: Math.round((event.loaded / event.total) * 100),
-        })
-      }
-    }
-
-    reader.onload = () => {
-      abortSignal?.removeEventListener("abort", onAbort)
-      onProgress?.({ progress: 100 })
-      resolve(String(reader.result))
-    }
-
-    reader.onerror = () => {
-      abortSignal?.removeEventListener("abort", onAbort)
-      reject(new Error("Failed to read image file"))
-    }
-
-    reader.readAsDataURL(file)
+  const response = await fetch("/api/media", {
+    method: "POST",
+    body: formData,
+    signal: abortSignal,
   })
+
+  onProgress?.({ progress: 90 })
+
+  const payload = (await response.json().catch(() => null)) as
+    | { url?: string; error?: string }
+    | null
+
+  if (!response.ok || !payload?.url) {
+    throw new Error(payload?.error || "Failed to upload image")
+  }
+
+  onProgress?.({ progress: 100 })
+  return payload.url
 }
 
 type ProtocolOptions = {

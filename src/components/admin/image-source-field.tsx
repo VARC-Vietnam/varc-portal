@@ -12,8 +12,16 @@ type Props = {
   onChange: (value: string) => void;
 };
 
+function isUploadedValue(value: string): boolean {
+  return (
+    value.startsWith("data:") ||
+    value.startsWith("/media/") ||
+    /\/media\//.test(value)
+  );
+}
+
 function detectMode(value: string): SourceMode {
-  return value.startsWith("data:") ? "upload" : "url";
+  return isUploadedValue(value) ? "upload" : "url";
 }
 
 function formatBytes(bytes: number) {
@@ -32,14 +40,14 @@ export function ImageSourceField({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [mode, setMode] = useState<SourceMode>(() => detectMode(value));
   const [urlDraft, setUrlDraft] = useState(() =>
-    value.startsWith("data:") ? "" : value,
+    isUploadedValue(value) ? "" : value,
   );
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const preview = value.trim();
-  const isDataUrl = preview.startsWith("data:");
+  const uploaded = isUploadedValue(preview);
 
   const modeHint = useMemo(() => {
     if (mode === "url") {
@@ -51,7 +59,7 @@ export function ImageSourceField({
   function switchMode(next: SourceMode) {
     setError(null);
     setMode(next);
-    if (next === "url" && !isDataUrl) {
+    if (next === "url" && !uploaded) {
       setUrlDraft(value);
     }
   }
@@ -88,8 +96,8 @@ export function ImageSourceField({
 
     startTransition(async () => {
       try {
-        const dataUrl = await handleImageUpload(file);
-        onChange(dataUrl);
+        const url = await handleImageUpload(file);
+        onChange(url);
         setMode("upload");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Upload failed");
@@ -185,7 +193,7 @@ export function ImageSourceField({
               }`}
             >
               <p className="text-sm text-gray-700">
-                {pending ? "Reading image…" : "Drag & drop an image here"}
+                {pending ? "Uploading…" : "Drag & drop an image here"}
               </p>
               <p className="mt-1 text-xs text-gray-500">or</p>
               <button
@@ -217,9 +225,9 @@ export function ImageSourceField({
           {preview ? (
             <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
               <span className="rounded bg-white px-2 py-1 ring-1 ring-gray-200">
-                {isDataUrl ? "Uploaded file" : "Remote URL"}
+                {uploaded ? "Uploaded file" : "Remote URL"}
               </span>
-              {!isDataUrl ? (
+              {!preview.startsWith("data:") ? (
                 <span className="truncate font-mono" title={preview}>
                   {preview}
                 </span>

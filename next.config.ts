@@ -20,6 +20,14 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async rewrites() {
+    return [
+      {
+        source: "/media/:path*",
+        destination: "/api/media/:path*",
+      },
+    ];
+  },
 };
 
 export default withNextIntl(nextConfig);

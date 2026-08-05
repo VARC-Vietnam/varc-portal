@@ -3,16 +3,25 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createUserAction } from "@/lib/actions";
+import type { PublicRole } from "@/lib/app-roles";
 import type { Role } from "@/lib/roles";
 
-export function CreateUserForm() {
+type Props = {
+  roles: PublicRole[];
+};
+
+export function CreateUserForm({ roles }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<Role>("administrator");
+  const defaultRole =
+    (roles.find((role) => role.key === "administrator")?.key as Role) ||
+    (roles[0]?.key as Role) ||
+    "administrator";
+  const [role, setRole] = useState<Role>(defaultRole);
 
   return (
     <form
@@ -34,7 +43,7 @@ export function CreateUserForm() {
           setName("");
           setEmail("");
           setPassword("");
-          setRole("administrator");
+          setRole(defaultRole);
           router.refresh();
         });
       }}
@@ -82,9 +91,11 @@ export function CreateUserForm() {
           onChange={(e) => setRole(e.target.value as Role)}
           className="w-full rounded border border-gray-300 px-3 py-2"
         >
-          <option value="user">user</option>
-          <option value="administrator">administrator</option>
-          <option value="system_admin">system_admin</option>
+          {roles.map((item) => (
+            <option key={item.key} value={item.key}>
+              {item.label}
+            </option>
+          ))}
         </select>
       </label>
       <div className="md:col-span-2">

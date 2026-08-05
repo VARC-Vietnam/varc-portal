@@ -1,5 +1,5 @@
 import type { NextAuthConfig } from "next-auth";
-import type { Role } from "@/lib/roles";
+import { normalizeRoleKey, type Role } from "@/lib/roles";
 
 export const authConfig = {
   trustHost: true,
@@ -12,14 +12,16 @@ export const authConfig = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        token.role = user.role as Role | undefined;
+        token.role = normalizeRoleKey(user.role as string | undefined);
+      } else if (token.role) {
+        token.role = normalizeRoleKey(token.role as string);
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = String(token.id ?? "");
-        session.user.role = (token.role as Role) ?? "user";
+        session.user.role = normalizeRoleKey(token.role as string | undefined);
       }
       return session;
     },

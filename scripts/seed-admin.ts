@@ -22,17 +22,17 @@ async function main() {
   if (existing) {
     existing.name = name;
     existing.passwordHash = passwordHash;
-    existing.role = "system_admin";
+    existing.role = "setup_admin";
     await existing.save();
-    console.log(`Updated system_admin: ${email}`);
+    console.log(`Updated setup_admin: ${email}`);
   } else {
     await User.create({
       email,
       name,
       passwordHash,
-      role: "system_admin",
+      role: "setup_admin",
     });
-    console.log(`Created system_admin: ${email}`);
+    console.log(`Created setup_admin: ${email}`);
   }
 
   await mongoose.disconnect();

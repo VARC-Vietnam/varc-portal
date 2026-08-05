@@ -3,23 +3,26 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updateUserRoleAction } from "@/lib/actions";
-import type { Role } from "@/lib/roles";
+import type { PublicRole } from "@/lib/app-roles";
+import { normalizeRoleKey, type Role } from "@/lib/roles";
 
 type Props = {
   userId: string;
-  role: Role;
+  role: string;
+  roles: PublicRole[];
   disabled?: boolean;
 };
 
-export function UserRoleControls({ userId, role, disabled }: Props) {
+export function UserRoleControls({ userId, role, roles, disabled }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const current = normalizeRoleKey(role);
 
   return (
     <div className="flex flex-col gap-1">
       <select
-        value={role}
+        value={current}
         disabled={disabled || pending}
         className="rounded border border-gray-300 px-2 py-1"
         onChange={(e) => {
@@ -35,9 +38,11 @@ export function UserRoleControls({ userId, role, disabled }: Props) {
           });
         }}
       >
-        <option value="user">user</option>
-        <option value="administrator">administrator</option>
-        <option value="system_admin">system_admin</option>
+        {roles.map((item) => (
+          <option key={item.key} value={item.key}>
+            {item.label}
+          </option>
+        ))}
       </select>
       {error ? <span className="text-xs text-red-600">{error}</span> : null}
     </div>

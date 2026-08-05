@@ -8,8 +8,8 @@ const UserSchema = new Schema(
     passwordHash: { type: String, default: null },
     role: {
       type: String,
-      enum: ["user", "administrator", "system_admin"],
-      default: "user",
+      default: "reader",
+      index: true,
     },
     image: { type: String, default: null },
     emailVerified: { type: Date, default: null },
@@ -19,7 +19,7 @@ const UserSchema = new Schema(
 
 export type UserDocument = InferSchemaType<typeof UserSchema> & {
   _id: mongoose.Types.ObjectId;
-  role: Role;
+  role: Role | string;
 };
 
 export const User: Model<UserDocument> =

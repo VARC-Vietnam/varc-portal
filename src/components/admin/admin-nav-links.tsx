@@ -4,13 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const links = [
-  { href: "/admin", label: "Dashboard" },
-  { href: "/admin/settings", label: "Site Settings" },
-  { href: "/admin/articles", label: "Articles" },
-  { href: "/admin/categories", label: "Categories" },
-  { href: "/admin/pages", label: "Pages" },
-  { href: "/admin/menu", label: "Menus" },
-  { href: "/admin/users", label: "Users" },
+  { href: "/admin", label: "Dashboard", flag: "always" as const },
+  { href: "/admin/settings", label: "Site Settings", flag: "always" as const },
+  { href: "/admin/articles", label: "Articles", flag: "always" as const },
+  { href: "/admin/categories", label: "Categories", flag: "always" as const },
+  { href: "/admin/pages", label: "Pages", flag: "always" as const },
+  { href: "/admin/menu", label: "Menus", flag: "always" as const },
+  { href: "/admin/users", label: "Users", flag: "users" as const },
+  { href: "/admin/roles", label: "Roles", flag: "roles" as const },
 ];
 
 function isActive(href: string, pathname: string) {
@@ -18,13 +19,23 @@ function isActive(href: string, pathname: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function AdminNavLinks({ showUsers }: { showUsers: boolean }) {
+export function AdminNavLinks({
+  showUsers,
+  showRoles,
+}: {
+  showUsers: boolean;
+  showRoles: boolean;
+}) {
   const pathname = usePathname();
 
   return (
     <>
       {links
-        .filter((link) => link.href !== "/admin/users" || showUsers)
+        .filter((link) => {
+          if (link.flag === "users") return showUsers;
+          if (link.flag === "roles") return showRoles;
+          return true;
+        })
         .map((link) => {
           const active = isActive(link.href, pathname);
           return (

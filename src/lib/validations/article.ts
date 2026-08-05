@@ -114,10 +114,19 @@ export const createUserSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   email: z.string().trim().email("Valid email is required"),
   password: z.string().min(8, "Password must be at least 8 characters"),
-  role: z.enum(["user", "administrator", "system_admin"]),
+  role: z.enum(["setup_admin", "administrator", "editor", "reader"]),
 });
 
 export type CreateUserValues = z.infer<typeof createUserSchema>;
+
+export const roleFormSchema = z.object({
+  label: z.string().trim().min(1, "Label is required"),
+  description: z.string().trim(),
+  enabled: z.boolean(),
+});
+
+export type RoleFormValues = z.infer<typeof roleFormSchema>;
+
 
 const menuLocaleSchema = z.object({
   label: z.string().trim(),

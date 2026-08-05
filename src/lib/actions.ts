@@ -5,7 +5,14 @@ import { revalidatePath } from "next/cache";
 import mongoose from "mongoose";
 import { auth, signOut } from "@/auth";
 import { connectDb } from "@/lib/db";
-import { isAdminRole, isSystemAdmin, type Role } from "@/lib/roles";
+import {
+  canChangeUserRole,
+  canManageUsers,
+  isAdminRole,
+  isSystemAdmin,
+  normalizeRoleKey,
+  type Role,
+} from "@/lib/roles";
 import { uniqueSlugFromTitle } from "@/lib/slug";
 import { normalizeCoverFocus } from "@/lib/cover-focus";
 import {
@@ -20,8 +27,11 @@ import {
   menuItemFormSchema,
   pageFormSchema,
   reorderMenuSchema,
+  roleFormSchema,
   siteSettingsFormSchema,
 } from "@/lib/validations/article";
+import { ensureDefaultRoles, isValidRoleKey } from "@/lib/app-roles";
+import { AppRole } from "@/models/AppRole";
 import { Article } from "@/models/Article";
 import { Category } from "@/models/Category";
 import { MenuItem } from "@/models/MenuItem";
@@ -40,6 +50,14 @@ async function requireAdmin() {
 async function requireSystemAdmin() {
   const session = await requireAdmin();
   if (!isSystemAdmin(session.user.role)) {
+    throw new Error("Forbidden");
+  }
+  return session;
+}
+
+async function requireUserManager() {
+  const session = await requireAdmin();
+  if (!canManageUsers(session.user.role)) {
     throw new Error("Forbidden");
   }
   return session;
@@ -632,23 +650,40 @@ export async function updateUserRoleAction(
   role: Role,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
-    await requireSystemAdmin();
-    if (!["user", "administrator", "system_admin"].includes(role)) {
+    const session = await requireUserManager();
+    const nextRole = normalizeRoleKey(role);
+    if (!isValidRoleKey(nextRole)) {
       return { ok: false, error: "Invalid role" };
     }
 
     await connectDb();
+    await ensureDefaultRoles();
     const user = await User.findById(userId);
     if (!user) return { ok: false, error: "User not found" };
 
-    if (user.role === "system_admin" && role !== "system_admin") {
-      const count = await User.countDocuments({ role: "system_admin" });
+    const current = normalizeRoleKey(user.role);
+    if (
+      !canChangeUserRole({
+        actorRole: session.user.role,
+        actorUserId: session.user.id,
+        targetUserId: userId,
+        targetCurrentRole: current,
+        nextRole,
+      })
+    ) {
+      return { ok: false, error: "You cannot change this user's role" };
+    }
+
+    if (current === "setup_admin" && nextRole !== "setup_admin") {
+      const count = await User.countDocuments({
+        role: { $in: ["setup_admin", "system_admin"] },
+      });
       if (count <= 1) {
-        return { ok: false, error: "Cannot demote the last system_admin" };
+        return { ok: false, error: "Cannot demote the last Setup Admin" };
       }
     }
 
-    user.role = role;
+    user.role = nextRole;
     await user.save();
     return { ok: true };
   } catch (error) {
@@ -681,7 +716,7 @@ export async function createUserAction(
       email,
       name: data.name,
       passwordHash,
-      role: data.role,
+      role: normalizeRoleKey(data.role),
     });
     return { ok: true, id: String(created._id) };
   } catch (error) {
@@ -749,6 +784,42 @@ export async function saveSiteSettingsAction(
       ok: false,
       error:
         error instanceof Error ? error.message : "Failed to save site settings",
+    };
+  }
+}
+
+export async function saveRoleAction(
+  id: string,
+  raw: unknown,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await requireSystemAdmin();
+    const parsed = roleFormSchema.safeParse(raw);
+    if (!parsed.success) {
+      return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid data" };
+    }
+
+    await connectDb();
+    await ensureDefaultRoles();
+    const role = await AppRole.findById(id);
+    if (!role) return { ok: false, error: "Role not found" };
+
+    // Setup Admin must stay enabled
+    if (role.key === "setup_admin" && !parsed.data.enabled) {
+      return { ok: false, error: "Setup Admin cannot be disabled" };
+    }
+
+    role.label = parsed.data.label.trim();
+    role.description = parsed.data.description.trim();
+    role.enabled = parsed.data.enabled;
+    await role.save();
+    revalidatePath("/admin/roles");
+    revalidatePath("/admin/users");
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Failed to save role",
     };
   }
 }

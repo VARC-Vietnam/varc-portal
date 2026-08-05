@@ -69,6 +69,12 @@ export default async function proxy(req: NextRequest) {
     const role = token?.role as Role | undefined;
     const allowed = isAdminRole(role);
     const origin = publicOrigin(req);
+    const homeUrl = new URL(`/${routing.defaultLocale}`, origin);
+
+    // Signed in without admin permission → portal home (not login error).
+    if (token && !allowed) {
+      return NextResponse.redirect(homeUrl);
+    }
 
     if (!isLogin && !allowed) {
       const url = new URL("/admin/login", origin);

@@ -53,6 +53,12 @@ export default async function AdminDashboardPage() {
       count: users,
       hint: "Roles and access",
     },
+    {
+      href: "/admin/roles",
+      title: "Roles",
+      count: "4",
+      hint: "Setup Admin, Administrator, Editor, Reader",
+    },
   ];
 
   return (

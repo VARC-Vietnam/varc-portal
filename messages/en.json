@@ -17,9 +17,14 @@
   },
   "home": {
     "title": "Latest news",
+    "moreTitle": "More stories",
+    "featuredLabel": "Featured",
+    "featuredTitle": "Stories worth reading first",
     "empty": "No published articles yet.",
     "readMore": "Read more",
-    "publishedAt": "Published"
+    "publishedAt": "Published",
+    "previousSlide": "Previous featured story",
+    "nextSlide": "Next featured story"
   },
   "article": {
     "notFound": "Article not found.",

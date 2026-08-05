@@ -12,6 +12,7 @@ const articleLocaleSchema = z.object({
 export const articleFormSchema = z
   .object({
     status: z.enum(["draft", "published"]),
+    featured: z.boolean(),
     coverImageUrl: z.string().trim(),
     ogImageUrl: z.string().trim(),
     categoryIds: z.array(z.string()),

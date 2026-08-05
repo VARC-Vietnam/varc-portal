@@ -17,9 +17,14 @@
   },
   "home": {
     "title": "Tin tức mới nhất",
+    "moreTitle": "Thêm bài viết",
+    "featuredLabel": "Nổi bật",
+    "featuredTitle": "Những bài nên đọc trước",
     "empty": "Chưa có bài viết nào được xuất bản.",
     "readMore": "Đọc tiếp",
-    "publishedAt": "Đăng ngày"
+    "publishedAt": "Đăng ngày",
+    "previousSlide": "Bài nổi bật trước",
+    "nextSlide": "Bài nổi bật tiếp"
   },
   "article": {
     "notFound": "Không tìm thấy bài viết.",

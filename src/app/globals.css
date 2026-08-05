@@ -108,3 +108,28 @@ body {
   background: #f3f4f6;
   font-size: 0.9em;
 }
+
+.reveal {
+  opacity: 0;
+  transform: translateY(1.25rem);
+  filter: blur(4px);
+  transition:
+    opacity 800ms cubic-bezier(0.32, 0.72, 0, 1),
+    transform 800ms cubic-bezier(0.32, 0.72, 0, 1),
+    filter 800ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    transition: none;
+  }
+}

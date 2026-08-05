@@ -39,6 +39,7 @@ export default async function EditArticlePage({ params }: Props) {
         initial={{
           ...emptyArticleForm,
           status: article.status === "published" ? "published" : "draft",
+          featured: Boolean(article.featured),
           coverImageUrl: article.coverImageUrl ?? "",
           ogImageUrl: article.ogImageUrl ?? "",
           categoryIds: (article.categoryIds ?? []).map(String),

@@ -32,6 +32,7 @@ const ArticleSchema = new Schema(
     },
     coverImageUrl: { type: String, default: "" },
     ogImageUrl: { type: String, default: "" },
+    featured: { type: Boolean, default: false, index: true },
     locales: {
       vi: { type: LocaleContentSchema, required: true },
       en: { type: LocaleContentSchema, required: true },
@@ -55,6 +56,7 @@ ArticleSchema.index(
   },
 );
 ArticleSchema.index({ status: 1, publishedAt: -1 });
+ArticleSchema.index({ status: 1, featured: 1, publishedAt: -1 });
 ArticleSchema.index({ categoryIds: 1 });
 ArticleSchema.index({ tags: 1 });
 

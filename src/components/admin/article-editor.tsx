@@ -197,6 +197,28 @@ export function ArticleEditor({ articleId, initial, categories }: Props) {
         <div className="w-full">
           {section === "common" ? (
             <div className="grid content-start gap-4 rounded-lg border border-gray-200 bg-white p-5 min-h-[33dvh]">
+              <label className="flex cursor-pointer items-start gap-3 rounded-md border border-gray-200 bg-gray-50 px-3 py-3 text-sm">
+                <input
+                  type="checkbox"
+                  className="mt-0.5"
+                  checked={form.featured}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      featured: e.target.checked,
+                    }))
+                  }
+                />
+                <span>
+                  <span className="block font-medium text-gray-900">
+                    Featured on home
+                  </span>
+                  <span className="mt-0.5 block text-xs text-gray-500">
+                    Pin this article in the home page spotlight (up to three
+                    featured posts).
+                  </span>
+                </span>
+              </label>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
@@ -427,6 +449,7 @@ export function ArticleEditor({ articleId, initial, categories }: Props) {
 
 export const emptyArticleForm: ArticleFormValues = {
   status: "draft",
+  featured: false,
   coverImageUrl: "",
   ogImageUrl: "",
   categoryIds: [],

@@ -157,6 +157,7 @@ export async function saveArticleAction(
       if (!existing) return { ok: false, error: "Article not found" };
 
       existing.status = data.status;
+      existing.featured = data.featured;
       existing.coverImageUrl = data.coverImageUrl.trim();
       existing.ogImageUrl = data.ogImageUrl.trim();
       existing.categoryIds = categoryIds;
@@ -174,6 +175,7 @@ export async function saveArticleAction(
 
     const created = await Article.create({
       status: data.status,
+      featured: data.featured,
       coverImageUrl: data.coverImageUrl.trim(),
       ogImageUrl: data.ogImageUrl.trim(),
       categoryIds,

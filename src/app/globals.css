@@ -109,6 +109,29 @@ body {
   font-size: 0.9em;
 }
 
+.prose-article table,
+.prose-article-wide table {
+  width: 100%;
+  margin: 1.25rem 0;
+  border-collapse: collapse;
+}
+
+.prose-article th,
+.prose-article td,
+.prose-article-wide th,
+.prose-article-wide td {
+  border: 1px solid var(--border);
+  padding: 0.65rem 0.8rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.prose-article th,
+.prose-article-wide th {
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+
 .reveal {
   opacity: 0;
   transform: translateY(1.25rem);

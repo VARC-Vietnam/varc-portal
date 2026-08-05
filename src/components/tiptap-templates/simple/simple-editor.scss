@@ -51,6 +51,30 @@
   outline: none;
 }
 
+.simple-editor-content .tiptap.ProseMirror.simple-editor table {
+  width: 100%;
+  margin: 1rem 0;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.simple-editor-content .tiptap.ProseMirror.simple-editor th,
+.simple-editor-content .tiptap.ProseMirror.simple-editor td {
+  min-width: 7rem;
+  border: 1px solid var(--tt-gray-light-a-200, #d1d5db);
+  padding: 0.6rem 0.75rem;
+  vertical-align: top;
+}
+
+.simple-editor-content .tiptap.ProseMirror.simple-editor th {
+  background: #f9fafb;
+  font-weight: 600;
+}
+
+.simple-editor-content .tiptap.ProseMirror.simple-editor .selectedCell {
+  background: rgba(31, 107, 74, 0.12);
+}
+
 @media screen and (max-width: 480px) {
   .simple-editor-search-and-replace {
     top: calc(var(--tt-toolbar-height) + 0.25rem);

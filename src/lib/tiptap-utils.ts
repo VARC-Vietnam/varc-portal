@@ -370,7 +370,7 @@ export function selectionWithinConvertibleTypes(
  * @param abortSignal Optional AbortSignal for cancelling the upload
  * @returns Promise resolving to the URL of the uploaded image
  */
-export const handleImageUpload = async (
+export const handleMediaUpload = async (
   file: File,
   onProgress?: (event: { progress: number }) => void,
   abortSignal?: AbortSignal
@@ -408,6 +408,14 @@ export const handleImageUpload = async (
 
   onProgress?.({ progress: 100 })
   return payload.url
+}
+
+export const handleImageUpload = async (
+  file: File,
+  onProgress?: (event: { progress: number }) => void,
+  abortSignal?: AbortSignal
+): Promise<string> => {
+  return handleMediaUpload(file, onProgress, abortSignal)
 }
 
 type ProtocolOptions = {

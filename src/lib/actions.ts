@@ -587,6 +587,8 @@ export async function savePageAction(
       const existing = await Page.findById(id);
       if (!existing) return { ok: false, error: "Page not found" };
       existing.status = data.status;
+      existing.template = data.template;
+      existing.galleryItems = data.galleryItems;
       existing.showInNav = data.showInNav;
       existing.sortOrder = data.sortOrder;
       existing.locales = locales;
@@ -597,6 +599,8 @@ export async function savePageAction(
 
     const created = await Page.create({
       status: data.status,
+      template: data.template,
+      galleryItems: data.galleryItems,
       showInNav: data.showInNav,
       sortOrder: data.sortOrder,
       locales,

@@ -80,9 +80,18 @@ const pageLocaleSchema = z.object({
   metaDescription: z.string().trim(),
 });
 
+const pageGalleryItemSchema = z.object({
+  mediaId: z.string().trim().min(1),
+  url: z.string().trim().min(1),
+  alt: z.string().trim(),
+  originalName: z.string().trim(),
+});
+
 export const pageFormSchema = z
   .object({
     status: z.enum(["draft", "published"]),
+    template: z.enum(["default", "gallery"]).default("default"),
+    galleryItems: z.array(pageGalleryItemSchema).default([]),
     showInNav: z.boolean(),
     sortOrder: z.number().int(),
     locales: z.object({
@@ -99,6 +108,16 @@ export const pageFormSchema = z
         path: ["locales", "vi", "title"],
       });
     }
+    if (data.template === "gallery") {
+      if (data.galleryItems.length === 0) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Add at least one gallery image to publish",
+          path: ["galleryItems"],
+        });
+      }
+      return;
+    }
     if (isEmptyHtml(data.locales.vi.content)) {
       ctx.addIssue({
         code: "custom",
@@ -109,6 +128,7 @@ export const pageFormSchema = z
   });
 
 export type PageFormValues = z.infer<typeof pageFormSchema>;
+export type PageGalleryItemValues = z.infer<typeof pageGalleryItemSchema>;
 
 export const createUserSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),

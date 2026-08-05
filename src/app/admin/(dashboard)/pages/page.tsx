@@ -72,6 +72,7 @@ export default async function AdminPagesPage({ searchParams }: Props) {
               <tr>
                 <th className="px-4 py-3 font-medium">Title (VI)</th>
                 <th className="px-4 py-3 font-medium">Slug</th>
+                <th className="px-4 py-3 font-medium">Template</th>
                 <th className="px-4 py-3 font-medium">Languages</th>
                 <th className="px-4 py-3 font-medium">Nav</th>
                 <th className="px-4 py-3 font-medium">Status</th>
@@ -93,6 +94,9 @@ export default async function AdminPagesPage({ searchParams }: Props) {
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-gray-500">
                       {vi.slug || "—"}
+                    </td>
+                    <td className="px-4 py-3 capitalize text-gray-600">
+                      {page.template === "gallery" ? "Gallery" : "Default"}
                     </td>
                     <td className="px-4 py-3">
                       <AdminLocaleStatus

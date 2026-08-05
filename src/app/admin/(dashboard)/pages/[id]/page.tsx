@@ -19,6 +19,15 @@ export default async function EditPagePage({ params }: Props) {
 
   const vi = getPageLocale(page, "vi");
   const en = getPageLocale(page, "en");
+  const template = page.template === "gallery" ? "gallery" : "default";
+  const galleryItems = (page.galleryItems ?? [])
+    .filter((item) => item?.mediaId && item?.url)
+    .map((item) => ({
+      mediaId: String(item.mediaId),
+      url: String(item.url),
+      alt: String(item.alt ?? ""),
+      originalName: String(item.originalName ?? ""),
+    }));
 
   return (
     <div>
@@ -28,6 +37,8 @@ export default async function EditPagePage({ params }: Props) {
         initial={{
           ...emptyPageForm,
           status: page.status === "published" ? "published" : "draft",
+          template,
+          galleryItems,
           showInNav: Boolean(page.showInNav),
           sortOrder: page.sortOrder ?? 0,
           locales: {

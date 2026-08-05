@@ -32,7 +32,14 @@
     "missingTranslation": "Bài viết này chưa có bản tiếng Anh."
   },
   "page": {
-    "backHome": "Quay lại trang chủ"
+    "backHome": "Quay lại trang chủ",
+    "galleryPrevious": "Ảnh trước",
+    "galleryNext": "Ảnh tiếp",
+    "galleryThumbnails": "Ảnh thu nhỏ",
+    "galleryKeyboardHint": "Dùng phím ← → để xem ảnh",
+    "galleryEmpty": "Gallery chưa có ảnh.",
+    "galleryClose": "Đóng",
+    "galleryLoading": "Đang mở gallery…"
   },
   "footer": {
     "rights": "Hiệp hội Vô tuyến Nghiệp dư Việt Nam.",

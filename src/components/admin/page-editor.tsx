@@ -8,6 +8,7 @@ import { isEmptyHtml } from "@/lib/html";
 import { makeSlug } from "@/lib/slug";
 import type { PageFormValues } from "@/lib/validations/article";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
+import { PageGalleryField } from "@/components/admin/page-gallery-field";
 import { useConfirm } from "@/components/admin/use-confirm";
 import { notifyAction } from "@/components/admin/admin-toast";
 
@@ -36,8 +37,13 @@ export function PageEditor({ pageId, initial }: Props) {
     [form.locales, tab],
   );
 
+  const isGallery = form.template === "gallery";
+
   const canPublish = Boolean(
-    form.locales.vi.title.trim() && !isEmptyHtml(form.locales.vi.content),
+    form.locales.vi.title.trim() &&
+      (isGallery
+        ? form.galleryItems.length > 0
+        : !isEmptyHtml(form.locales.vi.content)),
   );
 
   function updateLocale(
@@ -117,6 +123,28 @@ export function PageEditor({ pageId, initial }: Props) {
 
       <div className="grid gap-4 rounded-lg border border-gray-200 bg-white p-5">
         <label className="block text-sm">
+          <span className="mb-1 block font-medium">Template</span>
+          <select
+            value={form.template}
+            onChange={(e) =>
+              setForm((prev) => ({
+                ...prev,
+                template: e.target.value === "gallery" ? "gallery" : "default",
+              }))
+            }
+            className="w-full rounded border border-gray-300 px-3 py-2 md:max-w-xs"
+          >
+            <option value="default">Default (title + content)</option>
+            <option value="gallery">Gallery</option>
+          </select>
+          <p className="mt-1 text-xs text-gray-500">
+            {isGallery
+              ? "Gallery pages show a large selected image with a thumbnail strip."
+              : "Default pages show the title and rich-text body."}
+          </p>
+        </label>
+
+        <label className="block text-sm">
           <span className="mb-1 block font-medium">Title ({tab.toUpperCase()})</span>
           <input
             value={locale.title}
@@ -130,13 +158,33 @@ export function PageEditor({ pageId, initial }: Props) {
             {previewSlug || "—"}
           </p>
         </div>
+
+        {isGallery ? (
+          <PageGalleryField
+            items={form.galleryItems}
+            onChange={(galleryItems) =>
+              setForm((prev) => ({ ...prev, galleryItems }))
+            }
+          />
+        ) : null}
+
         <div className="block text-sm">
-          <span className="mb-1 block font-medium">Content</span>
+          <span className="mb-1 block font-medium">
+            {isGallery ? "Intro content (optional)" : "Content"}
+          </span>
           <RichTextEditor
-            key={tab}
+            key={`${tab}-${form.template}`}
             value={locale.content}
             onChange={(html) => updateLocale(tab, "content", html)}
-            placeholder={tab === "vi" ? "Nội dung trang…" : "Page content…"}
+            placeholder={
+              isGallery
+                ? tab === "vi"
+                  ? "Mô tả ngắn phía trên gallery…"
+                  : "Optional intro above the gallery…"
+                : tab === "vi"
+                  ? "Nội dung trang…"
+                  : "Page content…"
+            }
           />
         </div>
         <div className="grid gap-4 md:grid-cols-2">
@@ -233,6 +281,8 @@ export function PageEditor({ pageId, initial }: Props) {
 
 export const emptyPageForm: PageFormValues = {
   status: "draft",
+  template: "default",
+  galleryItems: [],
   showInNav: false,
   sortOrder: 0,
   locales: {

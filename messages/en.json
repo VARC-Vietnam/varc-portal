@@ -32,7 +32,14 @@
     "missingTranslation": "This article is not available in English yet."
   },
   "page": {
-    "backHome": "Back to home"
+    "backHome": "Back to home",
+    "galleryPrevious": "Previous image",
+    "galleryNext": "Next image",
+    "galleryThumbnails": "Gallery thumbnails",
+    "galleryKeyboardHint": "Use ← → arrow keys to browse",
+    "galleryEmpty": "No images in this gallery yet.",
+    "galleryClose": "Close",
+    "galleryLoading": "Opening gallery…"
   },
   "footer": {
     "rights": "Vietnam Amateur Radio Club.",

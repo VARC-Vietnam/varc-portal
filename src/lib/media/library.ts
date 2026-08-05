@@ -88,6 +88,30 @@ export async function listMediaAdmin(options?: {
   };
 }
 
+export async function listAllMediaAdmin(options?: {
+  kind?: MediaKind;
+  q?: string;
+}): Promise<AdminMediaItem[]> {
+  await connectDb();
+  const filter: Record<string, unknown> = { ...notDeletedFilter };
+  if (options?.kind) filter.kind = options.kind;
+  if (options?.q?.trim()) {
+    const q = options.q.trim();
+    filter.$or = [
+      { originalName: { $regex: q, $options: "i" } },
+      { alt: { $regex: q, $options: "i" } },
+      { key: { $regex: q, $options: "i" } },
+    ];
+  }
+
+  const docs = await Media.find(filter)
+    .sort({ createdAt: -1 })
+    .limit(2000)
+    .lean<MediaLean[]>();
+
+  return docs.map(toAdminItem);
+}
+
 export async function countMedia(options?: {
   trash?: boolean;
 }): Promise<number> {

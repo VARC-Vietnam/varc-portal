@@ -153,8 +153,8 @@ export function ArticleEditor({
               Featured on home
             </span>
             <span className="mt-0.5 block text-xs text-gray-500">
-              Pin this article in the home page spotlight (up to three featured
-              posts).
+              The three newest featured posts appear in the home hero slideshow.
+              Older featured posts still show in the sections below.
             </span>
           </span>
         </label>

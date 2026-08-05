@@ -12,7 +12,7 @@ import { HomeHero } from "@/components/portal/home-hero";
 
 export const dynamic = "force-dynamic";
 
-const FEATURED_SLIDE_LIMIT = 6;
+const FEATURED_SLIDE_LIMIT = 3;
 const SPOTLIGHT_COUNT = 4;
 const GRID_COUNT = 9;
 
@@ -31,12 +31,13 @@ export default async function HomePage({ params }: Props) {
     listFeaturedArticles(locale, FEATURED_SLIDE_LIMIT),
   ]);
 
-  const featuredIds = featured.map((article) => article.id);
+  // Only hide the hero slides from sections below; older featured posts still appear.
+  const heroFeaturedIds = featured.map((article) => article.id);
   const { articles: remaining } = await listPublishedArticles(
     locale,
     1,
     SPOTLIGHT_COUNT + GRID_COUNT,
-    { excludeIds: featuredIds },
+    { excludeIds: heroFeaturedIds },
   );
 
   const spotlight = remaining.slice(0, SPOTLIGHT_COUNT);

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { auth } from "@/auth";
 import { listAllArticles } from "@/lib/articles";
 import { listCategories, listMenuItemsAdmin, listPages } from "@/lib/cms";
+import { countMedia } from "@/lib/media/library";
 import { connectDb } from "@/lib/db";
 import {
   canManageEditorial,
@@ -51,6 +52,13 @@ const CARD_ICONS = {
       <path d="M4 7h6l2 2h8v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z" />
     </CardIcon>
   ),
+  media: (
+    <CardIcon>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <circle cx="9" cy="11" r="2" />
+      <path d="m21 15-4.5-4.5L9 18" />
+    </CardIcon>
+  ),
   pages: (
     <CardIcon>
       <path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
@@ -85,13 +93,15 @@ export default async function AdminDashboardPage() {
   const showRoles = canManageRoles(role);
 
   await connectDb();
-  const [articles, categories, pages, menuItems, users] = await Promise.all([
-    showEditorial ? listAllArticles() : Promise.resolve([]),
-    showEditorial ? listCategories() : Promise.resolve([]),
-    showSite ? listPages() : Promise.resolve([]),
-    showSite ? listMenuItemsAdmin() : Promise.resolve([]),
-    showUsers ? User.countDocuments() : Promise.resolve(0),
-  ]);
+  const [articles, categories, pages, menuItems, users, mediaCount] =
+    await Promise.all([
+      showEditorial ? listAllArticles() : Promise.resolve([]),
+      showEditorial ? listCategories() : Promise.resolve([]),
+      showSite ? listPages() : Promise.resolve([]),
+      showSite ? listMenuItemsAdmin() : Promise.resolve([]),
+      showUsers ? User.countDocuments() : Promise.resolve(0),
+      showEditorial ? countMedia() : Promise.resolve(0),
+    ]);
 
   const cards = [
     showSite
@@ -119,6 +129,15 @@ export default async function AdminDashboardPage() {
           count: categories.length,
           hint: "Organize articles",
           icon: CARD_ICONS.categories,
+        }
+      : null,
+    showEditorial
+      ? {
+          href: "/admin/media",
+          title: "Media",
+          count: mediaCount,
+          hint: "Pictures and videos",
+          icon: CARD_ICONS.media,
         }
       : null,
     showSite

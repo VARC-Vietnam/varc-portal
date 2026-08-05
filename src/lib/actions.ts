@@ -42,10 +42,12 @@ import {
 import { AppRole } from "@/models/AppRole";
 import { Article } from "@/models/Article";
 import { Category } from "@/models/Category";
+import { Media } from "@/models/Media";
 import { MenuItem } from "@/models/MenuItem";
 import { Page } from "@/models/Page";
 import { SITE_SETTINGS_KEY, SiteSettings } from "@/models/SiteSettings";
 import { User } from "@/models/User";
+import { deleteObject } from "@/lib/media/storage";
 
 async function loadMenuParentRefs(location: "navigation" | "footer") {
   const docs = await MenuItem.find({ location, ...notDeletedFilter })
@@ -124,6 +126,7 @@ function revalidatePortal() {
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/menu");
   revalidatePath("/admin/settings");
+  revalidatePath("/admin/media");
 }
 
 async function articleSlugTaken(
@@ -1211,6 +1214,122 @@ export async function saveRoleAction(
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Failed to save role",
+    };
+  }
+}
+
+export async function updateMediaAltAction(
+  id: string,
+  alt: string,
+): Promise<{ ok: true; alt: string } | { ok: false; error: string }> {
+  try {
+    await requireArticleManager();
+    await connectDb();
+    const existing = await Media.findOne({ _id: id, ...notDeletedFilter });
+    if (!existing) return { ok: false, error: "Media not found" };
+    existing.alt = alt.trim().slice(0, 500);
+    await existing.save();
+    revalidatePath("/admin/media");
+    return { ok: true, alt: existing.alt };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Failed to update media",
+    };
+  }
+}
+
+export async function deleteMediaAction(
+  id: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await requireArticleManager();
+    await connectDb();
+    const existing = await Media.findOne({ _id: id, ...notDeletedFilter });
+    if (!existing) return { ok: false, error: "Media not found" };
+    existing.deletedAt = new Date();
+    await existing.save();
+    revalidatePath("/admin/media");
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Failed to delete",
+    };
+  }
+}
+
+export async function restoreMediaAction(
+  id: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await requireArticleManager();
+    await connectDb();
+    const existing = await Media.findById(id);
+    if (!existing?.deletedAt) {
+      return { ok: false, error: "Deleted media not found" };
+    }
+    existing.deletedAt = null;
+    await existing.save();
+    revalidatePath("/admin/media");
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Failed to restore",
+    };
+  }
+}
+
+export async function permanentlyDeleteMediaAction(
+  id: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await requireArticleManager();
+    await connectDb();
+    const existing = await Media.findOne({ _id: id, ...deletedFilter });
+    if (!existing) {
+      return { ok: false, error: "Trashed media not found" };
+    }
+    try {
+      await deleteObject(existing.key);
+    } catch (error) {
+      console.error("[media delete storage]", error);
+    }
+    await Media.findByIdAndDelete(id);
+    revalidatePath("/admin/media");
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error ? error.message : "Failed to delete permanently",
+    };
+  }
+}
+
+export async function emptyMediaTrashAction(): Promise<
+  { ok: true; deleted: number } | { ok: false; error: string }
+> {
+  try {
+    await requireArticleManager();
+    await connectDb();
+    const trashed = await Media.find(deletedFilter).select("key").lean();
+    for (const item of trashed) {
+      try {
+        await deleteObject(item.key);
+      } catch (error) {
+        console.error("[media empty trash storage]", item.key, error);
+      }
+    }
+    const result = await Media.deleteMany(deletedFilter);
+    revalidatePath("/admin/media");
+    return { ok: true, deleted: result.deletedCount };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error ? error.message : "Failed to empty trash",
     };
   }
 }

@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { createReadStream, existsSync } from "node:fs";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { Readable } from "node:stream";
 import {
+  DeleteObjectCommand,
   GetObjectCommand,
   PutObjectCommand,
   S3Client,
@@ -148,6 +149,35 @@ export async function getObjectStream(key: string): Promise<MediaReadResult> {
   };
 }
 
+export async function deleteObject(key: string): Promise<void> {
+  const safeKey = assertSafeKey(key);
+  const config = getMediaConfig();
+
+  if (config.driver === "local") {
+    const absolute = path.join(config.uploadDir, safeKey);
+    const resolvedUpload = path.resolve(config.uploadDir);
+    const resolvedFile = path.resolve(absolute);
+    if (
+      !resolvedFile.startsWith(resolvedUpload + path.sep) &&
+      resolvedFile !== resolvedUpload
+    ) {
+      throw new Error("Invalid media key");
+    }
+    if (existsSync(resolvedFile)) {
+      await unlink(resolvedFile);
+    }
+    return;
+  }
+
+  const client = createS3Client(config);
+  await client.send(
+    new DeleteObjectCommand({
+      Bucket: config.bucket,
+      Key: safeKey,
+    }),
+  );
+}
+
 function guessContentType(key: string): string {
   const ext = path.extname(key).toLowerCase();
   switch (ext) {
@@ -162,6 +192,12 @@ function guessContentType(key: string): string {
       return "image/webp";
     case ".svg":
       return "image/svg+xml";
+    case ".mp4":
+      return "video/mp4";
+    case ".webm":
+      return "video/webm";
+    case ".mov":
+      return "video/quicktime";
     case ".pdf":
       return "application/pdf";
     case ".txt":

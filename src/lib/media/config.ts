@@ -1,26 +1,12 @@
 import path from "node:path";
+import {
+  DEFAULT_ALLOWED_MIME,
+  DEFAULT_MEDIA_MAX_BYTES,
+} from "@/lib/media/limits";
 
 export type StorageDriver = "local" | "s3";
 
-export const DEFAULT_MEDIA_MAX_BYTES = 5 * 1024 * 1024;
-
-export const DEFAULT_ALLOWED_MIME = [
-  "image/jpeg",
-  "image/png",
-  "image/gif",
-  "image/webp",
-  "image/svg+xml",
-  "application/pdf",
-  "text/plain",
-  "application/zip",
-  "application/x-zip-compressed",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/vnd.ms-excel",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "application/vnd.ms-powerpoint",
-  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-] as const;
+export { DEFAULT_ALLOWED_MIME, DEFAULT_MEDIA_MAX_BYTES };
 
 function truthy(value: string | undefined, fallback: boolean): boolean {
   if (value == null || value === "") return fallback;

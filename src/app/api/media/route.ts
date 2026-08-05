@@ -1,7 +1,10 @@
 import { auth } from "@/auth";
+import { connectDb } from "@/lib/db";
 import { getMediaConfig } from "@/lib/media/config";
 import { buildObjectKey, putObject } from "@/lib/media/storage";
 import { isAdminRole } from "@/lib/roles";
+import { Media, mediaKindFromContentType } from "@/models/Media";
+import mongoose from "mongoose";
 
 export const runtime = "nodejs";
 
@@ -42,8 +45,32 @@ export async function POST(request: Request) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const key = buildObjectKey(file.name || "upload.bin");
     const stored = await putObject(key, buffer, contentType);
+    const kind = mediaKindFromContentType(contentType);
 
-    return Response.json(stored, { status: 201 });
+    await connectDb();
+    const doc = await Media.create({
+      key: stored.key,
+      url: stored.url,
+      contentType: stored.contentType,
+      kind,
+      size: stored.size,
+      originalName: file.name || stored.key,
+      uploadedBy: new mongoose.Types.ObjectId(session.user.id),
+      alt: "",
+    });
+
+    return Response.json(
+      {
+        id: String(doc._id),
+        key: stored.key,
+        url: stored.url,
+        contentType: stored.contentType,
+        kind,
+        size: stored.size,
+        originalName: file.name || stored.key,
+      },
+      { status: 201 },
+    );
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to upload media";

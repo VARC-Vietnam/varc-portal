@@ -165,6 +165,18 @@ const navGroups: NavGroup[] = [
         ),
       },
       {
+        href: "/admin/media",
+        label: "Media",
+        flag: "editorial",
+        icon: (
+          <Icon>
+            <rect x="3" y="5" width="18" height="14" rx="2" />
+            <circle cx="9" cy="11" r="2" />
+            <path d="m21 15-4.5-4.5L9 18" />
+          </Icon>
+        ),
+      },
+      {
         href: "/admin/pages",
         label: "Pages",
         flag: "site",

@@ -38,7 +38,7 @@ Default seed credentials come from `.env` (`INITIAL_ADMIN_*`).
 
 ## Media uploads
 
-Admin media uploads (article cover/OG, TipTap body images, pasted/dropped files, site logo/favicon) go through `POST /api/media`.
+Admin media uploads (Media gallery, article cover/OG, TipTap body images, pasted/dropped files, site logo/favicon) go through `POST /api/media`. Editors and admins can manage the library at `/admin/media` (multi-file image/video upload, trash).
 
 ### Local disk (default)
 
@@ -49,7 +49,7 @@ UPLOAD_DIR=./uploads
 
 Files are stored under `uploads/` and served at `/media/...` (rewritten to `/api/media/...`).
 
-By default, the media endpoint accepts common images plus `pdf`, `txt`, `zip`, `doc/docx`, `xls/xlsx`, and `ppt/pptx`. Override with `MEDIA_ALLOWED_MIME` if needed.
+By default, the media endpoint accepts common images and videos (`mp4`, `webm`, `mov`) plus `pdf`, `txt`, `zip`, `doc/docx`, `xls/xlsx`, and `ppt/pptx` (max 50MB). Override with `MEDIA_ALLOWED_MIME` / `MEDIA_MAX_BYTES` if needed.
 
 ### MinIO / S3
 
@@ -165,6 +165,7 @@ Article, category, and page slugs are generated automatically from the title/nam
 | `/admin` | CMS dashboard |
 | `/admin/articles` | Manage articles |
 | `/admin/categories` | Manage categories |
+| `/admin/media` | Media gallery (images & videos) |
 | `/admin/pages` | Manage pages |
 | `/admin/users` | Manage users / roles |
 | `/api/health` | Health check |

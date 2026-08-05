@@ -48,6 +48,12 @@ export default async function EditArticlePage({ params }: Props) {
         ogImageUrl: article.ogImageUrl ?? "",
         categoryIds: (article.categoryIds ?? []).map(String),
         tags: (article.tags ?? []).map(String),
+        publishedAt: article.publishedAt
+          ? new Date(article.publishedAt).toISOString()
+          : null,
+        createdAt: article.createdAt
+          ? new Date(article.createdAt).toISOString()
+          : null,
         locales: {
           vi: {
             title: vi.title,

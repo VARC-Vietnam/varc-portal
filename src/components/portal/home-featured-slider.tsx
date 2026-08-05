@@ -4,6 +4,7 @@ import { useCallback, useEffect, useEffectEvent, useState } from "react";
 import { Link } from "@/i18n/navigation";
 import type { PublicArticleCard } from "@/lib/articles";
 import { FocusedCoverImage } from "@/components/portal/focused-cover-image";
+import { formatDateUtc7 } from "@/lib/datetime-local";
 import type { AppLocale } from "@/i18n/routing";
 
 type Props = {
@@ -24,10 +25,7 @@ const FADE_TRANSITION =
 
 function formatDate(value: string | null, locale: AppLocale) {
   if (!value) return null;
-  return new Date(value).toLocaleDateString(
-    locale === "vi" ? "vi-VN" : "en-GB",
-    { year: "numeric", month: "short", day: "numeric" },
-  );
+  return formatDateUtc7(value, locale === "vi" ? "vi-VN" : "en-GB");
 }
 
 export function HomeFeaturedSlider({

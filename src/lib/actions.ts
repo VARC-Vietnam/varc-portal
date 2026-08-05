@@ -244,10 +244,16 @@ export async function saveArticleAction(
       existing.categoryIds = categoryIds;
       existing.tags = tags;
       existing.locales = locales;
-      if (data.status === "published") {
-        existing.publishedAt = existing.publishedAt ?? new Date();
+      if (data.publishedAt) {
+        existing.publishedAt = new Date(data.publishedAt);
+      } else if (data.status === "published") {
+        // No date chosen → stamp the moment Publish was saved.
+        existing.publishedAt = new Date();
       } else {
         existing.publishedAt = null;
+      }
+      if (data.createdAt) {
+        existing.set("createdAt", new Date(data.createdAt));
       }
       await existing.save();
       revalidatePortal();
@@ -264,7 +270,12 @@ export async function saveArticleAction(
       tags,
       locales,
       authorId: session.user.id,
-      publishedAt: data.status === "published" ? new Date() : null,
+      publishedAt: data.publishedAt
+        ? new Date(data.publishedAt)
+        : data.status === "published"
+          ? new Date()
+          : null,
+      ...(data.createdAt ? { createdAt: new Date(data.createdAt) } : {}),
     });
     revalidatePortal();
     return { ok: true, id: String(created._id) };

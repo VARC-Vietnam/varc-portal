@@ -10,7 +10,7 @@ export const ARTICLE_ASIDE_WIDTH_COLLAPSED = "w-[4.5rem]";
 export const ARTICLE_ASIDE_PAD_EXPANDED = "lg:pr-80";
 export const ARTICLE_ASIDE_PAD_COLLAPSED = "lg:pr-24";
 
-export type ArticleSideSectionId = "category" | "images" | "seo";
+export type ArticleSideSectionId = "category" | "images" | "seo" | "datetime";
 
 type SectionItem = {
   id: ArticleSideSectionId;
@@ -69,6 +69,16 @@ export const ARTICLE_SIDE_SECTIONS: SectionItem[] = [
       <Icon>
         <circle cx="11" cy="11" r="6" />
         <path d="m20 20-3.5-3.5" />
+      </Icon>
+    ),
+  },
+  {
+    id: "datetime",
+    label: "Date Time",
+    icon: (
+      <Icon>
+        <rect x="3" y="5" width="18" height="16" rx="2" />
+        <path d="M8 3v4M16 3v4M3 11h18" />
       </Icon>
     ),
   },

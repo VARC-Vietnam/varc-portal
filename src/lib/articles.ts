@@ -93,11 +93,12 @@ function toPublicCard(
   };
 }
 
-function publishedLocaleFilter(locale: AppLocale) {
+function publishedLocaleFilter(locale: AppLocale, now = new Date()) {
   const key = localeKey(locale);
   return {
     ...notDeletedFilter,
     status: "published" as const,
+    publishedAt: { $ne: null, $lte: now },
     [`locales.${key}.slug`]: { $nin: ["", null] },
     [`locales.${key}.title`]: { $nin: ["", null] },
   };
@@ -160,9 +161,11 @@ export async function getPublishedArticleBySlug(
 ) {
   await connectDb();
   const key = localeKey(locale);
+  const now = new Date();
   const article = await Article.findOne({
     ...notDeletedFilter,
     status: "published",
+    publishedAt: { $ne: null, $lte: now },
     [`locales.${key}.slug`]: slug,
   }).lean<ArticleDocument | null>();
 
@@ -194,7 +197,12 @@ export async function getArticleForPreview(id: string) {
 
 export async function listPublishedForSitemap() {
   await connectDb();
-  return Article.find({ ...notDeletedFilter, status: "published" })
+  const now = new Date();
+  return Article.find({
+    ...notDeletedFilter,
+    status: "published",
+    publishedAt: { $ne: null, $lte: now },
+  })
     .select("locales publishedAt updatedAt")
     .lean<ArticleDocument[]>();
 }

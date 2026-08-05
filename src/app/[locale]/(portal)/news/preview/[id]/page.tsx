@@ -14,6 +14,7 @@ import {
   coverFocusObjectPosition,
   normalizeCoverFocus,
 } from "@/lib/cover-focus";
+import { formatDateUtc7 } from "@/lib/datetime-local";
 
 export const dynamic = "force-dynamic";
 
@@ -90,9 +91,10 @@ export default async function ArticlePreviewPage({ params }: Props) {
                 dateTime={new Date(article.publishedAt).toISOString()}
                 className="mt-4 block text-sm text-muted"
               >
-                {new Date(article.publishedAt).toLocaleDateString(
+                {formatDateUtc7(
+                  article.publishedAt,
                   locale === "vi" ? "vi-VN" : "en-GB",
-                  { year: "numeric", month: "long", day: "numeric" },
+                  { month: "long" },
                 )}
               </time>
             ) : (

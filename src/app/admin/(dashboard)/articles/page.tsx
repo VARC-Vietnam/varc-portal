@@ -13,6 +13,7 @@ import { ActiveRowActions } from "@/components/admin/active-row-actions";
 import { TrashRowActions } from "@/components/admin/trash-row-actions";
 import { EmptyTrashButton } from "@/components/admin/empty-trash-button";
 import { requireEditorialPage } from "@/lib/admin-access";
+import { PORTAL_TIMEZONE, isFuturePublishAt } from "@/lib/datetime-local";
 
 export const dynamic = "force-dynamic";
 
@@ -36,8 +37,16 @@ function clipSlug(text: string, maxWords: number): string {
   return `${words.slice(0, maxWords).join("-")}…`;
 }
 
+function isFuturePublish(
+  publishedAt: Date | string | null | undefined,
+  now: Date,
+): boolean {
+  return isFuturePublishAt(publishedAt, now);
+}
+
 export default async function AdminArticlesPage({ searchParams }: Props) {
   await requireEditorialPage();
+  const now = new Date();
 
   const { tab } = await searchParams;
   const trash = tab === "trash";
@@ -150,20 +159,29 @@ export default async function AdminArticlesPage({ searchParams }: Props) {
                       <span
                         className={
                           article.status === "published"
-                            ? "text-green-700"
+                            ? isFuturePublish(article.publishedAt, now)
+                              ? "text-sky-700"
+                              : "text-green-700"
                             : "text-amber-700"
                         }
                       >
-                        {article.status}
+                        {article.status === "published" &&
+                        isFuturePublish(article.publishedAt, now)
+                          ? "scheduled"
+                          : article.status}
                       </span>
                     </td>
                     <td className="relative z-10 pointer-events-none px-4 py-3 text-gray-500">
                       {trash
                         ? article.deletedAt
-                          ? new Date(article.deletedAt).toLocaleString("vi-VN")
+                          ? new Date(article.deletedAt).toLocaleString("vi-VN", {
+                              timeZone: PORTAL_TIMEZONE,
+                            })
                           : "-"
                         : article.updatedAt
-                          ? new Date(article.updatedAt).toLocaleString("vi-VN")
+                          ? new Date(article.updatedAt).toLocaleString("vi-VN", {
+                              timeZone: PORTAL_TIMEZONE,
+                            })
                           : "-"}
                     </td>
                     <td className="relative z-10 px-4 py-3 text-right">

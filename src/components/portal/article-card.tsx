@@ -1,6 +1,7 @@
 import { Link } from "@/i18n/navigation";
 import type { PublicArticleCard } from "@/lib/articles";
 import { coverFocusObjectPosition } from "@/lib/cover-focus";
+import { formatDateUtc7 } from "@/lib/datetime-local";
 import type { AppLocale } from "@/i18n/routing";
 
 type Variant = "lead" | "support" | "grid";
@@ -17,10 +18,7 @@ type Props = {
 
 function formatDate(value: string | null, locale: AppLocale) {
   if (!value) return null;
-  return new Date(value).toLocaleDateString(
-    locale === "vi" ? "vi-VN" : "en-GB",
-    { year: "numeric", month: "short", day: "numeric" },
-  );
+  return formatDateUtc7(value, locale === "vi" ? "vi-VN" : "en-GB");
 }
 
 function Cover({

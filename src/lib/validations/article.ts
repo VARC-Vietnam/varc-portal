@@ -23,6 +23,10 @@ export const articleFormSchema = z
     ogImageUrl: z.string().trim(),
     categoryIds: z.array(z.string()),
     tags: z.array(z.string().trim().min(1)).max(30),
+    /** ISO datetime string, or null when unset / draft. */
+    publishedAt: z.string().datetime().nullable(),
+    /** ISO datetime string, or null to keep server default. */
+    createdAt: z.string().datetime().nullable(),
     locales: z.object({
       vi: articleLocaleSchema,
       en: articleLocaleSchema,

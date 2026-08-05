@@ -28,6 +28,13 @@ import {
   useArticleSectionAsideExpanded,
   type ArticleSideSectionId,
 } from "@/components/admin/article-section-aside";
+import {
+  fromDatetimeLocalValue,
+  isFuturePublishAt,
+  isScheduledPublish,
+  nowIso,
+  toDatetimeLocalValue,
+} from "@/lib/datetime-local";
 
 type CategoryOption = { id: string; label: string };
 
@@ -54,6 +61,7 @@ export function ArticleEditor({
 }: Props) {
   const router = useRouter();
   const { ask, modal } = useConfirm();
+  const [now, setNow] = useState(() => new Date());
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<ArticleFormValues>(initial);
@@ -61,6 +69,8 @@ export function ArticleEditor({
   const [sideSection, setSideSection] =
     useState<ArticleSideSectionId | null>("category");
   const asideExpanded = useArticleSectionAsideExpanded();
+
+  const publishedIsScheduled = isFuturePublishAt(form.publishedAt, now);
 
   const previewSlug = useMemo(
     () => (form.locales[tab].title ? makeSlug(form.locales[tab].title) : ""),
@@ -94,14 +104,24 @@ export function ArticleEditor({
   function onSave(status: "draft" | "published") {
     setError(null);
     startTransition(async () => {
+      const nextPublishedAt =
+        status === "published"
+          ? form.publishedAt ?? nowIso()
+          : form.publishedAt;
       const result = await saveArticleAction(articleId ?? null, {
         ...form,
         status,
+        publishedAt: nextPublishedAt,
       });
+      const scheduled = isScheduledPublish(status, nextPublishedAt);
       if (
         !notifyAction(
           result,
-          status === "published" ? "Article published" : "Article saved",
+          status === "published"
+            ? scheduled
+              ? "Article scheduled"
+              : "Article published"
+            : "Article saved",
         )
       ) {
         setError(result.error);
@@ -281,6 +301,67 @@ export function ArticleEditor({
         </label>
       </div>
     ),
+    datetime: (
+      <div className="grid min-w-0 content-start gap-4">
+        <p className="text-xs text-gray-500">
+          Times use UTC+7 (Vietnam). Leave Published date empty to set it
+          automatically when you click Publish. A future date keeps the article
+          hidden until that time.
+        </p>
+        <label className="block min-w-0 text-sm">
+          <span className="mb-1 block font-medium">Published date (UTC+7)</span>
+          <input
+            type="datetime-local"
+            value={toDatetimeLocalValue(form.publishedAt)}
+            onChange={(e) => {
+              const instant = new Date();
+              setNow(instant);
+              setForm((prev) => ({
+                ...prev,
+                publishedAt: fromDatetimeLocalValue(e.target.value),
+              }));
+            }}
+            className="w-full min-w-0 rounded border border-gray-300 bg-white px-3 py-2"
+          />
+          {publishedIsScheduled ? (
+            <span className="mt-1 block text-xs text-amber-700">
+              Scheduled — not visible until this time (UTC+7).
+            </span>
+          ) : null}
+        </label>
+        <label className="block min-w-0 text-sm">
+          <span className="mb-1 block font-medium">Created date (UTC+7)</span>
+          <input
+            type="datetime-local"
+            value={toDatetimeLocalValue(form.createdAt)}
+            onChange={(e) =>
+              setForm((prev) => ({
+                ...prev,
+                createdAt: fromDatetimeLocalValue(e.target.value),
+              }))
+            }
+            className="w-full min-w-0 rounded border border-gray-300 bg-white px-3 py-2"
+          />
+          <span className="mt-1 block text-xs text-gray-500">
+            Optional. Leave empty on new articles to use the save time.
+          </span>
+        </label>
+        <button
+          type="button"
+          onClick={() => {
+            const instant = new Date();
+            setNow(instant);
+            setForm((prev) => ({
+              ...prev,
+              publishedAt: instant.toISOString(),
+            }));
+          }}
+          className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-left text-sm text-gray-800 hover:bg-gray-50"
+        >
+          Set published date to now (UTC+7)
+        </button>
+      </div>
+    ),
   };
 
   return (
@@ -434,6 +515,8 @@ export const emptyArticleForm: ArticleFormValues = {
   ogImageUrl: "",
   categoryIds: [],
   tags: [],
+  publishedAt: null,
+  createdAt: null,
   locales: {
     vi: { ...emptyLocale },
     en: { ...emptyLocale },

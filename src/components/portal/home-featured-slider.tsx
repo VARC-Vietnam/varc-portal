@@ -19,6 +19,9 @@ type Props = {
   };
 };
 
+const FADE_TRANSITION =
+  "opacity 800ms cubic-bezier(0.32, 0.72, 0, 1)";
+
 function formatDate(value: string | null, locale: AppLocale) {
   if (!value) return null;
   return new Date(value).toLocaleDateString(
@@ -39,7 +42,8 @@ export function HomeFeaturedSlider({
   const goTo = useCallback(
     (next: number) => {
       if (count === 0) return;
-      setIndex(((next % count) + count) % count);
+      const target = ((next % count) + count) % count;
+      setIndex((current) => (current === target ? current : target));
     },
     [count],
   );
@@ -56,9 +60,6 @@ export function HomeFeaturedSlider({
 
   if (count === 0) return null;
 
-  const current = articles[index];
-  const dateLabel = formatDate(current.publishedAt, locale);
-
   return (
     <section className="relative overflow-hidden border-b border-border bg-foreground text-surface">
       <div className="relative min-h-[42dvh] md:min-h-[48dvh]">
@@ -66,11 +67,15 @@ export function HomeFeaturedSlider({
           const active = i === index;
           return (
             <div
-              key={article.id}
+              key={`cover-${article.id}`}
               aria-hidden={!active}
-              className={`absolute inset-0 overflow-hidden transition-opacity duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] ${
-                active ? "opacity-100" : "pointer-events-none opacity-0"
-              }`}
+              className="absolute inset-0 overflow-hidden"
+              style={{
+                opacity: active ? 1 : 0,
+                transition: FADE_TRANSITION,
+                pointerEvents: active ? "auto" : "none",
+                zIndex: active ? 1 : 0,
+              }}
             >
               {article.coverImageUrl ? (
                 <FocusedCoverImage
@@ -101,39 +106,60 @@ export function HomeFeaturedSlider({
             {labels.featuredLabel}
           </p>
 
-          <Link
-            href={{
-              pathname: "/news/[slug]",
-              params: { slug: current.slug },
-            }}
-            className="group mt-2 block max-w-3xl"
-          >
-            {dateLabel ? (
-              <time
-                dateTime={current.publishedAt ?? undefined}
-                className="text-xs tracking-wide text-white/65 uppercase"
-              >
-                {labels.publishedAt} {dateLabel}
-              </time>
-            ) : null}
-            <h1 className="mt-2 font-display text-2xl leading-[1.15] text-white transition duration-500 group-hover:text-accent-soft md:text-4xl lg:text-5xl">
-              {current.title}
-            </h1>
-            {current.excerpt ? (
-              <p className="mt-3 max-w-[48ch] text-sm leading-relaxed text-white/75 md:text-base line-clamp-2">
-                {current.excerpt}
-              </p>
-            ) : null}
-            <span className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-accent-soft">
-              {labels.readMore}
-              <span
-                aria-hidden
-                className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/10 transition duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5 group-hover:-translate-y-px"
-              >
-                ↗
-              </span>
-            </span>
-          </Link>
+          <div className="relative mt-2 min-h-[11rem] md:min-h-[13rem]">
+            {articles.map((article, i) => {
+              const active = i === index;
+              const dateLabel = formatDate(article.publishedAt, locale);
+              return (
+                <div
+                  key={`copy-${article.id}`}
+                  aria-hidden={!active}
+                  className="absolute inset-x-0 top-0"
+                  style={{
+                    opacity: active ? 1 : 0,
+                    transition: FADE_TRANSITION,
+                    pointerEvents: active ? "auto" : "none",
+                    zIndex: active ? 1 : 0,
+                  }}
+                >
+                  <Link
+                    href={{
+                      pathname: "/news/[slug]",
+                      params: { slug: article.slug },
+                    }}
+                    className="group block max-w-3xl"
+                    tabIndex={active ? 0 : -1}
+                  >
+                    {dateLabel ? (
+                      <time
+                        dateTime={article.publishedAt ?? undefined}
+                        className="text-xs tracking-wide text-white/65 uppercase"
+                      >
+                        {labels.publishedAt} {dateLabel}
+                      </time>
+                    ) : null}
+                    <h1 className="mt-2 font-display text-2xl leading-[1.15] text-white transition duration-500 group-hover:text-accent-soft md:text-4xl lg:text-5xl">
+                      {article.title}
+                    </h1>
+                    {article.excerpt ? (
+                      <p className="mt-3 max-w-[48ch] text-sm leading-relaxed text-white/75 md:text-base line-clamp-2">
+                        {article.excerpt}
+                      </p>
+                    ) : null}
+                    <span className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-accent-soft">
+                      {labels.readMore}
+                      <span
+                        aria-hidden
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/10 transition duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5 group-hover:-translate-y-px"
+                      >
+                        ↗
+                      </span>
+                    </span>
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
 
           {count > 1 ? (
             <div className="mt-8 flex flex-wrap items-center gap-4">

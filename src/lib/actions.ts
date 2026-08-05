@@ -35,6 +35,10 @@ import {
   siteSettingsFormSchema,
 } from "@/lib/validations/article";
 import { ensureDefaultRoles, isValidRoleKey } from "@/lib/app-roles";
+import {
+  MAX_MENU_DEPTH,
+  canPlaceUnderParent,
+} from "@/lib/menu-tree";
 import { AppRole } from "@/models/AppRole";
 import { Article } from "@/models/Article";
 import { Category } from "@/models/Category";
@@ -42,6 +46,16 @@ import { MenuItem } from "@/models/MenuItem";
 import { Page } from "@/models/Page";
 import { SITE_SETTINGS_KEY, SiteSettings } from "@/models/SiteSettings";
 import { User } from "@/models/User";
+
+async function loadMenuParentRefs(location: "navigation" | "footer") {
+  const docs = await MenuItem.find({ location, ...notDeletedFilter })
+    .select("_id parentId")
+    .lean();
+  return docs.map((doc) => ({
+    id: String(doc._id),
+    parentId: doc.parentId ? String(doc.parentId) : null,
+  }));
+}
 
 async function requireAdmin() {
   const session = await auth();
@@ -715,11 +729,40 @@ export async function saveMenuItemAction(
       if (existing.location !== data.location) {
         return { ok: false, error: "Cannot change menu location" };
       }
+
+      let nextParentId: mongoose.Types.ObjectId | null = existing.parentId
+        ? new mongoose.Types.ObjectId(String(existing.parentId))
+        : null;
+      if (data.parentId !== undefined) {
+        if (data.parentId === id) {
+          return { ok: false, error: "A menu item cannot be its own parent" };
+        }
+        if (data.parentId) {
+          const parent = await MenuItem.findOne({
+            _id: data.parentId,
+            location: data.location,
+            ...notDeletedFilter,
+          });
+          if (!parent) return { ok: false, error: "Parent menu item not found" };
+          const refs = await loadMenuParentRefs(data.location);
+          if (!canPlaceUnderParent(id, data.parentId, refs)) {
+            return {
+              ok: false,
+              error: `Menu items can nest at most ${MAX_MENU_DEPTH} levels deep`,
+            };
+          }
+          nextParentId = new mongoose.Types.ObjectId(data.parentId);
+        } else {
+          nextParentId = null;
+        }
+      }
+
       existing.type = data.type;
       existing.pageId =
         data.type === "page" && data.pageId
           ? new mongoose.Types.ObjectId(data.pageId)
           : null;
+      existing.parentId = nextParentId;
       existing.locales = locales;
       existing.enabled = data.enabled;
       existing.openInNewTab = data.openInNewTab;
@@ -731,8 +774,34 @@ export async function saveMenuItemAction(
       return { ok: true, id: String(existing._id) };
     }
 
+    let parentId: mongoose.Types.ObjectId | null = null;
+    if (data.parentId) {
+      const parent = await MenuItem.findOne({
+        _id: data.parentId,
+        location: data.location,
+        ...notDeletedFilter,
+      });
+      if (!parent) return { ok: false, error: "Parent menu item not found" };
+      const refs = await loadMenuParentRefs(data.location);
+      // New item has no subtree; treat as a temporary id for cycle checks only.
+      const provisionalId = "__new__";
+      if (
+        !canPlaceUnderParent(provisionalId, data.parentId, [
+          ...refs,
+          { id: provisionalId, parentId: null },
+        ])
+      ) {
+        return {
+          ok: false,
+          error: `Menu items can nest at most ${MAX_MENU_DEPTH} levels deep`,
+        };
+      }
+      parentId = new mongoose.Types.ObjectId(data.parentId);
+    }
+
     const max = await MenuItem.find({
       location: data.location,
+      parentId,
       ...notDeletedFilter,
     })
       .sort({ sortOrder: -1 })
@@ -747,11 +816,21 @@ export async function saveMenuItemAction(
         data.type === "page" && data.pageId
           ? new mongoose.Types.ObjectId(data.pageId)
           : null,
+      parentId: parentId ?? null,
       locales,
       enabled: data.enabled,
       openInNewTab: data.openInNewTab,
       sortOrder: nextOrder,
     });
+
+    // Belt-and-suspenders: ensure parentId is stored even if a stale schema
+    // previously stripped it during create.
+    if (parentId) {
+      await MenuItem.updateOne(
+        { _id: created._id },
+        { $set: { parentId } },
+      );
+    }
     if (data.location === "navigation") {
       await markNavigationMenuInitialized();
     }
@@ -775,6 +854,17 @@ export async function deleteMenuItemAction(
     if (!existing) return { ok: false, error: "Menu item not found" };
     existing.deletedAt = new Date();
     await existing.save();
+    // Reparent children under the deleted item's parent (or top-level).
+    await MenuItem.updateMany(
+      { parentId: existing._id, ...notDeletedFilter },
+      {
+        $set: {
+          parentId: existing.parentId
+            ? new mongoose.Types.ObjectId(String(existing.parentId))
+            : null,
+        },
+      },
+    );
     if (existing.location === "navigation") {
       await markNavigationMenuInitialized();
     }
@@ -825,6 +915,16 @@ export async function permanentlyDeleteMenuItemAction(
     if (existing.location === "navigation") {
       await markNavigationMenuInitialized();
     }
+    await MenuItem.updateMany(
+      { parentId: existing._id },
+      {
+        $set: {
+          parentId: existing.parentId
+            ? new mongoose.Types.ObjectId(String(existing.parentId))
+            : null,
+        },
+      },
+    );
     await MenuItem.findByIdAndDelete(id);
     revalidatePortal();
     return { ok: true };
@@ -872,23 +972,56 @@ export async function reorderMenuItemsAction(
       return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid data" };
     }
 
-    const { location, orderedIds } = parsed.data;
+    const { location, items: nextItems } = parsed.data;
     await connectDb();
 
-    const items = await MenuItem.find({
+    const ids = nextItems.map((item) => item.id);
+    const existing = await MenuItem.find({
       location,
-      _id: { $in: orderedIds },
+      _id: { $in: ids },
       ...notDeletedFilter,
     });
-    if (items.length !== orderedIds.length) {
+    if (existing.length !== ids.length) {
       return { ok: false, error: "One or more menu items were not found" };
     }
 
+    const byId = new Map(existing.map((item) => [String(item._id), item]));
+    const proposedRefs = nextItems.map((entry) => ({
+      id: entry.id,
+      parentId: entry.parentId ?? null,
+    }));
+
+    for (const entry of nextItems) {
+      if (entry.parentId === entry.id) {
+        return { ok: false, error: "A menu item cannot be its own parent" };
+      }
+      if (entry.parentId) {
+        const parentEntry = nextItems.find((item) => item.id === entry.parentId);
+        const parentDoc = byId.get(entry.parentId);
+        if (!parentEntry || !parentDoc) {
+          return { ok: false, error: "Parent menu item not found" };
+        }
+        if (!canPlaceUnderParent(entry.id, entry.parentId, proposedRefs)) {
+          return {
+            ok: false,
+            error: `Menu items can nest at most ${MAX_MENU_DEPTH} levels deep`,
+          };
+        }
+      }
+    }
+
     await Promise.all(
-      orderedIds.map((itemId, index) =>
+      nextItems.map((entry) =>
         MenuItem.updateOne(
-          { _id: itemId, location },
-          { $set: { sortOrder: index } },
+          { _id: entry.id, location },
+          {
+            $set: {
+              parentId: entry.parentId
+                ? new mongoose.Types.ObjectId(entry.parentId)
+                : null,
+              sortOrder: entry.sortOrder,
+            },
+          },
         ),
       ),
     );

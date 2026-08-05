@@ -1,4 +1,5 @@
 import { connectDb } from "@/lib/db";
+import { MAX_MENU_DEPTH } from "@/lib/menu-tree";
 import {
   ensureUncategorizedCategory,
   notDeletedFilter,
@@ -114,6 +115,7 @@ export type PublicMenuLink = {
   /** Present when kind === "custom". */
   href?: string;
   openInNewTab: boolean;
+  children?: PublicMenuLink[];
 };
 
 export type AdminMenuItem = {
@@ -121,6 +123,7 @@ export type AdminMenuItem = {
   location: MenuLocation;
   type: "page" | "custom";
   pageId: string | null;
+  parentId: string | null;
   pageTitle: string | null;
   locales: {
     vi: { label: string; url: string };
@@ -211,11 +214,14 @@ export async function listMenuItemsAdmin(
         null
       : null;
 
+    const rawParent = (item as { parentId?: unknown }).parentId;
+
     return {
       id: String(item._id),
       location: item.location as MenuLocation,
       type: item.type as "page" | "custom",
       pageId: item.pageId ? String(item.pageId) : null,
+      parentId: rawParent ? String(rawParent) : null,
       pageTitle,
       locales: {
         vi: {
@@ -280,46 +286,69 @@ export async function listPublicMenuLinks(
     : [];
   const pageById = new Map(pages.map((page) => [String(page._id), page]));
 
-  const links: PublicMenuLink[] = [];
-
-  for (const item of items) {
+  function toLink(item: MenuItemDocument): PublicMenuLink | null {
     if (item.type === "custom") {
       const preferred = item.locales?.[localeKey(locale)];
       const fallback = item.locales?.[locale === "en" ? "vi" : "en"];
       const label = preferred?.label?.trim() || fallback?.label?.trim();
       const href = preferred?.url?.trim() || fallback?.url?.trim();
-      if (!label || !href) continue;
-      links.push({
+      if (!label || !href) return null;
+      return {
         id: String(item._id),
         label,
         kind: "custom",
         href,
         openInNewTab: Boolean(item.openInNewTab),
-      });
-      continue;
+      };
     }
 
-    if (!item.pageId) continue;
+    if (!item.pageId) return null;
     const page = pageById.get(String(item.pageId));
-    if (!page) continue;
+    if (!page) return null;
     const fields = pageNavFields(page, locale);
-    if (!fields) continue;
+    if (!fields) return null;
 
     const override =
       item.locales?.[localeKey(locale)]?.label?.trim() ||
       item.locales?.[locale === "en" ? "vi" : "en"]?.label?.trim();
 
-    links.push({
+    return {
       id: String(item._id),
       label: override || fields.title,
       kind: "page",
       slug: fields.slug,
       linkLocale: fields.linkLocale,
       openInNewTab: Boolean(item.openInNewTab),
-    });
+    };
   }
 
-  return links;
+  const byParent = new Map<string | null, MenuItemDocument[]>();
+  for (const item of items) {
+    const parentKey = item.parentId ? String(item.parentId) : null;
+    const list = byParent.get(parentKey) ?? [];
+    list.push(item);
+    byParent.set(parentKey, list);
+  }
+
+  function buildLinks(
+    parentKey: string | null,
+    depth: number,
+  ): PublicMenuLink[] {
+    const docs = byParent.get(parentKey) ?? [];
+    const links: PublicMenuLink[] = [];
+    for (const doc of docs) {
+      const link = toLink(doc);
+      if (!link) continue;
+      if (depth < MAX_MENU_DEPTH) {
+        const children = buildLinks(String(doc._id), depth + 1);
+        if (children.length > 0) link.children = children;
+      }
+      links.push(link);
+    }
+    return links;
+  }
+
+  return buildLinks(null, 0);
 }
 
 /**

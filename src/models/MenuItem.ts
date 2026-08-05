@@ -33,6 +33,12 @@ const MenuItemSchema = new Schema(
       ref: "Page",
       default: null,
     },
+    parentId: {
+      type: Schema.Types.ObjectId,
+      ref: "MenuItem",
+      default: null,
+      index: true,
+    },
     locales: {
       vi: { type: MenuLocaleSchema, required: true },
       en: { type: MenuLocaleSchema, required: true },
@@ -45,12 +51,27 @@ const MenuItemSchema = new Schema(
   { timestamps: true },
 );
 
+MenuItemSchema.index({ location: 1, parentId: 1, sortOrder: 1 });
 MenuItemSchema.index({ location: 1, sortOrder: 1 });
 
 export type MenuItemDocument = InferSchemaType<typeof MenuItemSchema> & {
   _id: mongoose.Types.ObjectId;
 };
 
-export const MenuItem: Model<MenuItemDocument> =
-  mongoose.models.MenuItem ??
-  mongoose.model<MenuItemDocument>("MenuItem", MenuItemSchema);
+// Next.js hot-reload can keep a stale model without `parentId`; always rebind
+// the schema so nested menu fields persist and load correctly.
+if (mongoose.models.MenuItem) {
+  delete mongoose.models.MenuItem;
+}
+const connectionModels = mongoose.connection.models as Record<
+  string,
+  Model<unknown> | undefined
+>;
+if (connectionModels.MenuItem) {
+  delete connectionModels.MenuItem;
+}
+
+export const MenuItem: Model<MenuItemDocument> = mongoose.model<MenuItemDocument>(
+  "MenuItem",
+  MenuItemSchema,
+);

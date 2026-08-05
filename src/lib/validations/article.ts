@@ -138,6 +138,7 @@ export const menuItemFormSchema = z
     location: z.enum(["navigation", "footer"]),
     type: z.enum(["page", "custom"]),
     pageId: z.string().nullable(),
+    parentId: z.string().nullable().optional(),
     locales: z.object({
       vi: menuLocaleSchema,
       en: menuLocaleSchema,
@@ -177,7 +178,15 @@ export type MenuItemFormValues = z.infer<typeof menuItemFormSchema>;
 
 export const reorderMenuSchema = z.object({
   location: z.enum(["navigation", "footer"]),
-  orderedIds: z.array(z.string().min(1)).min(1),
+  items: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        parentId: z.string().nullable(),
+        sortOrder: z.number().int().nonnegative(),
+      }),
+    )
+    .min(1),
 });
 
 const siteLocaleSchema = z.object({

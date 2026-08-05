@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useId, useRef, useState } from "react";
 import NextLink from "next/link";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
@@ -61,6 +62,114 @@ function MenuAnchor({
   );
 }
 
+function NavDropdown({
+  item,
+  depth = 0,
+}: {
+  item: PublicMenuLink;
+  depth?: number;
+}) {
+  const menuId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const children = item.children ?? [];
+  const nested = depth > 0;
+
+  useEffect(() => {
+    if (!open) return;
+
+    function onPointerDown(event: MouseEvent) {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div
+      ref={rootRef}
+      className={
+        nested
+          ? "relative"
+          : "relative flex h-16 shrink-0 items-center"
+      }
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+    >
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        aria-controls={menuId}
+        onClick={() => setOpen((prev) => !prev)}
+        className={
+          nested
+            ? "flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm text-muted transition hover:bg-foreground/5 hover:text-foreground"
+            : "inline-flex items-center gap-1 text-muted transition hover:text-foreground"
+        }
+      >
+        {item.label}
+        <svg
+          viewBox="0 0 24 24"
+          className={`h-3.5 w-3.5 shrink-0 transition ${
+            open
+              ? nested
+                ? "-rotate-90"
+                : "rotate-180"
+              : nested
+                ? "rotate-90"
+                : ""
+          }`}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.75"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+        >
+          <path d="m6 10 6 6 6-6" />
+        </svg>
+      </button>
+      {open ? (
+        <div
+          id={menuId}
+          role="menu"
+          className={
+            nested
+              ? "absolute top-0 left-full z-[60] min-w-[12rem] pl-1"
+              : "absolute top-full left-0 z-[60] min-w-[12rem] pt-1"
+          }
+        >
+          <div className="rounded-md border border-border bg-surface py-1 shadow-lg">
+            {children.map((child) =>
+              child.children && child.children.length > 0 ? (
+                <NavDropdown key={child.id} item={child} depth={depth + 1} />
+              ) : (
+                <MenuAnchor
+                  key={child.id}
+                  item={child}
+                  className="block px-3 py-2 text-sm text-muted transition hover:bg-foreground/5 hover:text-foreground"
+                />
+              ),
+            )}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function SiteHeader({
   menuItems = [],
   user = null,
@@ -73,7 +182,7 @@ export function SiteHeader({
   const t = useTranslations("nav");
 
   return (
-    <header className="border-b border-border/80 bg-surface/90 backdrop-blur-md">
+    <header className="relative z-50 border-b border-border/80 bg-surface/90 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 md:px-6">
         <Link
           href="/"
@@ -89,17 +198,25 @@ export function SiteHeader({
           ) : null}
           <span>{branding.siteName}</span>
         </Link>
-        <nav className="flex items-center gap-4 overflow-x-auto text-sm md:gap-5">
-          <Link href="/" className="shrink-0 text-muted transition hover:text-foreground">
+        {/* No overflow here — it clips absolutely positioned dropdowns. */}
+        <nav className="flex min-w-0 items-center gap-4 text-sm md:gap-5">
+          <Link
+            href="/"
+            className="shrink-0 text-muted transition hover:text-foreground"
+          >
             {t("home")}
           </Link>
-          {menuItems.map((item) => (
-            <MenuAnchor
-              key={item.id}
-              item={item}
-              className="shrink-0 text-muted transition hover:text-foreground"
-            />
-          ))}
+          {menuItems.map((item) =>
+            item.children && item.children.length > 0 ? (
+              <NavDropdown key={item.id} item={item} />
+            ) : (
+              <MenuAnchor
+                key={item.id}
+                item={item}
+                className="shrink-0 text-muted transition hover:text-foreground"
+              />
+            ),
+          )}
           <SiteAccountMenu user={user} />
         </nav>
       </div>

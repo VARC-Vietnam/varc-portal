@@ -69,7 +69,16 @@ export function FooterMenuLinks({
   columns?: number;
 }) {
   const linkClass = "block text-muted transition hover:text-foreground";
-  const groups = splitIntoColumns(items, columns);
+  // Flatten nested items for the footer column layout.
+  const flat: PublicMenuLink[] = [];
+  function walk(nodes: PublicMenuLink[]) {
+    for (const item of nodes) {
+      flat.push(item);
+      if (item.children?.length) walk(item.children);
+    }
+  }
+  walk(items);
+  const groups = splitIntoColumns(flat, columns);
 
   return (
     <div className="grid w-max max-w-full grid-cols-2 gap-x-8 gap-y-3 md:grid-cols-3">

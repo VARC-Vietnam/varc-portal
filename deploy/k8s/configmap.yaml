@@ -14,4 +14,4 @@ data:
   S3_REGION: "us-east-1"
   S3_BUCKET: "varc-portal-media"
   S3_FORCE_PATH_STYLE: "true"
-  S3_PUBLIC_URL: "https://media.hamvn.com"
+  S3_PUBLIC_URL: "https://s3.classq.io/varc-portal-media"

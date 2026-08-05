@@ -10,7 +10,6 @@ import {
 
 // --- Tiptap Core Extensions ---
 import { StarterKit } from "@tiptap/starter-kit"
-import { Image } from "@tiptap/extension-image"
 import { TaskItem, TaskList } from "@tiptap/extension-list"
 import { TextAlign } from "@tiptap/extension-text-align"
 import { Typography } from "@tiptap/extension-typography"
@@ -38,6 +37,7 @@ import {
 
 // --- Tiptap Node ---
 import { ImageUploadNode } from "@/components/tiptap-node/image-upload-node/image-upload-node-extension"
+import { ResizableImage } from "@/components/tiptap-node/image-node/resizable-image-extension"
 import { HorizontalRule } from "@/components/tiptap-node/horizontal-rule-node/horizontal-rule-node-extension"
 import "@/components/tiptap-node/blockquote-node/blockquote-node.scss"
 import "@/components/tiptap-node/code-block-node/code-block-node.scss"
@@ -52,6 +52,7 @@ import { HeadingDropdownMenu } from "@/components/tiptap-ui/heading-dropdown-men
 import { FileUploadButton } from "@/components/tiptap-ui/file-upload-button"
 import { ImageUploadButton } from "@/components/tiptap-ui/image-upload-button"
 import { MediaLibraryButton } from "@/components/tiptap-ui/media-library-button"
+import { ImageSizeMenu } from "@/components/tiptap-ui/image-size-menu"
 import { ListDropdownMenu } from "@/components/tiptap-ui/list-dropdown-menu"
 import { BlockquoteButton } from "@/components/tiptap-ui/blockquote-button"
 import { CodeBlockButton } from "@/components/tiptap-ui/code-block-button"
@@ -369,7 +370,7 @@ function SimpleEditorClient({
       TaskList,
       TaskItem.configure({ nested: true }),
       Highlight.configure({ multicolor: true }),
-      Image,
+      ResizableImage,
       Table.configure({ resizable: true }),
       TableRow,
       TableHeader,
@@ -482,6 +483,8 @@ function SimpleEditorClient({
           onClose={closeSearchAndReplace}
           scrollIntoViewOptions={SEARCH_AND_REPLACE_SCROLL_OPTIONS}
         />
+
+        <ImageSizeMenu editor={editor} />
 
         <EditorContent
           editor={editor}

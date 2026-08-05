@@ -107,6 +107,42 @@ button:disabled,
   border-radius: 0.25rem;
 }
 
+.prose-article img[data-size="small"],
+.prose-article-wide img[data-size="small"] {
+  width: 25%;
+  max-width: 240px;
+}
+
+.prose-article img[data-size="medium"],
+.prose-article-wide img[data-size="medium"] {
+  width: 50%;
+  max-width: 480px;
+}
+
+.prose-article img[data-size="large"],
+.prose-article-wide img[data-size="large"] {
+  width: 75%;
+  max-width: 720px;
+}
+
+.prose-article img[data-size="hd"],
+.prose-article-wide img[data-size="hd"] {
+  width: 100%;
+  max-width: 1280px;
+}
+
+.prose-article img[data-size="fhd"],
+.prose-article-wide img[data-size="fhd"] {
+  width: 100%;
+  max-width: 1920px;
+}
+
+.prose-article img[data-size="original"],
+.prose-article-wide img[data-size="original"] {
+  width: auto;
+  max-width: 100%;
+}
+
 .prose-article blockquote,
 .prose-article-wide blockquote {
   margin: 1em 0;

@@ -54,7 +54,7 @@ export function normalizeEditorHtml(content: string): string {
 export function sanitizeHtml(html: string): string {
   return DOMPurify.sanitize(html, {
     USE_PROFILES: { html: true },
-    ADD_ATTR: ["target", "rel", "class"],
+    ADD_ATTR: ["target", "rel", "class", "data-size", "width", "height"],
     ADD_DATA_URI_TAGS: ["img"],
   });
 }

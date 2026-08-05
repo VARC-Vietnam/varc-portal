@@ -77,6 +77,36 @@
   background: rgba(31, 107, 74, 0.12);
 }
 
+.image-size-menu {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.25rem;
+  border: 1px solid var(--tt-gray-light-a-200, #e5e7eb);
+  border-radius: 0.5rem;
+  background: #fff;
+  box-shadow:
+    0 4px 16px rgba(15, 23, 42, 0.1),
+    0 1px 2px rgba(15, 23, 42, 0.06);
+  pointer-events: auto;
+}
+
+.image-size-menu .tiptap-button {
+  min-width: auto;
+  padding-inline: 0.55rem;
+}
+
+.image-size-menu .tiptap-button[data-active-state="on"] {
+  background: var(--tt-gray-light-100, #f3f4f6);
+  color: var(--tt-gray-light-900, #111827);
+}
+
+.image-size-menu .tiptap-button .tiptap-button-text {
+  display: inline;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
 @media screen and (max-width: 480px) {
   .simple-editor-search-and-replace {
     top: calc(var(--tt-toolbar-height) + 0.25rem);

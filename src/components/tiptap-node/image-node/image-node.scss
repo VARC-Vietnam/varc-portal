@@ -5,6 +5,36 @@
     display: block;
   }
 
+  img[data-size="small"] {
+    width: 25%;
+    max-width: 240px;
+  }
+
+  img[data-size="medium"] {
+    width: 50%;
+    max-width: 480px;
+  }
+
+  img[data-size="large"] {
+    width: 75%;
+    max-width: 720px;
+  }
+
+  img[data-size="hd"] {
+    width: 100%;
+    max-width: 1280px;
+  }
+
+  img[data-size="fhd"] {
+    width: 100%;
+    max-width: 1920px;
+  }
+
+  img[data-size="original"] {
+    width: auto;
+    max-width: 100%;
+  }
+
   p > img {
     display: inline-block;
   }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { deleteCategoryAction, saveCategoryAction } from "@/lib/actions";
 import { makeSlug } from "@/lib/slug";
 import type { CategoryFormValues } from "@/lib/validations/article";
+import { useConfirm } from "@/components/admin/use-confirm";
 
 type Props = {
   categoryId?: string;
@@ -20,6 +21,7 @@ export function CategoryEditor({
   isSystem = false,
 }: Props) {
   const router = useRouter();
+  const { ask, modal } = useConfirm();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState(initial);
@@ -43,15 +45,16 @@ export function CategoryEditor({
     });
   }
 
-  function onDelete() {
+  async function onDelete() {
     if (!categoryId || isSystem) return;
-    if (
-      !confirm(
+    const confirmed = await ask({
+      title: "Move to trash",
+      message:
         "Move this category to trash? Articles in it will be assigned to Uncategorized.",
-      )
-    ) {
-      return;
-    }
+      confirmLabel: "Move to trash",
+      variant: "danger",
+    });
+    if (!confirmed) return;
     startTransition(async () => {
       const result = await deleteCategoryAction(categoryId);
       if (!result.ok) {
@@ -66,6 +69,7 @@ export function CategoryEditor({
   const locale = form.locales[tab];
 
   return (
+    <>
     <div className="space-y-6">
       {error ? (
         <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -158,6 +162,8 @@ export function CategoryEditor({
         ) : null}
       </div>
     </div>
+    {modal}
+    </>
   );
 }
 

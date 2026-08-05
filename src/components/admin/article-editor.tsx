@@ -10,6 +10,7 @@ import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { ImageSourceField } from "@/components/admin/image-source-field";
 import { CoverFocusPicker } from "@/components/admin/cover-focus-picker";
 import { TagsInput } from "@/components/admin/tags-input";
+import { useConfirm } from "@/components/admin/use-confirm";
 
 type CategoryOption = { id: string; label: string };
 
@@ -38,6 +39,7 @@ const emptyLocale = {
 
 export function ArticleEditor({ articleId, initial, categories }: Props) {
   const router = useRouter();
+  const { ask, modal } = useConfirm();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<ArticleFormValues>(initial);
@@ -97,9 +99,15 @@ export function ArticleEditor({ articleId, initial, categories }: Props) {
     });
   }
 
-  function onDelete() {
+  async function onDelete() {
     if (!articleId) return;
-    if (!confirm("Move this article to trash?")) return;
+    const confirmed = await ask({
+      title: "Move to trash",
+      message: "Move this article to trash?",
+      confirmLabel: "Move to trash",
+      variant: "danger",
+    });
+    if (!confirmed) return;
     startTransition(async () => {
       const result = await deleteArticleAction(articleId);
       if (!result.ok) {
@@ -144,6 +152,7 @@ export function ArticleEditor({ articleId, initial, categories }: Props) {
   );
 
   return (
+    <>
     <div>
       {error ? (
         <p className="mb-6 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -454,6 +463,8 @@ export function ArticleEditor({ articleId, initial, categories }: Props) {
         ) : null}
       </div>
     </div>
+    {modal}
+    </>
   );
 }
 

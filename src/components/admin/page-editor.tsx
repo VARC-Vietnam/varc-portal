@@ -8,6 +8,7 @@ import { isEmptyHtml } from "@/lib/html";
 import { makeSlug } from "@/lib/slug";
 import type { PageFormValues } from "@/lib/validations/article";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
+import { useConfirm } from "@/components/admin/use-confirm";
 
 type Props = {
   pageId?: string;
@@ -23,6 +24,7 @@ const emptyLocale = {
 
 export function PageEditor({ pageId, initial }: Props) {
   const router = useRouter();
+  const { ask, modal } = useConfirm();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState(initial);
@@ -64,9 +66,15 @@ export function PageEditor({ pageId, initial }: Props) {
     });
   }
 
-  function onDelete() {
+  async function onDelete() {
     if (!pageId) return;
-    if (!confirm("Move this page to trash?")) return;
+    const confirmed = await ask({
+      title: "Move to trash",
+      message: "Move this page to trash?",
+      confirmLabel: "Move to trash",
+      variant: "danger",
+    });
+    if (!confirmed) return;
     startTransition(async () => {
       const result = await deletePageAction(pageId);
       if (!result.ok) {
@@ -81,6 +89,7 @@ export function PageEditor({ pageId, initial }: Props) {
   const locale = form.locales[tab];
 
   return (
+    <>
     <div className="space-y-6">
       {error ? (
         <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -216,6 +225,8 @@ export function PageEditor({ pageId, initial }: Props) {
         ) : null}
       </div>
     </div>
+    {modal}
+    </>
   );
 }
 

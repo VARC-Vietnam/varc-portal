@@ -23,6 +23,7 @@ import {
   RowActionsGroup,
 } from "@/components/admin/icon-action-button";
 import { TrashRowActions } from "@/components/admin/trash-row-actions";
+import { useConfirm } from "@/components/admin/use-confirm";
 
 type PageOption = {
   id: string;
@@ -59,6 +60,7 @@ function sortForLocation(
 
 export function MenuManager({ initialItems, pages, trash = false }: Props) {
   const router = useRouter();
+  const { ask, modal } = useConfirm();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<MenuLocation>("navigation");
@@ -116,8 +118,14 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
     });
   }
 
-  function onDelete(id: string) {
-    if (!confirm("Move this menu item to trash?")) return;
+  async function onDelete(id: string) {
+    const confirmed = await ask({
+      title: "Move to trash",
+      message: "Move this menu item to trash?",
+      confirmLabel: "Move to trash",
+      variant: "danger",
+    });
+    if (!confirmed) return;
     setError(null);
     startTransition(async () => {
       const result = await deleteMenuItemAction(id);
@@ -227,6 +235,7 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
 
   if (trash) {
     return (
+      <>
       <div className="space-y-4">
         {error ? (
           <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -285,10 +294,13 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
           </div>
         )}
       </div>
+      {modal}
+      </>
     );
   }
 
   return (
+    <>
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex gap-2">
@@ -670,5 +682,7 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
         </div>
       )}
     </div>
+    {modal}
+    </>
   );
 }

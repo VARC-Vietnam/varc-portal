@@ -38,6 +38,7 @@ const ArticleSchema = new Schema(
     },
     ogImageUrl: { type: String, default: "" },
     featured: { type: Boolean, default: false, index: true },
+    deletedAt: { type: Date, default: null, index: true },
     locales: {
       vi: { type: LocaleContentSchema, required: true },
       en: { type: LocaleContentSchema, required: true },
@@ -50,14 +51,20 @@ ArticleSchema.index(
   { "locales.vi.slug": 1 },
   {
     unique: true,
-    partialFilterExpression: { "locales.vi.slug": { $type: "string", $gt: "" } },
+    partialFilterExpression: {
+      "locales.vi.slug": { $type: "string", $gt: "" },
+      deletedAt: null,
+    },
   },
 );
 ArticleSchema.index(
   { "locales.en.slug": 1 },
   {
     unique: true,
-    partialFilterExpression: { "locales.en.slug": { $type: "string", $gt: "" } },
+    partialFilterExpression: {
+      "locales.en.slug": { $type: "string", $gt: "" },
+      deletedAt: null,
+    },
   },
 );
 ArticleSchema.index({ status: 1, publishedAt: -1 });

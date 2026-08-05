@@ -20,7 +20,7 @@ export default async function EditArticlePage({ params }: Props) {
     getArticleById(id),
     listCategories(),
   ]);
-  if (!article) notFound();
+  if (!article || article.deletedAt) notFound();
 
   const vi = getLocaleContent(article, "vi");
   const en = getLocaleContent(article, "en");

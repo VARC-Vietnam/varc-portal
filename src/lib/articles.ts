@@ -5,6 +5,7 @@ import {
   type CoverFocusRect,
 } from "@/lib/cover-focus";
 import { excerptFromHtml, extractFirstImageUrl } from "@/lib/html";
+import { notDeletedFilter } from "@/lib/soft-delete";
 import { Article, type ArticleDocument, type LocaleContent } from "@/models/Article";
 import type { AppLocale } from "@/i18n/routing";
 import mongoose from "mongoose";
@@ -95,6 +96,7 @@ function toPublicCard(
 function publishedLocaleFilter(locale: AppLocale) {
   const key = localeKey(locale);
   return {
+    ...notDeletedFilter,
     status: "published" as const,
     [`locales.${key}.slug`]: { $nin: ["", null] },
     [`locales.${key}.title`]: { $nin: ["", null] },
@@ -159,6 +161,7 @@ export async function getPublishedArticleBySlug(
   await connectDb();
   const key = localeKey(locale);
   const article = await Article.findOne({
+    ...notDeletedFilter,
     status: "published",
     [`locales.${key}.slug`]: slug,
   }).lean<ArticleDocument | null>();
@@ -166,10 +169,11 @@ export async function getPublishedArticleBySlug(
   return article;
 }
 
-export async function listAllArticles() {
+export async function listAllArticles(options?: { trash?: boolean }) {
   await connectDb();
-  return Article.find()
-    .sort({ updatedAt: -1 })
+  const filter = options?.trash ? { deletedAt: { $ne: null } } : notDeletedFilter;
+  return Article.find(filter)
+    .sort(options?.trash ? { deletedAt: -1 } : { updatedAt: -1 })
     .lean<ArticleDocument[]>();
 }
 
@@ -180,7 +184,7 @@ export async function getArticleById(id: string) {
 
 export async function listPublishedForSitemap() {
   await connectDb();
-  return Article.find({ status: "published" })
+  return Article.find({ ...notDeletedFilter, status: "published" })
     .select("locales publishedAt updatedAt")
     .lean<ArticleDocument[]>();
 }

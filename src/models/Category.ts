@@ -11,6 +11,10 @@ const LocaleSchema = new Schema(
 
 const CategorySchema = new Schema(
   {
+    /** Stable key for built-in categories (e.g. uncategorized). */
+    key: { type: String, default: null },
+    isSystem: { type: Boolean, default: false },
+    deletedAt: { type: Date, default: null, index: true },
     locales: {
       vi: { type: LocaleSchema, required: true },
       en: { type: LocaleSchema, required: true },
@@ -23,14 +27,27 @@ CategorySchema.index(
   { "locales.vi.slug": 1 },
   {
     unique: true,
-    partialFilterExpression: { "locales.vi.slug": { $type: "string", $gt: "" } },
+    partialFilterExpression: {
+      "locales.vi.slug": { $type: "string", $gt: "" },
+      deletedAt: null,
+    },
   },
 );
 CategorySchema.index(
   { "locales.en.slug": 1 },
   {
     unique: true,
-    partialFilterExpression: { "locales.en.slug": { $type: "string", $gt: "" } },
+    partialFilterExpression: {
+      "locales.en.slug": { $type: "string", $gt: "" },
+      deletedAt: null,
+    },
+  },
+);
+CategorySchema.index(
+  { key: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { key: { $type: "string", $gt: "" } },
   },
 );
 

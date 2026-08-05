@@ -12,7 +12,7 @@ type Props = {
 export default async function EditPagePage({ params }: Props) {
   const { id } = await params;
   const page = await getPageById(id);
-  if (!page) notFound();
+  if (!page || page.deletedAt) notFound();
 
   const vi = getPageLocale(page, "vi");
   const en = getPageLocale(page, "en");

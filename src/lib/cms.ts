@@ -1,4 +1,8 @@
 import { connectDb } from "@/lib/db";
+import {
+  ensureUncategorizedCategory,
+  notDeletedFilter,
+} from "@/lib/soft-delete";
 import { Category, type CategoryDocument } from "@/models/Category";
 import {
   MenuItem,
@@ -19,9 +23,19 @@ function localeKey(locale: AppLocale): "vi" | "en" {
   return locale === "en" ? "en" : "vi";
 }
 
-export async function listCategories() {
+export async function listCategories(options?: { trash?: boolean }) {
   await connectDb();
-  return Category.find().sort({ createdAt: -1 }).lean<CategoryDocument[]>();
+  if (!options?.trash) {
+    await ensureUncategorizedCategory();
+  }
+  const filter = options?.trash ? { deletedAt: { $ne: null } } : notDeletedFilter;
+  return Category.find(filter)
+    .sort(
+      options?.trash
+        ? { deletedAt: -1 }
+        : { isSystem: -1, createdAt: -1 },
+    )
+    .lean<CategoryDocument[]>();
 }
 
 export function getCategoryLocale(category: CategoryDocument, locale: AppLocale) {
@@ -39,9 +53,16 @@ export async function getCategoryById(id: string) {
   return Category.findById(id).lean<CategoryDocument | null>();
 }
 
-export async function listPages() {
+export async function listPages(options?: { trash?: boolean }) {
   await connectDb();
-  return Page.find().sort({ sortOrder: 1, updatedAt: -1 }).lean<PageDocument[]>();
+  const filter = options?.trash ? { deletedAt: { $ne: null } } : notDeletedFilter;
+  return Page.find(filter)
+    .sort(
+      options?.trash
+        ? { deletedAt: -1 }
+        : { sortOrder: 1, updatedAt: -1 },
+    )
+    .lean<PageDocument[]>();
 }
 
 export function getPageLocale(
@@ -68,6 +89,7 @@ export async function getPublishedPageBySlug(locale: AppLocale, slug: string) {
   await connectDb();
   const key = localeKey(locale);
   return Page.findOne({
+    ...notDeletedFilter,
     status: "published",
     [`locales.${key}.slug`]: slug,
   }).lean<PageDocument | null>();
@@ -138,6 +160,7 @@ function pageNavFields(
 export async function listNavPages(locale: AppLocale): Promise<NavPageItem[]> {
   await connectDb();
   const pages = await Page.find({
+    ...notDeletedFilter,
     status: "published",
     showInNav: true,
   })
@@ -228,6 +251,7 @@ export async function listPublicMenuLinks(
   const pages = pageIds.length
     ? await Page.find({
         _id: { $in: pageIds },
+        ...notDeletedFilter,
         status: "published",
       }).lean<PageDocument[]>()
     : [];
@@ -284,6 +308,7 @@ export async function importNavPagesIntoMenuIfEmpty(): Promise<number> {
   if (existing > 0) return 0;
 
   const pages = await Page.find({
+    ...notDeletedFilter,
     status: "published",
     showInNav: true,
   })
@@ -309,7 +334,7 @@ export async function importNavPagesIntoMenuIfEmpty(): Promise<number> {
 
 export async function listPublishedPagesForSitemap() {
   await connectDb();
-  return Page.find({ status: "published" })
+  return Page.find({ ...notDeletedFilter, status: "published" })
     .select("locales updatedAt")
     .lean<PageDocument[]>();
 }

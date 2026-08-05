@@ -9,11 +9,16 @@ import type { CategoryFormValues } from "@/lib/validations/article";
 type Props = {
   categoryId?: string;
   initial: CategoryFormValues;
+  isSystem?: boolean;
 };
 
 const emptyLocale = { name: "", description: "" };
 
-export function CategoryEditor({ categoryId, initial }: Props) {
+export function CategoryEditor({
+  categoryId,
+  initial,
+  isSystem = false,
+}: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -39,8 +44,14 @@ export function CategoryEditor({ categoryId, initial }: Props) {
   }
 
   function onDelete() {
-    if (!categoryId) return;
-    if (!confirm("Delete this category?")) return;
+    if (!categoryId || isSystem) return;
+    if (
+      !confirm(
+        "Move this category to trash? Articles in it will be assigned to Uncategorized.",
+      )
+    ) {
+      return;
+    }
     startTransition(async () => {
       const result = await deleteCategoryAction(categoryId);
       if (!result.ok) {
@@ -130,15 +141,20 @@ export function CategoryEditor({ categoryId, initial }: Props) {
         >
           Save
         </button>
-        {categoryId ? (
+        {categoryId && !isSystem ? (
           <button
             type="button"
             disabled={pending}
             onClick={onDelete}
             className="rounded border border-red-300 px-4 py-2 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50"
           >
-            Delete
+            Move to trash
           </button>
+        ) : null}
+        {isSystem ? (
+          <p className="self-center text-xs text-gray-500">
+            Built-in category — cannot be deleted.
+          </p>
         ) : null}
       </div>
     </div>

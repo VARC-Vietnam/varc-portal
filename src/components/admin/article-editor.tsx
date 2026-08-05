@@ -99,7 +99,7 @@ export function ArticleEditor({ articleId, initial, categories }: Props) {
 
   function onDelete() {
     if (!articleId) return;
-    if (!confirm("Delete this article?")) return;
+    if (!confirm("Move this article to trash?")) return;
     startTransition(async () => {
       const result = await deleteArticleAction(articleId);
       if (!result.ok) {
@@ -449,7 +449,7 @@ export function ArticleEditor({ articleId, initial, categories }: Props) {
             onClick={onDelete}
             className="ml-auto rounded border border-red-300 px-4 py-2 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50"
           >
-            Delete
+            Move to trash
           </button>
         ) : null}
       </div>

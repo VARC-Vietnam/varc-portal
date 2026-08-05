@@ -9,6 +9,11 @@ import { isAdminRole, isSystemAdmin, type Role } from "@/lib/roles";
 import { uniqueSlugFromTitle } from "@/lib/slug";
 import { normalizeCoverFocus } from "@/lib/cover-focus";
 import {
+  ensureUncategorizedCategory,
+  notDeletedFilter,
+  UNCATEGORIZED_KEY,
+} from "@/lib/soft-delete";
+import {
   articleFormSchema,
   categoryFormSchema,
   createUserSchema,
@@ -59,6 +64,7 @@ async function articleSlugTaken(
   excludeId?: string | null,
 ) {
   const filter: Record<string, unknown> = {
+    ...notDeletedFilter,
     [`locales.${locale}.slug`]: slug,
   };
   if (excludeId && mongoose.isValidObjectId(excludeId)) {
@@ -74,6 +80,7 @@ async function categorySlugTaken(
   excludeId?: string | null,
 ) {
   const filter: Record<string, unknown> = {
+    ...notDeletedFilter,
     [`locales.${locale}.slug`]: slug,
   };
   if (excludeId && mongoose.isValidObjectId(excludeId)) {
@@ -88,6 +95,7 @@ async function pageSlugTaken(
   excludeId?: string | null,
 ) {
   const filter: Record<string, unknown> = {
+    ...notDeletedFilter,
     [`locales.${locale}.slug`]: slug,
   };
   if (excludeId && mongoose.isValidObjectId(excludeId)) {
@@ -205,13 +213,38 @@ export async function deleteArticleAction(
   try {
     await requireAdmin();
     await connectDb();
-    await Article.findByIdAndDelete(id);
+    const existing = await Article.findOne({ _id: id, ...notDeletedFilter });
+    if (!existing) return { ok: false, error: "Article not found" };
+    existing.deletedAt = new Date();
+    await existing.save();
     revalidatePortal();
     return { ok: true };
   } catch (error) {
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Failed to delete",
+    };
+  }
+}
+
+export async function restoreArticleAction(
+  id: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await requireAdmin();
+    await connectDb();
+    const existing = await Article.findById(id);
+    if (!existing?.deletedAt) {
+      return { ok: false, error: "Deleted article not found" };
+    }
+    existing.deletedAt = null;
+    await existing.save();
+    revalidatePortal();
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Failed to restore",
     };
   }
 }
@@ -257,6 +290,9 @@ export async function saveCategoryAction(
     if (id) {
       const existing = await Category.findById(id);
       if (!existing) return { ok: false, error: "Category not found" };
+      if (existing.deletedAt) {
+        return { ok: false, error: "Restore this category before editing" };
+      }
       existing.locales = locales;
       await existing.save();
       revalidatePortal();
@@ -280,17 +316,66 @@ export async function deleteCategoryAction(
   try {
     await requireAdmin();
     await connectDb();
-    await Article.updateMany(
-      { categoryIds: id },
-      { $pull: { categoryIds: id } },
-    );
-    await Category.findByIdAndDelete(id);
+    const existing = await Category.findOne({ _id: id, ...notDeletedFilter });
+    if (!existing) return { ok: false, error: "Category not found" };
+    if (existing.isSystem || existing.key === UNCATEGORIZED_KEY) {
+      return {
+        ok: false,
+        error: "The Uncategorized category cannot be deleted",
+      };
+    }
+
+    const uncategorized = await ensureUncategorizedCategory();
+    const categoryOid = existing._id;
+    const uncategorizedOid = uncategorized._id;
+
+    const affectedIds = await Article.find({
+      ...notDeletedFilter,
+      categoryIds: categoryOid,
+    }).distinct("_id");
+
+    if (affectedIds.length > 0) {
+      await Article.updateMany(
+        { _id: { $in: affectedIds } },
+        { $pull: { categoryIds: categoryOid } },
+      );
+      await Article.updateMany(
+        { _id: { $in: affectedIds }, categoryIds: { $size: 0 } },
+        { $set: { categoryIds: [uncategorizedOid] } },
+      );
+    }
+
+    existing.deletedAt = new Date();
+    await existing.save();
     revalidatePortal();
     return { ok: true };
   } catch (error) {
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Failed to delete category",
+    };
+  }
+}
+
+export async function restoreCategoryAction(
+  id: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await requireAdmin();
+    await connectDb();
+    const existing = await Category.findById(id);
+    if (!existing?.deletedAt) {
+      return { ok: false, error: "Deleted category not found" };
+    }
+    existing.deletedAt = null;
+    await existing.save();
+    revalidatePortal();
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof Error ? error.message : "Failed to restore category",
     };
   }
 }
@@ -371,13 +456,38 @@ export async function deletePageAction(
   try {
     await requireAdmin();
     await connectDb();
-    await Page.findByIdAndDelete(id);
+    const existing = await Page.findOne({ _id: id, ...notDeletedFilter });
+    if (!existing) return { ok: false, error: "Page not found" };
+    existing.deletedAt = new Date();
+    await existing.save();
     revalidatePortal();
     return { ok: true };
   } catch (error) {
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Failed to delete page",
+    };
+  }
+}
+
+export async function restorePageAction(
+  id: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await requireAdmin();
+    await connectDb();
+    const existing = await Page.findById(id);
+    if (!existing?.deletedAt) {
+      return { ok: false, error: "Deleted page not found" };
+    }
+    existing.deletedAt = null;
+    await existing.save();
+    revalidatePortal();
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Failed to restore page",
     };
   }
 }

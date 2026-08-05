@@ -106,7 +106,8 @@ export function HomeFeaturedSlider({
             {labels.featuredLabel}
           </p>
 
-          <div className="relative mt-2 min-h-[11rem] md:min-h-[13rem]">
+          {/* Grid stack: cell height = tallest slide, so copy never overflows onto controls. */}
+          <div className="mt-2 grid">
             {articles.map((article, i) => {
               const active = i === index;
               const dateLabel = formatDate(article.publishedAt, locale);
@@ -114,7 +115,7 @@ export function HomeFeaturedSlider({
                 <div
                   key={`copy-${article.id}`}
                   aria-hidden={!active}
-                  className="absolute inset-x-0 top-0"
+                  className="col-start-1 row-start-1"
                   style={{
                     opacity: active ? 1 : 0,
                     transition: FADE_TRANSITION,
@@ -162,13 +163,13 @@ export function HomeFeaturedSlider({
           </div>
 
           {count > 1 ? (
-            <div className="mt-8 flex flex-wrap items-center gap-4">
-              <div className="flex gap-2">
+            <div className="relative z-20 mt-8 flex items-center gap-4">
+              <div className="flex shrink-0 gap-2">
                 <button
                   type="button"
                   onClick={() => goTo(index - 1)}
                   aria-label={labels.previous}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-black/20 text-white backdrop-blur-sm transition hover:bg-white/15"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-black/35 text-white backdrop-blur-sm transition hover:bg-white/15"
                 >
                   ←
                 </button>
@@ -176,7 +177,7 @@ export function HomeFeaturedSlider({
                   type="button"
                   onClick={() => goTo(index + 1)}
                   aria-label={labels.next}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-black/20 text-white backdrop-blur-sm transition hover:bg-white/15"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/25 bg-black/35 text-white backdrop-blur-sm transition hover:bg-white/15"
                 >
                   →
                 </button>

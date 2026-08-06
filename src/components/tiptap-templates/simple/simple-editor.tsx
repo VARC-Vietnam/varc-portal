@@ -395,7 +395,9 @@ function SimpleEditorClient({
         maxSize: MAX_FILE_SIZE,
         limit: 3,
         upload: handleImageUpload,
-        onError: (error) => console.error("Upload failed:", error),
+        onError: () => {
+          // Avoid logging upload payloads or raw errors in the browser console.
+        },
       }),
     ],
     content: content || "",

@@ -7,7 +7,7 @@ export const DEFAULT_ALLOWED_MIME = [
   "image/png",
   "image/gif",
   "image/webp",
-  "image/svg+xml",
+  // SVG omitted by default — can execute script when served as image/svg+xml.
   "video/mp4",
   "video/webm",
   "video/quicktime",

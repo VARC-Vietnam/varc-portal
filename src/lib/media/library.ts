@@ -1,5 +1,6 @@
 import { connectDb } from "@/lib/db";
 import { deletedFilter, notDeletedFilter } from "@/lib/soft-delete";
+import { escapeRegex } from "@/lib/safe-url";
 import { Media, type MediaKind } from "@/models/Media";
 import type { AdminMediaItem } from "@/lib/media/types";
 
@@ -61,7 +62,7 @@ export async function listMediaAdmin(options?: {
     filter.kind = options.kind;
   }
   if (options?.q?.trim()) {
-    const q = options.q.trim();
+    const q = escapeRegex(options.q.trim().slice(0, 100));
     filter.$or = [
       { originalName: { $regex: q, $options: "i" } },
       { alt: { $regex: q, $options: "i" } },
@@ -96,7 +97,7 @@ export async function listAllMediaAdmin(options?: {
   const filter: Record<string, unknown> = { ...notDeletedFilter };
   if (options?.kind) filter.kind = options.kind;
   if (options?.q?.trim()) {
-    const q = options.q.trim();
+    const q = escapeRegex(options.q.trim().slice(0, 100));
     filter.$or = [
       { originalName: { $regex: q, $options: "i" } },
       { alt: { $regex: q, $options: "i" } },

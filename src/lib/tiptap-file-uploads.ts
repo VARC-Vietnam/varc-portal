@@ -6,7 +6,6 @@ export const EDITOR_ALLOWED_UPLOAD_MIME = [
   "image/png",
   "image/gif",
   "image/webp",
-  "image/svg+xml",
   "application/pdf",
   "text/plain",
   "application/zip",
@@ -86,8 +85,8 @@ export async function uploadFilesIntoEditor(
     try {
       const url = await handleMediaUpload(file)
       insertUploadedFile(editor, file, url, pos)
-    } catch (error) {
-      console.error("File upload failed:", error)
+    } catch {
+      // Do not log file contents, names, or raw errors to the browser console.
     }
   }
 }

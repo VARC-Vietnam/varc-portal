@@ -55,7 +55,10 @@ export function sanitizeHtml(html: string): string {
   return DOMPurify.sanitize(html, {
     USE_PROFILES: { html: true },
     ADD_ATTR: ["target", "rel", "class", "data-size", "width", "height"],
-    ADD_DATA_URI_TAGS: ["img"],
+    FORBID_TAGS: ["script", "iframe", "object", "embed", "form", "input"],
+    ALLOW_UNKNOWN_PROTOCOLS: false,
+    ALLOWED_URI_REGEXP:
+      /^(?:(?:(?:f|ht)tps?|mailto|tel):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
   });
 }
 

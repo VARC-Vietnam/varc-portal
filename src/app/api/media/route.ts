@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { connectDb } from "@/lib/db";
 import { getMediaConfig } from "@/lib/media/config";
 import { buildObjectKey, putObject } from "@/lib/media/storage";
+import { logServerError, publicErrorMessage } from "@/lib/safe-error";
 import { isAdminRole } from "@/lib/roles";
 import { Media, mediaKindFromContentType } from "@/models/Media";
 import mongoose from "mongoose";
@@ -42,8 +43,10 @@ export async function POST(request: Request) {
       );
     }
 
+    // Cap original filename length before key generation.
+    const originalName = String(file.name || "upload.bin").slice(0, 200);
     const buffer = Buffer.from(await file.arrayBuffer());
-    const key = buildObjectKey(file.name || "upload.bin");
+    const key = buildObjectKey(originalName);
     const stored = await putObject(key, buffer, contentType);
     const kind = mediaKindFromContentType(contentType);
 
@@ -54,7 +57,7 @@ export async function POST(request: Request) {
       contentType: stored.contentType,
       kind,
       size: stored.size,
-      originalName: file.name || stored.key,
+      originalName,
       uploadedBy: new mongoose.Types.ObjectId(session.user.id),
       alt: "",
     });
@@ -67,14 +70,15 @@ export async function POST(request: Request) {
         contentType: stored.contentType,
         kind,
         size: stored.size,
-        originalName: file.name || stored.key,
+        originalName,
       },
       { status: 201 },
     );
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to upload media";
-    console.error("[media upload]", error);
-    return Response.json({ error: message }, { status: 500 });
+    logServerError("media upload", error);
+    return Response.json(
+      { error: publicErrorMessage(error, "Failed to upload media") },
+      { status: 500 },
+    );
   }
 }

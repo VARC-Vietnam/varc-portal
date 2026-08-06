@@ -1,8 +1,11 @@
 import { auth } from "@/auth";
 import { listAllMediaAdmin, listMediaAdmin } from "@/lib/media/library";
+import { logServerError, publicErrorMessage } from "@/lib/safe-error";
 import { isAdminRole } from "@/lib/roles";
 
 export const runtime = "nodejs";
+
+const MAX_QUERY_LEN = 100;
 
 export async function GET(request: Request) {
   try {
@@ -17,7 +20,8 @@ export async function GET(request: Request) {
       kindParam === "image" || kindParam === "video" || kindParam === "file"
         ? kindParam
         : undefined;
-    const q = searchParams.get("q")?.trim().toLowerCase() ?? "";
+    const qRaw = searchParams.get("q")?.trim() ?? "";
+    const q = qRaw.slice(0, MAX_QUERY_LEN).toLowerCase();
     const all = searchParams.get("all") === "1";
 
     if (all) {
@@ -34,7 +38,7 @@ export async function GET(request: Request) {
       });
     }
 
-    const page = Math.max(1, Number(searchParams.get("page")) || 1);
+    const page = Math.max(1, Math.min(1000, Number(searchParams.get("page")) || 1));
     const list = await listMediaAdmin({
       page,
       pageSize: 24,
@@ -44,9 +48,10 @@ export async function GET(request: Request) {
 
     return Response.json(list);
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to list media";
-    console.error("[media library]", error);
-    return Response.json({ error: message }, { status: 500 });
+    logServerError("media library", error);
+    return Response.json(
+      { error: publicErrorMessage(error, "Failed to list media") },
+      { status: 500 },
+    );
   }
 }

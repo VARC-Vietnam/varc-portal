@@ -1,6 +1,7 @@
 import { Readable } from "node:stream";
 import { getMediaConfig } from "@/lib/media/config";
 import { getObjectStream } from "@/lib/media/storage";
+import { logServerError } from "@/lib/safe-error";
 
 export const runtime = "nodejs";
 
@@ -33,12 +34,18 @@ export async function GET(_request: Request, { params }: Params) {
           ? { "Content-Length": String(size) }
           : {}),
         "Cache-Control": "public, max-age=31536000, immutable",
+        // Mitigate XSS if a text/html or svg slips through misconfiguration.
+        "X-Content-Type-Options": "nosniff",
+        "Content-Security-Policy": "default-src 'none'; sandbox",
       },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Not found";
-    const status = message === "Not found" || message === "Invalid media key" ? 404 : 500;
-    if (status === 500) console.error("[media get]", error);
-    return new Response(message, { status });
+    const status =
+      message === "Not found" || message === "Invalid media key" ? 404 : 500;
+    if (status === 500) logServerError("media get", error);
+    return new Response(status === 404 ? "Not found" : "Failed to load media", {
+      status,
+    });
   }
 }

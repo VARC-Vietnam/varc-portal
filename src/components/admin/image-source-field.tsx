@@ -96,6 +96,10 @@ export function ImageSourceField({
       setError("Use an http(s) URL or a site-relative path.");
       return;
     }
+    if (next.startsWith("//") || /^javascript:/i.test(next) || /^data:/i.test(next)) {
+      setError("Use an http(s) URL or a site-relative path.");
+      return;
+    }
     onChange(next);
     setPreviewAlt("");
     onAltChange?.("");

@@ -1,28 +1,41 @@
 import { z } from "zod";
-import { isEmptyHtml } from "@/lib/html";
+import { isEmptyHtml, sanitizeHtml } from "@/lib/html";
+import { isSafePublicUrl } from "@/lib/safe-url";
+
+const MAX_HTML_CHARS = 500_000;
+const MAX_TEXT_CHARS = 5_000;
+const MAX_PASSWORD_CHARS = 128;
+
+const safeUrlSchema = z
+  .string()
+  .trim()
+  .max(2_048)
+  .refine(isSafePublicUrl, {
+    message: "URL must be http(s) or a site-relative path",
+  });
 
 const articleLocaleSchema = z.object({
-  title: z.string().trim(),
-  excerpt: z.string().trim(),
-  content: z.string(),
-  metaTitle: z.string().trim(),
-  metaDescription: z.string().trim(),
+  title: z.string().trim().max(MAX_TEXT_CHARS),
+  excerpt: z.string().trim().max(MAX_TEXT_CHARS),
+  content: z.string().max(MAX_HTML_CHARS),
+  metaTitle: z.string().trim().max(MAX_TEXT_CHARS),
+  metaDescription: z.string().trim().max(MAX_TEXT_CHARS),
 });
 
 export const articleFormSchema = z
   .object({
     status: z.enum(["draft", "published"]),
     featured: z.boolean(),
-    coverImageUrl: z.string().trim(),
+    coverImageUrl: safeUrlSchema,
     coverImageFocus: z.object({
       x: z.number().min(0).max(100),
       y: z.number().min(0).max(100),
       width: z.number().min(1).max(100),
       height: z.number().min(1).max(100),
     }),
-    ogImageUrl: z.string().trim(),
-    categoryIds: z.array(z.string()),
-    tags: z.array(z.string().trim().min(1)).max(30),
+    ogImageUrl: safeUrlSchema,
+    categoryIds: z.array(z.string().max(64)).max(50),
+    tags: z.array(z.string().trim().min(1).max(64)).max(30),
     /** ISO datetime string, or null when unset / draft. */
     publishedAt: z.string().datetime().nullable(),
     /** ISO datetime string, or null to keep server default. */
@@ -49,13 +62,26 @@ export const articleFormSchema = z
         path: ["locales", "vi", "content"],
       });
     }
-  });
+  })
+  .transform((data) => ({
+    ...data,
+    locales: {
+      vi: {
+        ...data.locales.vi,
+        content: sanitizeHtml(data.locales.vi.content),
+      },
+      en: {
+        ...data.locales.en,
+        content: sanitizeHtml(data.locales.en.content),
+      },
+    },
+  }));
 
-export type ArticleFormValues = z.infer<typeof articleFormSchema>;
+export type ArticleFormValues = z.input<typeof articleFormSchema>;
 
 const categoryLocaleSchema = z.object({
-  name: z.string().trim(),
-  description: z.string().trim(),
+  name: z.string().trim().max(MAX_TEXT_CHARS),
+  description: z.string().trim().max(MAX_TEXT_CHARS),
 });
 
 export const categoryFormSchema = z
@@ -78,26 +104,26 @@ export const categoryFormSchema = z
 export type CategoryFormValues = z.infer<typeof categoryFormSchema>;
 
 const pageLocaleSchema = z.object({
-  title: z.string().trim(),
-  content: z.string(),
-  metaTitle: z.string().trim(),
-  metaDescription: z.string().trim(),
+  title: z.string().trim().max(MAX_TEXT_CHARS),
+  content: z.string().max(MAX_HTML_CHARS),
+  metaTitle: z.string().trim().max(MAX_TEXT_CHARS),
+  metaDescription: z.string().trim().max(MAX_TEXT_CHARS),
 });
 
 const pageGalleryItemSchema = z.object({
-  mediaId: z.string().trim().min(1),
-  url: z.string().trim().min(1),
-  alt: z.string().trim(),
-  originalName: z.string().trim(),
+  mediaId: z.string().trim().min(1).max(64),
+  url: safeUrlSchema.refine((v) => v.length > 0, { message: "URL is required" }),
+  alt: z.string().trim().max(MAX_TEXT_CHARS),
+  originalName: z.string().trim().max(MAX_TEXT_CHARS),
 });
 
 export const pageFormSchema = z
   .object({
     status: z.enum(["draft", "published"]),
-    template: z.enum(["default", "gallery"]).default("default"),
-    galleryItems: z.array(pageGalleryItemSchema).default([]),
+    template: z.enum(["default", "gallery"]),
+    galleryItems: z.array(pageGalleryItemSchema).max(500),
     showInNav: z.boolean(),
-    sortOrder: z.number().int(),
+    sortOrder: z.number().int().min(-10_000).max(10_000),
     locales: z.object({
       vi: pageLocaleSchema,
       en: pageLocaleSchema,
@@ -129,32 +155,47 @@ export const pageFormSchema = z
         path: ["locales", "vi", "content"],
       });
     }
-  });
+  })
+  .transform((data) => ({
+    ...data,
+    locales: {
+      vi: {
+        ...data.locales.vi,
+        content: sanitizeHtml(data.locales.vi.content),
+      },
+      en: {
+        ...data.locales.en,
+        content: sanitizeHtml(data.locales.en.content),
+      },
+    },
+  }));
 
-export type PageFormValues = z.infer<typeof pageFormSchema>;
+export type PageFormValues = z.input<typeof pageFormSchema>;
 export type PageGalleryItemValues = z.infer<typeof pageGalleryItemSchema>;
 
 export const createUserSchema = z.object({
-  name: z.string().trim().min(1, "Name is required"),
-  email: z.string().trim().email("Valid email is required"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  name: z.string().trim().min(1, "Name is required").max(200),
+  email: z.string().trim().email("Valid email is required").max(320),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(MAX_PASSWORD_CHARS, "Password is too long"),
   role: z.enum(["setup_admin", "administrator", "editor", "reader"]),
 });
 
 export type CreateUserValues = z.infer<typeof createUserSchema>;
 
 export const roleFormSchema = z.object({
-  label: z.string().trim().min(1, "Label is required"),
-  description: z.string().trim(),
+  label: z.string().trim().min(1, "Label is required").max(200),
+  description: z.string().trim().max(MAX_TEXT_CHARS),
   enabled: z.boolean(),
 });
 
 export type RoleFormValues = z.infer<typeof roleFormSchema>;
 
-
 const menuLocaleSchema = z.object({
-  label: z.string().trim(),
-  url: z.string().trim(),
+  label: z.string().trim().max(MAX_TEXT_CHARS),
+  url: safeUrlSchema,
 });
 
 export const menuItemFormSchema = z
@@ -205,28 +246,29 @@ export const reorderMenuSchema = z.object({
   items: z
     .array(
       z.object({
-        id: z.string().min(1),
-        parentId: z.string().nullable(),
-        sortOrder: z.number().int().nonnegative(),
+        id: z.string().min(1).max(64),
+        parentId: z.string().max(64).nullable(),
+        sortOrder: z.number().int().nonnegative().max(10_000),
       }),
     )
-    .min(1),
+    .min(1)
+    .max(500),
 });
 
 const siteLocaleSchema = z.object({
-  siteName: z.string().trim(),
-  siteTitle: z.string().trim(),
-  tagline: z.string().trim(),
-  copyright: z.string().trim(),
-  metaTitle: z.string().trim(),
-  metaDescription: z.string().trim(),
+  siteName: z.string().trim().max(MAX_TEXT_CHARS),
+  siteTitle: z.string().trim().max(MAX_TEXT_CHARS),
+  tagline: z.string().trim().max(MAX_TEXT_CHARS),
+  copyright: z.string().trim().max(MAX_TEXT_CHARS),
+  metaTitle: z.string().trim().max(MAX_TEXT_CHARS),
+  metaDescription: z.string().trim().max(MAX_TEXT_CHARS),
 });
 
 export const siteSettingsFormSchema = z
   .object({
-    logoUrl: z.string().trim(),
-    faviconUrl: z.string().trim(),
-    ogImageUrl: z.string().trim(),
+    logoUrl: safeUrlSchema,
+    faviconUrl: safeUrlSchema,
+    ogImageUrl: safeUrlSchema,
     locales: z.object({
       vi: siteLocaleSchema,
       en: siteLocaleSchema,

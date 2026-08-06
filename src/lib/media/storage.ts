@@ -32,12 +32,14 @@ export function buildObjectKey(originalName: string, now = new Date()): string {
 }
 
 function assertSafeKey(key: string): string {
-  const normalized = key.replace(/^\/+/, "");
+  const normalized = key.replace(/^\/+/, "").replace(/\\/g, "/");
   if (
     !normalized ||
     normalized.includes("..") ||
+    normalized.includes("\0") ||
     path.isAbsolute(normalized) ||
-    normalized.includes("\0")
+    /^[a-zA-Z]:/.test(normalized) ||
+    !/^[a-zA-Z0-9._/-]+$/.test(normalized)
   ) {
     throw new Error("Invalid media key");
   }

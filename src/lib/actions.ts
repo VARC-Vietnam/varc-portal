@@ -48,6 +48,7 @@ import { Page } from "@/models/Page";
 import { SITE_SETTINGS_KEY, SiteSettings } from "@/models/SiteSettings";
 import { User } from "@/models/User";
 import { deleteObject } from "@/lib/media/storage";
+import { failAction, logServerError } from "@/lib/safe-error";
 
 async function loadMenuParentRefs(location: "navigation" | "footer") {
   const docs = await MenuItem.find({ location, ...notDeletedFilter })
@@ -280,12 +281,11 @@ export async function saveArticleAction(
     revalidatePortal();
     return { ok: true, id: String(created._id) };
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to save article";
-    if (message.includes("E11000")) {
+    const failed = failAction(error, "Failed to save article");
+    if (failed.error === "A duplicate value already exists") {
       return { ok: false, error: "Slug already exists for a locale" };
     }
-    return { ok: false, error: message };
+    return failed;
   }
 }
 
@@ -302,10 +302,7 @@ export async function deleteArticleAction(
     revalidatePortal();
     return { ok: true };
   } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "Failed to delete",
-    };
+    return failAction(error, "Failed to delete");
   }
 }
 
@@ -324,10 +321,7 @@ export async function restoreArticleAction(
     revalidatePortal();
     return { ok: true };
   } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "Failed to restore",
-    };
+    return failAction(error, "Failed to restore");
   }
 }
 
@@ -345,11 +339,7 @@ export async function permanentlyDeleteArticleAction(
     revalidatePortal();
     return { ok: true };
   } catch (error) {
-    return {
-      ok: false,
-      error:
-        error instanceof Error ? error.message : "Failed to delete permanently",
-    };
+    return failAction(error, "Failed to delete permanently");
   }
 }
 
@@ -363,11 +353,7 @@ export async function emptyArticlesTrashAction(): Promise<
     revalidatePortal();
     return { ok: true, deleted: result.deletedCount };
   } catch (error) {
-    return {
-      ok: false,
-      error:
-        error instanceof Error ? error.message : "Failed to empty trash",
-    };
+    return failAction(error, "Failed to empty trash");
   }
 }
 
@@ -425,10 +411,7 @@ export async function saveCategoryAction(
     revalidatePortal();
     return { ok: true, id: String(created._id) };
   } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "Failed to save category",
-    };
+    return failAction(error, "Failed to save category");
   }
 }
 
@@ -472,10 +455,7 @@ export async function deleteCategoryAction(
     revalidatePortal();
     return { ok: true };
   } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "Failed to delete category",
-    };
+    return failAction(error, "Failed to delete category");
   }
 }
 
@@ -494,11 +474,7 @@ export async function restoreCategoryAction(
     revalidatePortal();
     return { ok: true };
   } catch (error) {
-    return {
-      ok: false,
-      error:
-        error instanceof Error ? error.message : "Failed to restore category",
-    };
+    return failAction(error, "Failed to restore category");
   }
 }
 
@@ -522,11 +498,7 @@ export async function permanentlyDeleteCategoryAction(
     revalidatePortal();
     return { ok: true };
   } catch (error) {
-    return {
-      ok: false,
-      error:
-        error instanceof Error ? error.message : "Failed to delete permanently",
-    };
+    return failAction(error, "Failed to delete permanently");
   }
 }
 
@@ -544,11 +516,7 @@ export async function emptyCategoriesTrashAction(): Promise<
     revalidatePortal();
     return { ok: true, deleted: result.deletedCount };
   } catch (error) {
-    return {
-      ok: false,
-      error:
-        error instanceof Error ? error.message : "Failed to empty trash",
-    };
+    return failAction(error, "Failed to empty trash");
   }
 }
 
@@ -619,10 +587,7 @@ export async function savePageAction(
     revalidatePortal();
     return { ok: true, id: String(created._id) };
   } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "Failed to save page",
-    };
+    return failAction(error, "Failed to save page");
   }
 }
 
@@ -639,10 +604,7 @@ export async function deletePageAction(
     revalidatePortal();
     return { ok: true };
   } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "Failed to delete page",
-    };
+    return failAction(error, "Failed to delete page");
   }
 }
 
@@ -661,10 +623,7 @@ export async function restorePageAction(
     revalidatePortal();
     return { ok: true };
   } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "Failed to restore page",
-    };
+    return failAction(error, "Failed to restore page");
   }
 }
 
@@ -682,11 +641,7 @@ export async function permanentlyDeletePageAction(
     revalidatePortal();
     return { ok: true };
   } catch (error) {
-    return {
-      ok: false,
-      error:
-        error instanceof Error ? error.message : "Failed to delete permanently",
-    };
+    return failAction(error, "Failed to delete permanently");
   }
 }
 
@@ -700,11 +655,7 @@ export async function emptyPagesTrashAction(): Promise<
     revalidatePortal();
     return { ok: true, deleted: result.deletedCount };
   } catch (error) {
-    return {
-      ok: false,
-      error:
-        error instanceof Error ? error.message : "Failed to empty trash",
-    };
+    return failAction(error, "Failed to empty trash");
   }
 }
 
@@ -855,10 +806,7 @@ export async function saveMenuItemAction(
     revalidatePortal();
     return { ok: true, id: String(created._id) };
   } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "Failed to save menu item",
-    };
+    return failAction(error, "Failed to save menu item");
   }
 }
 
@@ -889,11 +837,7 @@ export async function deleteMenuItemAction(
     revalidatePortal();
     return { ok: true };
   } catch (error) {
-    return {
-      ok: false,
-      error:
-        error instanceof Error ? error.message : "Failed to delete menu item",
-    };
+    return failAction(error, "Failed to delete menu item");
   }
 }
 
@@ -912,11 +856,7 @@ export async function restoreMenuItemAction(
     revalidatePortal();
     return { ok: true };
   } catch (error) {
-    return {
-      ok: false,
-      error:
-        error instanceof Error ? error.message : "Failed to restore menu item",
-    };
+    return failAction(error, "Failed to restore menu item");
   }
 }
 
@@ -947,11 +887,7 @@ export async function permanentlyDeleteMenuItemAction(
     revalidatePortal();
     return { ok: true };
   } catch (error) {
-    return {
-      ok: false,
-      error:
-        error instanceof Error ? error.message : "Failed to delete permanently",
-    };
+    return failAction(error, "Failed to delete permanently");
   }
 }
 
@@ -972,11 +908,7 @@ export async function emptyMenuTrashAction(): Promise<
     revalidatePortal();
     return { ok: true, deleted: result.deletedCount };
   } catch (error) {
-    return {
-      ok: false,
-      error:
-        error instanceof Error ? error.message : "Failed to empty trash",
-    };
+    return failAction(error, "Failed to empty trash");
   }
 }
 
@@ -1046,11 +978,7 @@ export async function reorderMenuItemsAction(
     revalidatePortal();
     return { ok: true };
   } catch (error) {
-    return {
-      ok: false,
-      error:
-        error instanceof Error ? error.message : "Failed to reorder menu items",
-    };
+    return failAction(error, "Failed to reorder menu items");
   }
 }
 
@@ -1096,10 +1024,7 @@ export async function updateUserRoleAction(
     await user.save();
     return { ok: true };
   } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "Failed to update role",
-    };
+    return failAction(error, "Failed to update role");
   }
 }
 
@@ -1129,10 +1054,7 @@ export async function createUserAction(
     });
     return { ok: true, id: String(created._id) };
   } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "Failed to create user",
-    };
+    return failAction(error, "Failed to create user");
   }
 }
 
@@ -1189,11 +1111,7 @@ export async function saveSiteSettingsAction(
     revalidatePortal();
     return { ok: true };
   } catch (error) {
-    return {
-      ok: false,
-      error:
-        error instanceof Error ? error.message : "Failed to save site settings",
-    };
+    return failAction(error, "Failed to save site settings");
   }
 }
 
@@ -1226,10 +1144,7 @@ export async function saveRoleAction(
     revalidatePath("/admin/users");
     return { ok: true };
   } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "Failed to save role",
-    };
+    return failAction(error, "Failed to save role");
   }
 }
 
@@ -1242,15 +1157,15 @@ export async function updateMediaAltAction(
     await connectDb();
     const existing = await Media.findOne({ _id: id, ...notDeletedFilter });
     if (!existing) return { ok: false, error: "Media not found" };
-    existing.alt = alt.trim().slice(0, 500);
+    existing.alt = alt
+      .trim()
+      .replace(/<[^>]*>/g, "")
+      .slice(0, 500);
     await existing.save();
     revalidatePath("/admin/media");
     return { ok: true, alt: existing.alt };
   } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "Failed to update media",
-    };
+    return failAction(error, "Failed to update media");
   }
 }
 
@@ -1267,10 +1182,7 @@ export async function deleteMediaAction(
     revalidatePath("/admin/media");
     return { ok: true };
   } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "Failed to delete",
-    };
+    return failAction(error, "Failed to delete");
   }
 }
 
@@ -1289,10 +1201,7 @@ export async function restoreMediaAction(
     revalidatePath("/admin/media");
     return { ok: true };
   } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "Failed to restore",
-    };
+    return failAction(error, "Failed to restore");
   }
 }
 
@@ -1309,17 +1218,13 @@ export async function permanentlyDeleteMediaAction(
     try {
       await deleteObject(existing.key);
     } catch (error) {
-      console.error("[media delete storage]", error);
+      logServerError("media delete storage", error);
     }
     await Media.findByIdAndDelete(id);
     revalidatePath("/admin/media");
     return { ok: true };
   } catch (error) {
-    return {
-      ok: false,
-      error:
-        error instanceof Error ? error.message : "Failed to delete permanently",
-    };
+    return failAction(error, "Failed to delete permanently");
   }
 }
 
@@ -1334,17 +1239,13 @@ export async function emptyMediaTrashAction(): Promise<
       try {
         await deleteObject(item.key);
       } catch (error) {
-        console.error("[media empty trash storage]", item.key, error);
+        logServerError("media empty trash storage", error);
       }
     }
     const result = await Media.deleteMany(deletedFilter);
     revalidatePath("/admin/media");
     return { ok: true, deleted: result.deletedCount };
   } catch (error) {
-    return {
-      ok: false,
-      error:
-        error instanceof Error ? error.message : "Failed to empty trash",
-    };
+    return failAction(error, "Failed to empty trash");
   }
 }

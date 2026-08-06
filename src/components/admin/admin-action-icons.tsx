@@ -18,6 +18,24 @@ export function EditIcon({ className = "h-4 w-4" }: IconProps) {
   );
 }
 
+export function CloneIcon({ className = "h-4 w-4" }: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden
+    >
+      <rect x="8" y="8" width="12" height="12" rx="1.5" />
+      <path d="M16 8V6.5A1.5 1.5 0 0 0 14.5 5H6.5A1.5 1.5 0 0 0 5 6.5v8A1.5 1.5 0 0 0 6.5 16H8" />
+    </svg>
+  );
+}
+
 export function TrashIcon({ className = "h-4 w-4" }: IconProps) {
   return (
     <svg

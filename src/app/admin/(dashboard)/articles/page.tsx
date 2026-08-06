@@ -6,6 +6,7 @@ import {
   restoreArticleAction,
   permanentlyDeleteArticleAction,
   emptyArticlesTrashAction,
+  cloneArticleAction,
 } from "@/lib/actions";
 import { AdminListTabs } from "@/components/admin/admin-list-tabs";
 import { AdminLocaleStatus } from "@/components/admin/admin-locale-status";
@@ -182,6 +183,7 @@ export default async function AdminArticlesPage({ searchParams }: Props) {
                       ) : (
                         <ActiveRowActions
                           editHref={`/admin/articles/${id}`}
+                          cloneAction={cloneArticleAction.bind(null, id)}
                           deleteAction={deleteArticleAction.bind(null, id)}
                           deleteConfirmMessage="Move this article to trash?"
                         />
@@ -310,6 +312,7 @@ export default async function AdminArticlesPage({ searchParams }: Props) {
                         ) : (
                           <ActiveRowActions
                             editHref={`/admin/articles/${id}`}
+                            cloneAction={cloneArticleAction.bind(null, id)}
                             deleteAction={deleteArticleAction.bind(null, id)}
                             deleteConfirmMessage="Move this article to trash?"
                           />

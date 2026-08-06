@@ -2,7 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { EditIcon, TrashIcon } from "@/components/admin/admin-action-icons";
+import {
+  CloneIcon,
+  EditIcon,
+  TrashIcon,
+} from "@/components/admin/admin-action-icons";
 import {
   IconActionButton,
   IconActionLink,
@@ -14,6 +18,11 @@ import { notifyAction } from "@/components/admin/admin-toast";
 type Props = {
   editHref: string;
   editLabel?: string;
+  cloneAction?: () => Promise<
+    { ok: true; id: string } | { ok: false; error: string }
+  >;
+  cloneLabel?: string;
+  cloneSuccessHref?: (id: string) => string;
   deleteAction?: () => Promise<{ ok: true } | { ok: false; error: string }>;
   deleteLabel?: string;
   deleteConfirmTitle?: string;
@@ -23,6 +32,9 @@ type Props = {
 export function ActiveRowActions({
   editHref,
   editLabel = "Edit",
+  cloneAction,
+  cloneLabel = "Clone",
+  cloneSuccessHref = (id) => `/admin/articles/${id}`,
   deleteAction,
   deleteLabel = "Move to trash",
   deleteConfirmTitle = "Move to trash",
@@ -39,6 +51,26 @@ export function ActiveRowActions({
         <IconActionLink href={editHref} label={editLabel}>
           <EditIcon />
         </IconActionLink>
+        {cloneAction ? (
+          <IconActionButton
+            label={cloneLabel}
+            disabled={pending}
+            onClick={() => {
+              setError(null);
+              startTransition(async () => {
+                const result = await cloneAction();
+                if (!notifyAction(result, "Article cloned as draft")) {
+                  setError(result.error);
+                  return;
+                }
+                router.push(cloneSuccessHref(result.id));
+                router.refresh();
+              });
+            }}
+          >
+            <CloneIcon />
+          </IconActionButton>
+        ) : null}
         {deleteAction ? (
           <IconActionButton
             label={deleteLabel}

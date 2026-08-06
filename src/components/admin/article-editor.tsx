@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { deleteArticleAction, saveArticleAction } from "@/lib/actions";
+import { cloneArticleAction, deleteArticleAction, saveArticleAction } from "@/lib/actions";
 import { isEmptyHtml } from "@/lib/html";
 import { makeSlug } from "@/lib/slug";
 import type { ArticleFormValues } from "@/lib/validations/article";
@@ -13,6 +13,7 @@ import { TagsInput } from "@/components/admin/tags-input";
 import { CategoryCheckboxDropdown } from "@/components/admin/category-checkbox-dropdown";
 import { AdminCheckbox } from "@/components/admin/admin-checkbox";
 import {
+  CloneIcon,
   ExternalLinkIcon,
   PublishIcon,
   SaveDraftIcon,
@@ -148,6 +149,20 @@ export function ArticleEditor({
         return;
       }
       router.push("/admin/articles");
+      router.refresh();
+    });
+  }
+
+  function onClone() {
+    if (!articleId) return;
+    setError(null);
+    startTransition(async () => {
+      const result = await cloneArticleAction(articleId);
+      if (!notifyAction(result, "Article cloned as draft")) {
+        setError(result.error);
+        return;
+      }
+      router.push(`/admin/articles/${result.id}`);
       router.refresh();
     });
   }
@@ -415,14 +430,23 @@ export function ArticleEditor({
                 Publish
               </button>
               {articleId ? (
-                <IconActionButton
-                  label="Move to trash"
-                  variant="danger"
-                  disabled={pending}
-                  onClick={onDelete}
-                >
-                  <TrashIcon />
-                </IconActionButton>
+                <>
+                  <IconActionButton
+                    label="Clone as draft"
+                    disabled={pending}
+                    onClick={onClone}
+                  >
+                    <CloneIcon />
+                  </IconActionButton>
+                  <IconActionButton
+                    label="Move to trash"
+                    variant="danger"
+                    disabled={pending}
+                    onClick={onDelete}
+                  >
+                    <TrashIcon />
+                  </IconActionButton>
+                </>
               ) : null}
             </div>
           </div>

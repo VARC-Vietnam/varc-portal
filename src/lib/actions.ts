@@ -289,6 +289,66 @@ export async function saveArticleAction(
   }
 }
 
+export async function cloneArticleAction(
+  id: string,
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  try {
+    const session = await requireArticleManager();
+    await connectDb();
+
+    const source = await Article.findOne({ _id: id, ...notDeletedFilter });
+    if (!source) return { ok: false, error: "Article not found" };
+
+    const viTitle = (source.locales?.vi?.title ?? "").trim();
+    const enTitle = (source.locales?.en?.title ?? "").trim();
+    const viCopyTitle = viTitle ? `${viTitle} (copy)` : "";
+    const enCopyTitle = enTitle ? `${enTitle} (copy)` : "";
+
+    const created = await Article.create({
+      status: "draft",
+      featured: false,
+      publishedAt: null,
+      authorId: session.user.id,
+      categoryIds: source.categoryIds ?? [],
+      tags: source.tags ?? [],
+      coverImageUrl: source.coverImageUrl ?? "",
+      coverImageFocus: normalizeCoverFocus(source.coverImageFocus),
+      ogImageUrl: source.ogImageUrl ?? "",
+      locales: {
+        vi: {
+          title: viCopyTitle,
+          slug: viCopyTitle
+            ? await uniqueSlugFromTitle(viCopyTitle, (slug) =>
+                articleSlugTaken("vi", slug),
+              )
+            : "",
+          excerpt: source.locales?.vi?.excerpt ?? "",
+          content: source.locales?.vi?.content ?? "",
+          metaTitle: source.locales?.vi?.metaTitle ?? "",
+          metaDescription: source.locales?.vi?.metaDescription ?? "",
+        },
+        en: {
+          title: enCopyTitle,
+          slug: enCopyTitle
+            ? await uniqueSlugFromTitle(enCopyTitle, (slug) =>
+                articleSlugTaken("en", slug),
+              )
+            : "",
+          excerpt: source.locales?.en?.excerpt ?? "",
+          content: source.locales?.en?.content ?? "",
+          metaTitle: source.locales?.en?.metaTitle ?? "",
+          metaDescription: source.locales?.en?.metaDescription ?? "",
+        },
+      },
+    });
+
+    revalidatePortal();
+    return { ok: true, id: String(created._id) };
+  } catch (error) {
+    return failAction(error, "Failed to clone article");
+  }
+}
+
 export async function deleteArticleAction(
   id: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {

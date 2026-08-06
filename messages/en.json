@@ -32,7 +32,8 @@
   "article": {
     "notFound": "Article not found.",
     "backToNews": "Back to news",
-    "missingTranslation": "This article is not available in English yet."
+    "missingTranslation": "This article is not available in English yet.",
+    "edit": "Edit article"
   },
   "page": {
     "backHome": "Back to home",

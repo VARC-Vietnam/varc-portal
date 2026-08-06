@@ -32,7 +32,8 @@
   "article": {
     "notFound": "Không tìm thấy bài viết.",
     "backToNews": "Quay lại tin tức",
-    "missingTranslation": "Bài viết này chưa có bản tiếng Anh."
+    "missingTranslation": "Bài viết này chưa có bản tiếng Anh.",
+    "edit": "Sửa bài viết"
   },
   "page": {
     "backHome": "Quay lại trang chủ",

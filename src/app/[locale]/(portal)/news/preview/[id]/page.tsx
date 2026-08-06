@@ -75,7 +75,22 @@ export default async function ArticlePreviewPage({ params }: Props) {
         </p>
       ) : (
         <>
-          <Link href="/" className="text-sm text-accent hover:underline">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-sm text-accent transition hover:underline"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <path d="M15 18 9 12l6-6" />
+            </svg>
             {t("backToNews")}
           </Link>
           <header className="mt-6 border-b border-border pb-8">

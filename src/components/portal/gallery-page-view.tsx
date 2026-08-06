@@ -74,9 +74,13 @@ export function GalleryPageView({ images, title }: Props) {
           </p>
           {images.length > 0 ? (
             <p className="mt-0.5 text-xs text-white/60">
-              {safeIndex + 1} / {images.length}
+              <span>
+                {safeIndex + 1} / {images.length}
+              </span>
               {current?.alt ? (
-                <span className="ml-2 text-white/80">{current.alt}</span>
+                <span className="mt-0.5 block truncate text-white/80 sm:mt-0 sm:ml-2 sm:inline">
+                  {current.alt}
+                </span>
               ) : null}
             </p>
           ) : null}

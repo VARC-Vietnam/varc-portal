@@ -41,7 +41,7 @@ export default async function AdminMenuPage({ searchParams }: Props) {
 
   return (
     <div>
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold">Menus</h1>
         {trash ? (
           <EmptyTrashButton

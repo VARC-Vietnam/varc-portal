@@ -13,7 +13,10 @@
     "logout": "Đăng xuất",
     "account": "Tài khoản",
     "accountMenu": "Menu tài khoản",
-    "language": "Ngôn ngữ"
+    "language": "Ngôn ngữ",
+    "menu": "Menu",
+    "openMenu": "Mở menu",
+    "closeMenu": "Đóng menu"
   },
   "home": {
     "title": "Tin tức mới nhất",

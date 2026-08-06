@@ -525,7 +525,7 @@ export function MediaGallery({
                   className="h-full w-full object-cover"
                 />
                 <div
-                  className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-black/55 p-1 opacity-0 transition group-hover:opacity-100"
+                  className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-black/55 p-1 opacity-100 transition md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
                   onClick={(event) => event.stopPropagation()}
                 >
                   {!trash ? (

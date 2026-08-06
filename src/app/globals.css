@@ -37,6 +37,7 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
   font-size: 1rem;
   line-height: 1.6;
+  overflow-x: clip;
 }
 
 button:not(:disabled),
@@ -163,9 +164,13 @@ button:disabled,
 
 .prose-article table,
 .prose-article-wide table {
+  display: block;
   width: 100%;
+  max-width: 100%;
   margin: 1.25rem 0;
   border-collapse: collapse;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .prose-article th,
@@ -176,6 +181,16 @@ button:disabled,
   padding: 0.65rem 0.8rem;
   text-align: left;
   vertical-align: top;
+  white-space: nowrap;
+}
+
+@media (min-width: 640px) {
+  .prose-article th,
+  .prose-article td,
+  .prose-article-wide th,
+  .prose-article-wide td {
+    white-space: normal;
+  }
 }
 
 .prose-article th,

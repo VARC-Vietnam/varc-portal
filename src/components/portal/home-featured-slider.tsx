@@ -161,7 +161,7 @@ export function HomeFeaturedSlider({
           </div>
 
           {count > 1 ? (
-            <div className="relative z-20 mt-8 flex items-center gap-4">
+            <div className="relative z-20 mt-8 flex flex-wrap items-center gap-3 sm:gap-4">
               <div className="flex shrink-0 gap-2">
                 <button
                   type="button"
@@ -180,7 +180,10 @@ export function HomeFeaturedSlider({
                   →
                 </button>
               </div>
-              <div className="flex items-center gap-2" role="tablist">
+              <div
+                className="flex min-w-0 max-w-full items-center gap-2 overflow-x-auto pb-1"
+                role="tablist"
+              >
                 {articles.map((article, i) => (
                   <button
                     key={article.id}
@@ -189,7 +192,7 @@ export function HomeFeaturedSlider({
                     aria-selected={i === index}
                     aria-label={`${i + 1} / ${count}`}
                     onClick={() => goTo(i)}
-                    className={`h-1.5 rounded-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+                    className={`h-1.5 shrink-0 rounded-full transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${
                       i === index
                         ? "w-8 bg-accent-soft"
                         : "w-1.5 bg-white/35 hover:bg-white/60"
@@ -197,6 +200,9 @@ export function HomeFeaturedSlider({
                   />
                 ))}
               </div>
+              <p className="text-xs text-white/60 sm:hidden">
+                {index + 1} / {count}
+              </p>
             </div>
           ) : null}
         </div>

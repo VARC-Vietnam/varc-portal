@@ -12,7 +12,13 @@ export type SiteAccountUser = {
   isAdmin: boolean;
 };
 
-export function SiteAccountMenu({ user }: { user: SiteAccountUser | null }) {
+export function SiteAccountMenu({
+  user,
+  compact = false,
+}: {
+  user: SiteAccountUser | null;
+  compact?: boolean;
+}) {
   const t = useTranslations("nav");
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -21,7 +27,7 @@ export function SiteAccountMenu({ user }: { user: SiteAccountUser | null }) {
     return (
       <NextLink
         href="/admin/login"
-        className="shrink-0 text-muted transition hover:text-foreground"
+        className="shrink-0 text-sm text-muted transition hover:text-foreground"
       >
         {t("login")}
       </NextLink>
@@ -42,44 +48,75 @@ export function SiteAccountMenu({ user }: { user: SiteAccountUser | null }) {
 
   return (
     <DropdownMenu.Root open={open} onOpenChange={setOpen}>
-      <div className="inline-flex max-w-[18rem] shrink-0 items-stretch overflow-hidden rounded-md">
-        <button
-          type="button"
-          onClick={toggleMenu}
-          className="min-w-0 flex-1 px-2.5 py-1.5 text-left outline-none transition hover:bg-foreground/5 focus-visible:bg-foreground/5"
-          aria-expanded={open}
-          aria-haspopup="menu"
-        >
-          <span className="block truncate text-sm font-medium leading-tight text-foreground">
-            {displayName}
-          </span>
-          {user.email && user.name?.trim() ? (
-            <span className="block truncate text-xs leading-tight text-muted">
-              {user.email}
-            </span>
-          ) : null}
-        </button>
-
-        <DropdownMenu.Trigger asChild>
-          <button
-            type="button"
-            className="flex items-center justify-center px-2 text-muted outline-none transition hover:bg-foreground/5 hover:text-foreground focus-visible:bg-foreground/5 data-[state=open]:bg-foreground/5"
-            aria-label={t("accountMenu")}
-          >
-            <svg
-              viewBox="0 0 16 16"
-              className={`h-3.5 w-3.5 transition ${open ? "rotate-180" : ""}`}
-              aria-hidden
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.75"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+      <div
+        className={`inline-flex shrink-0 items-stretch overflow-hidden rounded-md ${
+          compact ? "max-w-none" : "max-w-[18rem]"
+        }`}
+      >
+        {compact ? (
+          <DropdownMenu.Trigger asChild>
+            <button
+              type="button"
+              className="inline-flex h-10 items-center gap-1.5 rounded-md border border-border px-2.5 text-sm text-foreground outline-none transition hover:bg-foreground/5 data-[state=open]:bg-foreground/5"
+              aria-label={t("accountMenu")}
             >
-              <path d="M4 6l4 4 4-4" />
-            </svg>
-          </button>
-        </DropdownMenu.Trigger>
+              <svg
+                viewBox="0 0 24 24"
+                className="h-4 w-4 shrink-0"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <circle cx="12" cy="8" r="3.5" />
+                <path d="M5 19.5c1.8-3.2 4.2-4.5 7-4.5s5.2 1.3 7 4.5" />
+              </svg>
+              <span className="sr-only">{t("account")}</span>
+            </button>
+          </DropdownMenu.Trigger>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={toggleMenu}
+              className="min-w-0 flex-1 px-2.5 py-1.5 text-left outline-none transition hover:bg-foreground/5 focus-visible:bg-foreground/5"
+              aria-expanded={open}
+              aria-haspopup="menu"
+            >
+              <span className="block truncate text-sm font-medium leading-tight text-foreground">
+                {displayName}
+              </span>
+              {user.email && user.name?.trim() ? (
+                <span className="block truncate text-xs leading-tight text-muted">
+                  {user.email}
+                </span>
+              ) : null}
+            </button>
+
+            <DropdownMenu.Trigger asChild>
+              <button
+                type="button"
+                className="flex items-center justify-center px-2 text-muted outline-none transition hover:bg-foreground/5 hover:text-foreground focus-visible:bg-foreground/5 data-[state=open]:bg-foreground/5"
+                aria-label={t("accountMenu")}
+              >
+                <svg
+                  viewBox="0 0 16 16"
+                  className={`h-3.5 w-3.5 transition ${open ? "rotate-180" : ""}`}
+                  aria-hidden
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M4 6l4 4 4-4" />
+                </svg>
+              </button>
+            </DropdownMenu.Trigger>
+          </>
+        )}
       </div>
 
       <DropdownMenu.Portal>

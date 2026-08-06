@@ -104,21 +104,41 @@ export function PageEditor({ pageId, initial }: Props) {
         </p>
       ) : null}
 
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => setTab("vi")}
-          className={`rounded px-3 py-1.5 text-sm ${tab === "vi" ? "bg-gray-900 text-white" : "border border-gray-300"}`}
-        >
-          Vietnamese
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab("en")}
-          className={`rounded px-3 py-1.5 text-sm ${tab === "en" ? "bg-gray-900 text-white" : "border border-gray-300"}`}
-        >
-          English
-        </button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setTab("vi")}
+            className={`rounded px-3 py-1.5 text-sm ${tab === "vi" ? "bg-gray-900 text-white" : "border border-gray-300"}`}
+          >
+            Vietnamese
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("en")}
+            className={`rounded px-3 py-1.5 text-sm ${tab === "en" ? "bg-gray-900 text-white" : "border border-gray-300"}`}
+          >
+            English
+          </button>
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-3">
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => onSave("draft")}
+            className="rounded border border-gray-300 bg-white px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50"
+          >
+            Save draft
+          </button>
+          <button
+            type="button"
+            disabled={pending || !canPublish}
+            onClick={() => onSave("published")}
+            className="rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-black disabled:opacity-50"
+          >
+            Publish
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-4 rounded-lg border border-gray-200 bg-white p-5">
@@ -245,34 +265,18 @@ export function PageEditor({ pageId, initial }: Props) {
         </label>
       </div>
 
-      <div className="flex flex-wrap gap-3">
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() => onSave("draft")}
-          className="rounded border border-gray-300 bg-white px-4 py-2 text-sm hover:bg-gray-50 disabled:opacity-50"
-        >
-          Save draft
-        </button>
-        <button
-          type="button"
-          disabled={pending || !canPublish}
-          onClick={() => onSave("published")}
-          className="rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-black disabled:opacity-50"
-        >
-          Publish
-        </button>
-        {pageId ? (
+      {pageId ? (
+        <div className="flex justify-end">
           <button
             type="button"
             disabled={pending}
             onClick={onDelete}
-            className="ml-auto rounded border border-red-300 px-4 py-2 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50"
+            className="rounded border border-red-300 px-4 py-2 text-sm text-red-700 hover:bg-red-50 disabled:opacity-50"
           >
             Move to trash
           </button>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
     </div>
     {modal}
     </>

@@ -28,13 +28,13 @@ export async function SiteFooter({
             <p className="mt-2">{branding.copyright}</p>
           </div>
 
-          <div className="flex shrink-0 flex-nowrap items-start justify-end gap-x-5">
+          <div className="flex w-full min-w-0 flex-col items-stretch gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-end sm:gap-x-5">
             {menuItems.length > 0 ? (
               <nav aria-label={t("menu")} className="min-w-0">
                 <FooterMenuLinks items={menuItems} />
               </nav>
             ) : null}
-            <div className="shrink-0 pt-0.5">
+            <div className="shrink-0 sm:pt-0.5">
               <LanguageSwitcher align="end" />
             </div>
           </div>

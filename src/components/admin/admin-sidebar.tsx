@@ -265,14 +265,16 @@ export function AdminSidebar({
     }))
     .filter((group) => group.items.length > 0);
 
+  const showLabels = expanded || mobileOpen;
+
   const nav = (
     <div className="flex h-full flex-col">
       <div
         className={`flex h-14 items-center border-b border-gray-200 px-3 ${
-          expanded ? "justify-between gap-2" : "justify-center"
+          showLabels ? "justify-between gap-2" : "justify-center"
         }`}
       >
-        {expanded ? (
+        {showLabels ? (
           <Link
             href="/admin"
             onClick={() => setMobileOpen(false)}
@@ -312,7 +314,7 @@ export function AdminSidebar({
         {visibleGroups.map((group) => (
           <div key={group.id} className="space-y-1">
             {group.label ? (
-              expanded ? (
+              showLabels ? (
                 <p className="px-2.5 pt-1 pb-1 text-[10px] font-semibold tracking-[0.16em] text-gray-400 uppercase">
                   {group.label}
                 </p>
@@ -323,7 +325,7 @@ export function AdminSidebar({
             {group.items.map((link) => {
               const active = !link.external && isActive(link.href, pathname);
               const className = `flex items-center gap-3 rounded-md px-2.5 py-2 text-sm transition ${
-                expanded ? "" : "justify-center"
+                showLabels ? "" : "justify-center"
               } ${
                 active
                   ? "bg-gray-900 text-white"
@@ -342,7 +344,7 @@ export function AdminSidebar({
                     className={className}
                   >
                     {link.icon}
-                    {expanded ? <span className="truncate">{link.label}</span> : null}
+                    {showLabels ? <span className="truncate">{link.label}</span> : null}
                   </a>
                 );
               }
@@ -357,7 +359,7 @@ export function AdminSidebar({
                   className={className}
                 >
                   {link.icon}
-                  {expanded ? (
+                  {showLabels ? (
                     <span className="truncate">{link.label}</span>
                   ) : null}
                 </Link>
@@ -368,7 +370,7 @@ export function AdminSidebar({
       </nav>
 
       <div className="space-y-2 border-t border-gray-200 p-2">
-        {expanded && userEmail ? (
+        {showLabels && userEmail ? (
           <p className="truncate px-2.5 text-xs text-gray-500" title={userEmail}>
             {userEmail}
           </p>
@@ -379,7 +381,7 @@ export function AdminSidebar({
             type="submit"
             title="Sign out"
             className={`flex w-full cursor-pointer items-center gap-3 rounded-md border border-gray-200 px-2.5 py-2 text-sm text-gray-700 transition hover:bg-gray-50 ${
-              expanded ? "" : "justify-center"
+              showLabels ? "" : "justify-center"
             }`}
           >
             <Icon>
@@ -387,7 +389,7 @@ export function AdminSidebar({
               <path d="m15 16 4-4-4-4" />
               <path d="M10 12h9" />
             </Icon>
-            {expanded ? <span>Sign out</span> : null}
+            {showLabels ? <span>Sign out</span> : null}
           </button>
         </form>
       </div>

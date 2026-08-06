@@ -55,7 +55,7 @@ function MenuItem({
 
 export function FooterMenuLinks({ items }: { items: PublicMenuLink[] }) {
   const linkClass =
-    "whitespace-nowrap text-muted transition hover:text-foreground";
+    "text-muted transition hover:text-foreground sm:whitespace-nowrap";
   const flat: PublicMenuLink[] = [];
   function walk(nodes: PublicMenuLink[]) {
     for (const item of nodes) {
@@ -66,7 +66,7 @@ export function FooterMenuLinks({ items }: { items: PublicMenuLink[] }) {
   walk(items);
 
   return (
-    <div className="flex flex-wrap items-center justify-end gap-x-5 gap-y-2 md:flex-nowrap">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:justify-end sm:gap-x-5 md:flex-nowrap">
       {flat.map((item) => (
         <MenuItem key={item.id} item={item} className={linkClass} />
       ))}

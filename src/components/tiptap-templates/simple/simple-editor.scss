@@ -5,7 +5,8 @@
   --tt-toolbar-height: 44px;
   --tt-theme-text: var(--tt-gray-light-900);
   width: 100%;
-  overflow: hidden;
+  overflow-x: clip;
+  overflow-y: visible;
   border: 1px solid var(--tt-gray-light-a-200, #e5e7eb);
   border-radius: 0.5rem;
   background: var(--tt-bg-color, #fff);

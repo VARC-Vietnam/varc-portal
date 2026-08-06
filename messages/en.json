@@ -13,7 +13,10 @@
     "logout": "Log out",
     "account": "Account",
     "accountMenu": "Account menu",
-    "language": "Language"
+    "language": "Language",
+    "menu": "Menu",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
   },
   "home": {
     "title": "Latest news",

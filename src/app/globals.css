@@ -66,14 +66,62 @@ button:disabled,
   line-height: 1.75;
 }
 
+.prose-article h1,
 .prose-article h2,
 .prose-article h3,
+.prose-article h4,
+.prose-article-wide h1,
 .prose-article-wide h2,
-.prose-article-wide h3 {
+.prose-article-wide h3,
+.prose-article-wide h4 {
   font-family: var(--font-display), Georgia, serif;
+  font-weight: 600;
   margin-top: 1.75em;
   margin-bottom: 0.5em;
   line-height: 1.25;
+  color: var(--foreground);
+}
+
+.prose-article h1,
+.prose-article-wide h1 {
+  font-size: 2rem;
+}
+
+.prose-article h2,
+.prose-article-wide h2 {
+  font-size: 1.625rem;
+}
+
+.prose-article h3,
+.prose-article-wide h3 {
+  font-size: 1.375rem;
+}
+
+.prose-article h4,
+.prose-article-wide h4 {
+  font-size: 1.125rem;
+}
+
+@media (min-width: 768px) {
+  .prose-article h1,
+  .prose-article-wide h1 {
+    font-size: 2.25rem;
+  }
+
+  .prose-article h2,
+  .prose-article-wide h2 {
+    font-size: 1.875rem;
+  }
+
+  .prose-article h3,
+  .prose-article-wide h3 {
+    font-size: 1.5rem;
+  }
+
+  .prose-article h4,
+  .prose-article-wide h4 {
+    font-size: 1.25rem;
+  }
 }
 
 .prose-article p,

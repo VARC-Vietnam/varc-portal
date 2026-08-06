@@ -120,7 +120,9 @@ const pageGalleryItemSchema = z.object({
 export const pageFormSchema = z
   .object({
     status: z.enum(["draft", "published"]),
-    template: z.enum(["default", "gallery"]),
+    templateKey: z.string().trim().min(1).max(100),
+    /** When set, page uses this layout instead of the template's layout. */
+    layoutOverride: z.unknown().nullable().optional(),
     galleryItems: z.array(pageGalleryItemSchema).max(500),
     showInNav: z.boolean(),
     sortOrder: z.number().int().min(-10_000).max(10_000),
@@ -138,7 +140,7 @@ export const pageFormSchema = z
         path: ["locales", "vi", "title"],
       });
     }
-    if (data.template === "gallery") {
+    if (data.templateKey === "gallery") {
       if (data.galleryItems.length === 0) {
         ctx.addIssue({
           code: "custom",
@@ -146,6 +148,13 @@ export const pageFormSchema = z
           path: ["galleryItems"],
         });
       }
+      return;
+    }
+    if (
+      data.templateKey === "blank" ||
+      data.templateKey === "home" ||
+      data.templateKey === "category"
+    ) {
       return;
     }
     if (isEmptyHtml(data.locales.vi.content)) {
@@ -269,6 +278,11 @@ export const siteSettingsFormSchema = z
     logoUrl: safeUrlSchema,
     faviconUrl: safeUrlSchema,
     ogImageUrl: safeUrlSchema,
+    /** Optional CMS page rendered at `/` instead of the hardcoded home. */
+    homePageId: z.string().trim().max(64).nullable().optional(),
+    homeTemplateKey: z.string().trim().max(100).default("home"),
+    articleTemplateKey: z.string().trim().max(100).default("article"),
+    categoryTemplateKey: z.string().trim().max(100).default("category"),
     locales: z.object({
       vi: siteLocaleSchema,
       en: siteLocaleSchema,

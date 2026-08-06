@@ -20,6 +20,7 @@ import {
 } from "@/models/SiteSettings";
 import type { AppLocale } from "@/i18n/routing";
 import type { SiteSettingsFormValues } from "@/lib/validations/article";
+import { ensureDefaultHomePage } from "@/lib/blocks/templates";
 
 function localeKey(locale: AppLocale): "vi" | "en" {
   return locale === "en" ? "en" : "vi";
@@ -457,6 +458,10 @@ export function getDefaultSiteSettingsForm(): SiteSettingsFormValues {
     logoUrl: "",
     faviconUrl: "",
     ogImageUrl: "",
+    homePageId: null,
+    homeTemplateKey: "home",
+    articleTemplateKey: "article",
+    categoryTemplateKey: "category",
     locales: {
       vi: { ...DEFAULT_SITE_LOCALES.vi },
       en: { ...DEFAULT_SITE_LOCALES.en },
@@ -470,6 +475,7 @@ export async function getSiteSettingsDocument() {
 }
 
 export async function getSiteSettingsFormValues(): Promise<SiteSettingsFormValues> {
+  await ensureDefaultHomePage();
   const doc = await getSiteSettingsDocument();
   if (!doc) return getDefaultSiteSettingsForm();
 
@@ -477,6 +483,10 @@ export async function getSiteSettingsFormValues(): Promise<SiteSettingsFormValue
     logoUrl: doc.logoUrl ?? "",
     faviconUrl: doc.faviconUrl ?? "",
     ogImageUrl: doc.ogImageUrl ?? "",
+    homePageId: doc.homePageId ? String(doc.homePageId) : null,
+    homeTemplateKey: doc.homeTemplateKey?.trim() || "home",
+    articleTemplateKey: doc.articleTemplateKey?.trim() || "article",
+    categoryTemplateKey: doc.categoryTemplateKey?.trim() || "category",
     locales: {
       vi: mergeLocale(doc.locales?.vi, DEFAULT_SITE_LOCALES.vi),
       en: mergeLocale(doc.locales?.en, DEFAULT_SITE_LOCALES.en),

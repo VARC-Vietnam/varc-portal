@@ -23,6 +23,11 @@ const SiteSettingsSchema = new Schema(
     logoUrl: { type: String, default: "" },
     faviconUrl: { type: String, default: "" },
     ogImageUrl: { type: String, default: "" },
+    /** CMS page id to render at `/` (optional). */
+    homePageId: { type: Schema.Types.ObjectId, ref: "Page", default: null },
+    homeTemplateKey: { type: String, default: "home", trim: true },
+    articleTemplateKey: { type: String, default: "article", trim: true },
+    categoryTemplateKey: { type: String, default: "category", trim: true },
     /** Set after nav menu is first seeded or manually edited — prevents re-import. */
     menuNavImported: { type: Boolean, default: false },
     locales: {

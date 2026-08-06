@@ -8,14 +8,24 @@ import {
   getPublishedArticleBySlug,
   hasLocaleContent,
 } from "@/lib/articles";
-import { getPublicSiteBranding } from "@/lib/cms";
+import {
+  getPublicSiteBranding,
+  getSiteSettingsDocument,
+} from "@/lib/cms";
 import { canManageArticles } from "@/lib/roles";
 import type { AppLocale } from "@/i18n/routing";
 import { ArticleBody } from "@/components/portal/article-body";
 import { ArticleEditLink } from "@/components/portal/article-edit-link";
 import { SetLocaleAlternates } from "@/components/portal/locale-alternates";
+import { TemplateLayoutRenderer } from "@/components/portal/blocks/template-layout-renderer";
 import { newsHref } from "@/lib/locale-hrefs";
 import { formatDateUtc7 } from "@/lib/datetime-local";
+import {
+  getPageTemplateByKey,
+  parseLayout,
+} from "@/lib/blocks/templates";
+import { resolveLayoutBlocks } from "@/lib/blocks/resolve";
+import { emptyLayout } from "@/lib/blocks/types";
 
 export const dynamic = "force-dynamic";
 
@@ -66,9 +76,12 @@ export default async function ArticlePage({ params }: Props) {
   setRequestLocale(locale);
 
   const t = await getTranslations("article");
-  const [article, session] = await Promise.all([
+  const tHome = await getTranslations("home");
+  const [article, session, settings, branding] = await Promise.all([
     getPublishedArticleBySlug(locale, slug),
     auth(),
+    getSiteSettingsDocument(),
+    getPublicSiteBranding(locale),
   ]);
   if (!article || !hasLocaleContent(article, locale)) {
     notFound();
@@ -98,6 +111,68 @@ export default async function ArticlePage({ params }: Props) {
     image: article.coverImageUrl || undefined,
     mainEntityOfPage: `${siteUrl}${path}`,
   };
+
+  const articleTemplateKey = settings?.articleTemplateKey?.trim() || "article";
+  // Non-default key opts into block template rendering for article routes.
+  if (articleTemplateKey !== "article") {
+    const template = await getPageTemplateByKey(articleTemplateKey);
+    const layout = parseLayout(template?.layout) ?? emptyLayout();
+    if (layout.sections.some((s) => s.blocks.length > 0)) {
+      const resolved = await resolveLayoutBlocks(
+        layout,
+        locale,
+        {
+          title: content.title,
+          contentHtml: content.content,
+          galleryItems: [],
+        },
+        {
+          categoryIds: (article.categoryIds ?? []).map(String),
+        },
+      );
+      return (
+        <div className="py-10 md:py-14">
+          <SetLocaleAlternates
+            vi={vi.slug ? newsHref(vi.slug) : null}
+            en={en.slug ? newsHref(en.slug) : null}
+          />
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          />
+          <div className="mx-auto mb-6 flex max-w-6xl items-center justify-between gap-3 px-4 md:px-6">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 text-sm text-accent transition hover:underline"
+            >
+              {t("backToNews")}
+            </Link>
+            {canEdit ? (
+              <ArticleEditLink
+                href={`/admin/articles/${articleId}`}
+                label={t("edit")}
+              />
+            ) : null}
+          </div>
+          <TemplateLayoutRenderer
+            layout={layout}
+            resolved={resolved}
+            locale={locale}
+            siteName={branding.siteName}
+            pageTitle={content.title}
+            labels={{
+              readMore: tHome("readMore"),
+              publishedAt: tHome("publishedAt"),
+              featuredLabel: tHome("featuredLabel"),
+              latestTitle: tHome("title"),
+              previous: tHome("previousSlide"),
+              next: tHome("nextSlide"),
+            }}
+          />
+        </div>
+      );
+    }
+  }
 
   return (
     <article className="mx-auto w-full max-w-6xl px-4 py-14 md:px-6">

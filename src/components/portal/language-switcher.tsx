@@ -84,13 +84,20 @@ function buildHref(
   }
 
   return {
-    pathname: pathname as "/news/[slug]" | "/pages/[slug]",
+    pathname: pathname as
+      | "/news/[slug]"
+      | "/pages/[slug]"
+      | "/categories/[slug]",
     params: dynamicParams as { slug: string },
   };
 }
 
 function isSlugRoute(pathname: string) {
-  return pathname === "/news/[slug]" || pathname === "/pages/[slug]";
+  return (
+    pathname === "/news/[slug]" ||
+    pathname === "/pages/[slug]" ||
+    pathname === "/categories/[slug]"
+  );
 }
 
 function hrefForLocale(

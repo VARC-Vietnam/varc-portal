@@ -188,6 +188,19 @@ const navGroups: NavGroup[] = [
         ),
       },
       {
+        href: "/admin/templates",
+        label: "Templates",
+        flag: "site",
+        icon: (
+          <Icon>
+            <rect x="4" y="4" width="7" height="7" rx="1" />
+            <rect x="13" y="4" width="7" height="7" rx="1" />
+            <rect x="4" y="13" width="7" height="7" rx="1" />
+            <path d="M13 16h7M16.5 13v7" />
+          </Icon>
+        ),
+      },
+      {
         href: "/admin/menu",
         label: "Menus",
         flag: "site",

@@ -1,45 +1,35 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { setRequestLocale } from "next-intl/server";
-import { getPageLocale, getPublishedPageBySlug, getPublicSiteBranding } from "@/lib/cms";
+import { getTranslations } from "next-intl/server";
+import {
+  getPageLocale,
+  getPublishedPageBySlug,
+  getPublicSiteBranding,
+} from "@/lib/cms";
 import type { AppLocale } from "@/i18n/routing";
-import { HtmlContent } from "@/components/portal/html-content";
+import { TemplateLayoutRenderer } from "@/components/portal/blocks/template-layout-renderer";
 import { GalleryPageView } from "@/components/portal/gallery-page-view";
+import { HtmlContent } from "@/components/portal/html-content";
 import { SetLocaleAlternates } from "@/components/portal/locale-alternates";
 import { pageHref } from "@/lib/locale-hrefs";
 import { Link } from "@/i18n/navigation";
-import { getTranslations } from "next-intl/server";
 import { isEmptyHtml } from "@/lib/html";
+import {
+  resolvePageLayout,
+  resolvePageTemplateKey,
+} from "@/lib/blocks/templates";
+import {
+  galleryImagesFromPage,
+  pageContextFromPage,
+  resolveLayoutBlocks,
+} from "@/lib/blocks/resolve";
 
 export const dynamic = "force-dynamic";
 
 type Props = {
   params: Promise<{ locale: string; slug: string }>;
 };
-
-function getPageTemplate(page: {
-  template?: string | null;
-}): "default" | "gallery" {
-  return page.template === "gallery" ? "gallery" : "default";
-}
-
-function getGalleryImages(page: {
-  galleryItems?: Array<{
-    mediaId?: string;
-    url?: string;
-    alt?: string;
-    originalName?: string;
-  }> | null;
-}) {
-  if (!Array.isArray(page.galleryItems)) return [];
-  return page.galleryItems
-    .filter((item) => item?.url)
-    .map((item, index) => ({
-      id: String(item.mediaId || item.url || index),
-      url: String(item.url),
-      alt: String(item.alt || item.originalName || ""),
-    }));
-}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale: localeParam, slug } = await params;
@@ -55,7 +45,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const path = `/${locale}/pages/${content.slug}`;
   const en = getPageLocale(page, "en");
   const vi = getPageLocale(page, "vi");
-  const galleryImages = getGalleryImages(page);
+  const galleryImages = galleryImagesFromPage(page);
   const ogImage = galleryImages[0]?.url;
 
   return {
@@ -84,6 +74,7 @@ export default async function CmsPage({ params }: Props) {
   setRequestLocale(locale);
 
   const t = await getTranslations("page");
+  const tHome = await getTranslations("home");
   const page = await getPublishedPageBySlug(locale, slug);
   const content = page ? getPageLocale(page, locale) : null;
   if (!page || !content?.slug || !content.title) {
@@ -92,18 +83,18 @@ export default async function CmsPage({ params }: Props) {
 
   const vi = getPageLocale(page, "vi");
   const en = getPageLocale(page, "en");
-  const template = getPageTemplate(page);
-  const galleryImages = getGalleryImages(page);
+  const templateKey = resolvePageTemplateKey(page);
+  const galleryImages = galleryImagesFromPage(page);
   const hasIntro = !isEmptyHtml(content.content);
+  const branding = await getPublicSiteBranding(locale);
 
-  if (template === "gallery") {
+  if (templateKey === "gallery") {
     return (
       <>
         <SetLocaleAlternates
           vi={vi.slug ? pageHref(vi.slug) : null}
           en={en.slug ? pageHref(en.slug) : null}
         />
-        {/* Intro stays available for SEO/crawlers; theatre UI covers the viewport. */}
         {hasIntro ? (
           <div className="sr-only">
             <HtmlContent html={content.content} />
@@ -114,21 +105,72 @@ export default async function CmsPage({ params }: Props) {
     );
   }
 
+  const { layout } = await resolvePageLayout(page);
+  const resolved = await resolveLayoutBlocks(
+    layout,
+    locale,
+    pageContextFromPage(page, locale),
+  );
+
+  const hasBlocks = layout.sections.some((s) => s.blocks.length > 0);
+
+  if (!hasBlocks) {
+    return (
+      <article className="mx-auto w-full max-w-6xl px-4 py-14 md:px-6">
+        <SetLocaleAlternates
+          vi={vi.slug ? pageHref(vi.slug) : null}
+          en={en.slug ? pageHref(en.slug) : null}
+        />
+        <Link href="/" className="text-sm text-accent hover:underline">
+          {t("backHome")}
+        </Link>
+        <header className="mt-6 border-b border-border pb-8">
+          <h1 className="font-display text-4xl leading-tight text-foreground md:text-5xl">
+            {content.title}
+          </h1>
+        </header>
+        <HtmlContent html={content.content} />
+      </article>
+    );
+  }
+
+  const startsWithHero = layout.sections.some((section) =>
+    section.blocks.some(
+      (block) =>
+        block.type === "featuredSlider" ||
+        (block.type === "articleList" &&
+          block.settings?.variant === "spotlight"),
+    ),
+  );
+
   return (
-    <article className="mx-auto w-full max-w-6xl px-4 py-14 md:px-6">
+    <div className={startsWithHero ? "" : "py-10 md:py-14"}>
       <SetLocaleAlternates
         vi={vi.slug ? pageHref(vi.slug) : null}
         en={en.slug ? pageHref(en.slug) : null}
       />
-      <Link href="/" className="text-sm text-accent hover:underline">
-        {t("backHome")}
-      </Link>
-      <header className="mt-6 border-b border-border pb-8">
-        <h1 className="font-display text-4xl leading-tight text-foreground md:text-5xl">
-          {content.title}
-        </h1>
-      </header>
-      <HtmlContent html={content.content} />
-    </article>
+      {!startsWithHero ? (
+        <div className="mx-auto mb-6 max-w-6xl px-4 md:px-6">
+          <Link href="/" className="text-sm text-accent hover:underline">
+            {t("backHome")}
+          </Link>
+        </div>
+      ) : null}
+      <TemplateLayoutRenderer
+        layout={layout}
+        resolved={resolved}
+        locale={locale}
+        siteName={branding.siteName}
+        pageTitle={content.title}
+        labels={{
+          readMore: tHome("readMore"),
+          publishedAt: tHome("publishedAt"),
+          featuredLabel: tHome("featuredLabel"),
+          latestTitle: tHome("title"),
+          previous: tHome("previousSlide"),
+          next: tHome("nextSlide"),
+        }}
+      />
+    </div>
   );
 }

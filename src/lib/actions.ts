@@ -34,6 +34,17 @@ import {
   roleFormSchema,
   siteSettingsFormSchema,
 } from "@/lib/validations/article";
+import {
+  pageTemplateFormSchema,
+  templateLayoutSchema,
+} from "@/lib/blocks/types";
+import { makeSlug } from "@/lib/slug";
+import { PageTemplate } from "@/models/PageTemplate";
+import {
+  ensureSystemTemplates,
+  getPageTemplateById,
+  HOME_PAGE_KEY,
+} from "@/lib/blocks/templates";
 import { ensureDefaultRoles, isValidRoleKey } from "@/lib/app-roles";
 import {
   MAX_MENU_DEPTH,
@@ -594,6 +605,20 @@ export async function savePageAction(
     const data = parsed.data;
     await connectDb();
 
+    const templateKey = data.templateKey.trim();
+    const legacyTemplate = templateKey === "gallery" ? "gallery" : "default";
+
+    let layoutOverride = null as ReturnType<
+      typeof templateLayoutSchema.parse
+    > | null;
+    if (data.layoutOverride != null) {
+      const layoutParsed = templateLayoutSchema.safeParse(data.layoutOverride);
+      if (!layoutParsed.success) {
+        return { ok: false, error: "Invalid layout override" };
+      }
+      layoutOverride = layoutParsed.data;
+    }
+
     const viTitle = data.locales.vi.title.trim();
     const enTitle = data.locales.en.title.trim();
 
@@ -626,7 +651,9 @@ export async function savePageAction(
       const existing = await Page.findById(id);
       if (!existing) return { ok: false, error: "Page not found" };
       existing.status = data.status;
-      existing.template = data.template;
+      existing.template = legacyTemplate;
+      existing.templateKey = templateKey;
+      existing.layoutOverride = layoutOverride;
       existing.galleryItems = data.galleryItems;
       existing.showInNav = data.showInNav;
       existing.sortOrder = data.sortOrder;
@@ -638,7 +665,9 @@ export async function savePageAction(
 
     const created = await Page.create({
       status: data.status,
-      template: data.template,
+      template: legacyTemplate,
+      templateKey,
+      layoutOverride,
       galleryItems: data.galleryItems,
       showInNav: data.showInNav,
       sortOrder: data.sortOrder,
@@ -659,6 +688,9 @@ export async function deletePageAction(
     await connectDb();
     const existing = await Page.findOne({ _id: id, ...notDeletedFilter });
     if (!existing) return { ok: false, error: "Page not found" };
+    if (existing.key === HOME_PAGE_KEY) {
+      return { ok: false, error: "The Home page cannot be moved to trash" };
+    }
     existing.deletedAt = new Date();
     await existing.save();
     revalidatePortal();
@@ -697,6 +729,9 @@ export async function permanentlyDeletePageAction(
     if (!existing) {
       return { ok: false, error: "Trashed page not found" };
     }
+    if (existing.key === HOME_PAGE_KEY) {
+      return { ok: false, error: "The Home page cannot be deleted" };
+    }
     await Page.findByIdAndDelete(id);
     revalidatePortal();
     return { ok: true };
@@ -711,7 +746,15 @@ export async function emptyPagesTrashAction(): Promise<
   try {
     await requireSiteManager();
     await connectDb();
-    const result = await Page.deleteMany(deletedFilter);
+    const result = await Page.deleteMany({
+      ...deletedFilter,
+      key: { $ne: HOME_PAGE_KEY },
+    });
+    // Ensure system home is restored if it was trashed somehow.
+    await Page.updateMany(
+      { key: HOME_PAGE_KEY, deletedAt: { $ne: null } },
+      { $set: { deletedAt: null, status: "published" } },
+    );
     revalidatePortal();
     return { ok: true, deleted: result.deletedCount };
   } catch (error) {
@@ -1162,6 +1205,13 @@ export async function saveSiteSettingsAction(
           logoUrl: data.logoUrl.trim(),
           faviconUrl: data.faviconUrl.trim(),
           ogImageUrl: data.ogImageUrl.trim(),
+          homePageId:
+            data.homePageId && mongoose.isValidObjectId(data.homePageId)
+              ? data.homePageId
+              : null,
+          homeTemplateKey: data.homeTemplateKey.trim() || "home",
+          articleTemplateKey: data.articleTemplateKey.trim() || "article",
+          categoryTemplateKey: data.categoryTemplateKey.trim() || "category",
           locales,
         },
       },
@@ -1307,5 +1357,111 @@ export async function emptyMediaTrashAction(): Promise<
     return { ok: true, deleted: result.deletedCount };
   } catch (error) {
     return failAction(error, "Failed to empty trash");
+  }
+}
+
+async function uniqueTemplateKey(base: string, excludeId?: string) {
+  const root = makeSlug(base) || "template";
+  let candidate = root;
+  let n = 2;
+  while (true) {
+    const existing = await PageTemplate.findOne({
+      key: candidate,
+      ...notDeletedFilter,
+      ...(excludeId ? { _id: { $ne: excludeId } } : {}),
+    }).select("_id");
+    if (!existing) return candidate;
+    candidate = `${root}-${n}`;
+    n += 1;
+  }
+}
+
+export async function savePageTemplateAction(
+  id: string | null,
+  raw: unknown,
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  try {
+    await requireSiteManager();
+    const parsed = pageTemplateFormSchema.safeParse(raw);
+    if (!parsed.success) {
+      return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid data" };
+    }
+    await connectDb();
+    await ensureSystemTemplates();
+
+    const name = parsed.data.name.trim();
+    const description = parsed.data.description.trim();
+    const layout = parsed.data.layout;
+
+    if (id) {
+      const existing = await PageTemplate.findOne({ _id: id, ...notDeletedFilter });
+      if (!existing) return { ok: false, error: "Template not found" };
+      existing.name = name;
+      existing.description = description;
+      existing.layout = layout;
+      await existing.save();
+      revalidatePortal();
+      revalidatePath("/admin/templates");
+      return { ok: true, id: String(existing._id) };
+    }
+
+    const key = await uniqueTemplateKey(name);
+    const created = await PageTemplate.create({
+      key,
+      name,
+      description,
+      isSystem: false,
+      layout,
+    });
+    revalidatePortal();
+    revalidatePath("/admin/templates");
+    return { ok: true, id: String(created._id) };
+  } catch (error) {
+    return failAction(error, "Failed to save template");
+  }
+}
+
+export async function duplicatePageTemplateAction(
+  id: string,
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  try {
+    await requireSiteManager();
+    await connectDb();
+    const source = await getPageTemplateById(id);
+    if (!source) return { ok: false, error: "Template not found" };
+
+    const key = await uniqueTemplateKey(`${source.key}-copy`);
+    const created = await PageTemplate.create({
+      key,
+      name: `${source.name} (copy)`,
+      description: source.description ?? "",
+      isSystem: false,
+      layout: source.layout,
+    });
+    revalidatePath("/admin/templates");
+    return { ok: true, id: String(created._id) };
+  } catch (error) {
+    return failAction(error, "Failed to duplicate template");
+  }
+}
+
+export async function deletePageTemplateAction(
+  id: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await requireSiteManager();
+    await connectDb();
+    const existing = await PageTemplate.findOne({ _id: id, ...notDeletedFilter });
+    if (!existing) return { ok: false, error: "Template not found" };
+    if (existing.isSystem) {
+      return { ok: false, error: "System templates cannot be deleted" };
+    }
+    existing.deletedAt = new Date();
+    await existing.save();
+    revalidatePortal();
+    revalidatePath("/admin/templates");
+    return { ok: true };
+  } catch (error) {
+    return failAction(error, "Failed to delete template");
   }
 }

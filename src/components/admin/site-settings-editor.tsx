@@ -9,11 +9,17 @@ import { notifyAction } from "@/components/admin/admin-toast";
 
 type Props = {
   initial: SiteSettingsFormValues;
+  pageOptions: Array<{ id: string; title: string }>;
+  templateOptions: Array<{ key: string; name: string }>;
 };
 
 type SiteLocaleFields = SiteSettingsFormValues["locales"]["vi"];
 
-export function SiteSettingsEditor({ initial }: Props) {
+export function SiteSettingsEditor({
+  initial,
+  pageOptions,
+  templateOptions,
+}: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -98,6 +104,68 @@ export function SiteSettingsEditor({ initial }: Props) {
             setSaved(false);
           }}
         />
+      </section>
+
+      <section className="space-y-4 rounded-lg border border-gray-200 bg-white p-5">
+        <h2 className="text-base font-semibold">Route templates</h2>
+        <p className="text-sm text-gray-600">
+          Optionally wire Home, Article, and Category routes to page templates.
+          Leave Home template as &quot;home&quot; and Home page empty to keep the
+          built-in React home.
+        </p>
+        <label className="block text-sm">
+          <span className="mb-1 block font-medium">Home CMS page</span>
+          <select
+            value={form.homePageId ?? ""}
+            onChange={(e) => {
+              setForm((prev) => ({
+                ...prev,
+                homePageId: e.target.value || null,
+              }));
+              setSaved(false);
+            }}
+            className="w-full rounded border border-gray-300 px-3 py-2 md:max-w-md"
+          >
+            <option value="">None (use hardcoded / template key)</option>
+            {pageOptions.map((page) => (
+              <option key={page.id} value={page.id}>
+                {page.title}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="grid gap-4 md:grid-cols-3">
+          {(
+            [
+              ["homeTemplateKey", "Home template"],
+              ["articleTemplateKey", "Article template"],
+              ["categoryTemplateKey", "Category template"],
+            ] as const
+          ).map(([field, label]) => (
+            <label key={field} className="block text-sm">
+              <span className="mb-1 block font-medium">{label}</span>
+              <select
+                value={form[field]}
+                onChange={(e) => {
+                  setForm((prev) => ({ ...prev, [field]: e.target.value }));
+                  setSaved(false);
+                }}
+                className="w-full rounded border border-gray-300 px-3 py-2"
+              >
+                {templateOptions.map((template) => (
+                  <option key={template.key} value={template.key}>
+                    {template.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ))}
+        </div>
+        <p className="text-xs text-gray-500">
+          Article/Category: keep the default key for the classic layout; pick
+          another template to render those routes with the block builder.
+          Category archives live at /categories/[slug].
+        </p>
       </section>
 
       <div className="flex gap-2">

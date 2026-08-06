@@ -17,18 +17,26 @@ type Props = {
 export function HomeLatestSpotlight({ articles, locale, labels }: Props) {
   if (articles.length === 0) return null;
 
-  const [lead, ...side] = articles.slice(0, 4);
+  const limit = Math.max(1, articles.length);
+  const [lead, ...side] = articles.slice(0, limit);
+  const showTitle = Boolean(labels.title?.trim());
 
   return (
     <section className="border-b border-border bg-background">
       <div className="mx-auto max-w-6xl px-4 py-16 md:px-6 md:py-24">
-        <Reveal>
-          <h2 className="font-display text-3xl text-foreground md:text-4xl">
-            {labels.title}
-          </h2>
-        </Reveal>
+        {showTitle ? (
+          <Reveal>
+            <h2 className="font-display text-3xl text-foreground md:text-4xl">
+              {labels.title}
+            </h2>
+          </Reveal>
+        ) : null}
 
-        <div className="mt-10 grid gap-10 lg:mt-14 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:items-start lg:gap-12">
+        <div
+          className={`grid gap-10 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] lg:items-start lg:gap-12 ${
+            showTitle ? "mt-10 lg:mt-14" : ""
+          }`}
+        >
           <Reveal>
             <ArticleCard
               article={lead}

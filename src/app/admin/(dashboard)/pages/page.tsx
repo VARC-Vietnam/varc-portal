@@ -90,7 +90,8 @@ export default async function AdminPagesPage({ searchParams }: Props) {
               const id = String(page._id);
               const dateValue = trash ? page.deletedAt : page.updatedAt;
               const templateLabel =
-                page.template === "gallery" ? "Gallery" : "Default";
+                page.templateKey ||
+                (page.template === "gallery" ? "gallery" : "custom");
 
               return (
                 <li
@@ -201,7 +202,8 @@ export default async function AdminPagesPage({ searchParams }: Props) {
                         {vi.slug || "—"}
                       </td>
                       <td className="px-4 py-3 capitalize text-gray-600">
-                        {page.template === "gallery" ? "Gallery" : "Default"}
+                        {page.templateKey ||
+                          (page.template === "gallery" ? "gallery" : "custom")}
                       </td>
                       <td className="px-4 py-3">
                         <AdminLocaleStatus

@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start --port 3099",
     "lint": "eslint",
-    "seed": "tsx --env-file=.env scripts/seed-admin.ts"
+    "seed": "tsx --env-file=.env scripts/seed-admin.ts",
+    "seed:templates": "tsx --env-file=.env scripts/seed-templates.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1103.0",

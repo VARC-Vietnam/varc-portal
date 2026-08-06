@@ -1,4 +1,5 @@
 import mongoose, { Schema, type Model } from "mongoose";
+import type { TemplateLayout } from "@/lib/blocks/types";
 
 const LocaleContentSchema = new Schema(
   {
@@ -23,18 +24,29 @@ const GalleryItemSchema = new Schema(
 
 const PageSchema = new Schema(
   {
+    /** Stable key for built-in pages (e.g. home). */
+    key: { type: String, default: null, trim: true },
     status: {
       type: String,
       enum: ["draft", "published"],
       default: "draft",
       index: true,
     },
+    /** @deprecated Use templateKey. Kept for migration of old documents. */
     template: {
       type: String,
       enum: ["default", "gallery"],
       default: "default",
       index: true,
     },
+    templateKey: {
+      type: String,
+      default: "custom",
+      index: true,
+      trim: true,
+    },
+    /** When set, overrides the assigned template layout for this page only. */
+    layoutOverride: { type: Schema.Types.Mixed, default: null },
     galleryItems: { type: [GalleryItemSchema], default: [] },
     showInNav: { type: Boolean, default: false },
     sortOrder: { type: Number, default: 0 },
@@ -45,6 +57,17 @@ const PageSchema = new Schema(
     },
   },
   { timestamps: true },
+);
+
+PageSchema.index(
+  { key: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      key: { $type: "string", $gt: "" },
+      deletedAt: null,
+    },
+  },
 );
 
 PageSchema.index(
@@ -83,12 +106,16 @@ export type PageGalleryItem = {
   originalName: string;
 };
 
-export type PageTemplate = "default" | "gallery";
+/** @deprecated Prefer templateKey. */
+export type PageTemplateLegacy = "default" | "gallery";
 
 export type PageDocument = {
   _id: mongoose.Types.ObjectId;
+  key?: string | null;
   status: "draft" | "published";
-  template: PageTemplate;
+  template?: PageTemplateLegacy;
+  templateKey: string;
+  layoutOverride?: TemplateLayout | null;
   galleryItems: PageGalleryItem[];
   showInNav: boolean;
   sortOrder: number;

@@ -108,6 +108,14 @@ button:disabled,
   border-radius: 0.25rem;
 }
 
+.prose-article-lightbox img {
+  cursor: zoom-in;
+}
+
+.prose-article-lightbox a:has(img) {
+  cursor: zoom-in;
+}
+
 .prose-article img[data-size="small"],
 .prose-article-wide img[data-size="small"] {
   width: 25%;

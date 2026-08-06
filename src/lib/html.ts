@@ -64,17 +64,46 @@ export function sanitizeHtml(html: string): string {
 
 /** First usable <img src> from HTML body content (for thumbnail fallbacks). */
 export function extractFirstImageUrl(html: string): string {
-  if (!html?.trim()) return "";
+  const images = extractContentImages(html);
+  return images[0]?.url ?? "";
+}
 
-  const imgTag = html.match(/<img\b[^>]*>/i);
-  if (!imgTag) return "";
+export type ContentImage = {
+  id: string;
+  url: string;
+  alt: string;
+};
 
-  const srcMatch =
-    imgTag[0].match(/\bsrc\s*=\s*"([^"]+)"/i) ||
-    imgTag[0].match(/\bsrc\s*=\s*'([^']+)'/i) ||
-    imgTag[0].match(/\bsrc\s*=\s*([^\s>]+)/i);
+/** Collect unique image URLs (http(s) or site-relative) from HTML, in document order. */
+export function extractContentImages(html: string): ContentImage[] {
+  if (!html?.trim()) return [];
 
-  const src = srcMatch?.[1]?.trim() ?? "";
-  if (!src || src.startsWith("data:")) return "";
-  return src;
+  const images: ContentImage[] = [];
+  const seen = new Set<string>();
+  const imgTagRe = /<img\b[^>]*>/gi;
+  let match: RegExpExecArray | null;
+
+  while ((match = imgTagRe.exec(html)) !== null) {
+    const tag = match[0];
+    const srcMatch =
+      tag.match(/\bsrc\s*=\s*"([^"]+)"/i) ||
+      tag.match(/\bsrc\s*=\s*'([^']+)'/i) ||
+      tag.match(/\bsrc\s*=\s*([^\s>]+)/i);
+    const altMatch =
+      tag.match(/\balt\s*=\s*"([^"]*)"/i) ||
+      tag.match(/\balt\s*=\s*'([^']*)'/i);
+
+    const url = (srcMatch?.[1] ?? "").trim();
+    if (!url || url.startsWith("data:") || seen.has(url)) continue;
+    if (!/^https?:\/\//i.test(url) && !url.startsWith("/")) continue;
+
+    seen.add(url);
+    images.push({
+      id: `img-${images.length}`,
+      url,
+      alt: (altMatch?.[1] ?? "").trim(),
+    });
+  }
+
+  return images;
 }

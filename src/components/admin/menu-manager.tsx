@@ -507,33 +507,34 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
           {trashItems.length === 0 ? (
             <p className="text-gray-600">Trash is empty.</p>
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
-              <table className="min-w-full text-left text-sm">
-                <thead className="border-b border-gray-200 bg-gray-50 text-gray-600">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">Label</th>
-                    <th className="px-4 py-3 font-medium">Menu</th>
-                    <th className="px-4 py-3 font-medium">Type</th>
-                    <th className="px-4 py-3 font-medium">Deleted</th>
-                    <th className="px-4 py-3 font-medium text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {trashItems.map((item) => {
-                    const label = itemLabel(item);
-                    return (
-                      <tr key={item.id} className="border-b border-gray-100">
-                        <td className="px-4 py-3 font-medium">{label}</td>
-                        <td className="px-4 py-3 capitalize">{item.location}</td>
-                        <td className="px-4 py-3 capitalize">
-                          {item.type === "page" ? "Page" : "Custom"}
-                        </td>
-                        <td className="px-4 py-3 text-gray-500">
-                          {item.deletedAt
-                            ? new Date(item.deletedAt).toLocaleString("vi-VN")
-                            : "-"}
-                        </td>
-                        <td className="px-4 py-3 text-right">
+            <>
+              <ul className="space-y-3 md:hidden">
+                {trashItems.map((item) => {
+                  const label = itemLabel(item);
+                  return (
+                    <li
+                      key={item.id}
+                      className="rounded-lg border border-gray-200 bg-white p-4"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-gray-900">{label}</p>
+                          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-600">
+                            <span className="capitalize">{item.location}</span>
+                            <span className="capitalize">
+                              {item.type === "page" ? "Page" : "Custom"}
+                            </span>
+                            <span className="text-gray-500">
+                              Deleted{" "}
+                              {item.deletedAt
+                                ? new Date(item.deletedAt).toLocaleDateString(
+                                    "vi-VN",
+                                  )
+                                : "-"}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="shrink-0">
                           <TrashRowActions
                             restoreAction={restoreMenuItemAction.bind(
                               null,
@@ -545,13 +546,63 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
                             )}
                             itemLabel={label}
                           />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+
+              <div className="hidden overflow-x-auto rounded-lg border border-gray-200 bg-white md:block">
+                <table className="min-w-full text-left text-sm">
+                  <thead className="border-b border-gray-200 bg-gray-50 text-gray-600">
+                    <tr>
+                      <th className="px-4 py-3 font-medium">Label</th>
+                      <th className="px-4 py-3 font-medium">Menu</th>
+                      <th className="px-4 py-3 font-medium">Type</th>
+                      <th className="px-4 py-3 font-medium">Deleted</th>
+                      <th className="px-4 py-3 font-medium text-right">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {trashItems.map((item) => {
+                      const label = itemLabel(item);
+                      return (
+                        <tr key={item.id} className="border-b border-gray-100">
+                          <td className="px-4 py-3 font-medium">{label}</td>
+                          <td className="px-4 py-3 capitalize">
+                            {item.location}
+                          </td>
+                          <td className="px-4 py-3 capitalize">
+                            {item.type === "page" ? "Page" : "Custom"}
+                          </td>
+                          <td className="px-4 py-3 text-gray-500">
+                            {item.deletedAt
+                              ? new Date(item.deletedAt).toLocaleString("vi-VN")
+                              : "-"}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <TrashRowActions
+                              restoreAction={restoreMenuItemAction.bind(
+                                null,
+                                item.id,
+                              )}
+                              deleteAction={permanentlyDeleteMenuItemAction.bind(
+                                null,
+                                item.id,
+                              )}
+                              itemLabel={label}
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
         {modal}
@@ -600,8 +651,12 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
           {tab === "navigation"
             ? "Items shown in the site header (after Home)."
             : "Items shown in the site footer."}{" "}
-          Nest up to {MAX_MENU_DEPTH} levels. Drag onto a row to nest; drag to
-          the top or bottom edge to reorder.
+          Nest up to {MAX_MENU_DEPTH} levels. Use ↑ ↓ to reorder
+          <span className="hidden md:inline">
+            ; on desktop, drag onto a row to nest, or to the top/bottom edge to
+            reorder
+          </span>
+          .
         </p>
 
         {error ? (
@@ -611,7 +666,7 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
         ) : null}
 
         {showForm ? (
-          <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-5">
+          <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-4 sm:p-5">
             <h2 className="text-base font-semibold">
               {editingId ? "Edit menu item" : "New menu item"}
             </h2>
@@ -879,153 +934,72 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
         {displayItems.length === 0 ? (
           <p className="text-gray-600">No items in this menu yet.</p>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
-            <table className="min-w-full text-left text-sm">
-              <thead className="border-b border-gray-200 bg-gray-50 text-gray-600">
-                <tr>
-                  <th className="w-10 px-2 py-3 font-medium" aria-label="Drag" />
-                  <th className="px-4 py-3 font-medium">Order</th>
-                  <th className="px-4 py-3 font-medium">Label</th>
-                  <th className="px-4 py-3 font-medium">Type</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
-                  <th className="px-4 py-3 font-medium text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayItems.map((item) => {
-                  const label = itemLabel(item);
-                  const depth = getItemDepth(item.id, parentById);
-                  const meta = siblingMeta.get(item.id) ?? {
-                    index: 0,
-                    count: 1,
-                  };
-                  const canMoveUp = meta.index > 0;
-                  const canMoveDown = meta.index < meta.count - 1;
-                  const isDragging = dragId === item.id;
-                  const isOver = overId === item.id && dragId !== item.id;
-                  const childCount = displayItems.filter(
-                    (entry) => entry.parentId === item.id,
-                  ).length;
-                  const canAddChild = depth < MAX_MENU_DEPTH;
+          <>
+            {/* Mobile cards — ↑↓ reorder (drag stays on desktop) */}
+            <ul className="space-y-3 md:hidden">
+              {displayItems.map((item) => {
+                const label = itemLabel(item);
+                const depth = getItemDepth(item.id, parentById);
+                const meta = siblingMeta.get(item.id) ?? {
+                  index: 0,
+                  count: 1,
+                };
+                const canMoveUp = meta.index > 0;
+                const canMoveDown = meta.index < meta.count - 1;
+                const childCount = displayItems.filter(
+                  (entry) => entry.parentId === item.id,
+                ).length;
+                const canAddChild = depth < MAX_MENU_DEPTH;
 
-                  return (
-                    <tr
-                      key={item.id}
-                      draggable={!pending}
-                      onDragStart={(event) => onDragStart(event, item.id)}
-                      onDragOver={(event) => onDragOver(event, item.id)}
-                      onDrop={(event) => onDrop(event, item.id)}
-                      onDragEnd={onDragEnd}
-                      className={`border-b border-gray-100 ${
-                        depth > 0 ? "bg-gray-50/80" : "bg-white"
-                      } ${isDragging ? "opacity-60" : ""} ${
-                        isOver && dropMode === "before"
-                          ? "border-t-2 border-t-gray-900"
-                          : ""
-                      } ${
-                        isOver && dropMode === "after"
-                          ? "border-b-2 border-b-gray-900"
-                          : ""
-                      } ${
-                        isOver && dropMode === "into"
-                          ? "bg-lime-50 ring-1 ring-inset ring-lime-400"
-                          : ""
-                      } ${
-                        pending
-                          ? "cursor-wait"
-                          : "cursor-grab active:cursor-grabbing"
-                      }`}
-                    >
-                      <td className="px-2 py-3 text-center text-gray-400">
-                        <span
-                          className="inline-block select-none px-1"
-                          title="Drag to reorder or nest"
-                          aria-hidden
-                        >
-                          ⠿
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            aria-disabled={
-                              pending || !canMoveUp ? true : undefined
-                            }
-                            onClick={() => {
-                              if (!canMoveUp || pending) return;
-                              moveSibling(item.id, -1);
-                            }}
-                            className={`rounded border border-gray-300 px-2 py-1 text-xs ${
-                              pending || !canMoveUp
-                                ? "cursor-not-allowed opacity-40"
-                                : ""
-                            }`}
-                            aria-label="Move up"
-                          >
-                            ↑
-                          </button>
-                          <button
-                            type="button"
-                            aria-disabled={
-                              pending || !canMoveDown ? true : undefined
-                            }
-                            onClick={() => {
-                              if (!canMoveDown || pending) return;
-                              moveSibling(item.id, 1);
-                            }}
-                            className={`rounded border border-gray-300 px-2 py-1 text-xs ${
-                              pending || !canMoveDown
-                                ? "cursor-not-allowed opacity-40"
-                                : ""
-                            }`}
-                            aria-label="Move down"
-                          >
-                            ↓
-                          </button>
-                          <span className="ml-2 text-gray-500">
-                            {meta.index + 1}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 font-medium">
-                        <div
-                          className="relative flex min-w-0 items-center gap-2"
-                          style={
-                            depth > 0
-                              ? { paddingLeft: `${depth * 1.5}rem` }
-                              : undefined
-                          }
-                        >
+                return (
+                  <li
+                    key={item.id}
+                    className={`rounded-lg border border-gray-200 p-4 ${
+                      depth > 0 ? "bg-gray-50/80" : "bg-white"
+                    }`}
+                    style={
+                      depth > 0
+                        ? { marginLeft: `${Math.min(depth, 3) * 0.75}rem` }
+                        : undefined
+                    }
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
                           {depth > 0 ? (
                             <span className="rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-gray-500 uppercase">
                               {depthLabel(depth)}
                             </span>
                           ) : null}
-                          <span className="min-w-0 truncate">{label}</span>
                           {childCount > 0 ? (
-                            <span className="shrink-0 rounded bg-gray-900 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white uppercase">
+                            <span className="rounded bg-gray-900 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white uppercase">
                               Nested · {childCount}
                             </span>
                           ) : null}
                         </div>
-                      </td>
-                      <td className="px-4 py-3 capitalize">
-                        {item.type === "page" ? "Page" : "Custom"}
-                        {item.type === "page" && item.pageTitle
-                          ? ` · ${item.pageTitle}`
-                          : null}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={
-                            item.enabled ? "text-green-700" : "text-amber-700"
-                          }
-                        >
-                          {item.enabled ? "Enabled" : "Disabled"}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right">
+                        <p className="mt-1 font-medium text-gray-900">
+                          {label}
+                        </p>
+                        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-600">
+                          <span>
+                            {item.type === "page" ? "Page" : "Custom"}
+                            {item.type === "page" && item.pageTitle
+                              ? ` · ${item.pageTitle}`
+                              : null}
+                          </span>
+                          <span
+                            className={
+                              item.enabled ? "text-green-700" : "text-amber-700"
+                            }
+                          >
+                            {item.enabled ? "Enabled" : "Disabled"}
+                          </span>
+                          <span className="text-gray-500">
+                            #{meta.index + 1}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="shrink-0">
                         <RowActionsGroup>
                           {canAddChild ? (
                             <IconActionButton
@@ -1052,13 +1026,236 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
                             <TrashIcon />
                           </IconActionButton>
                         </RowActionsGroup>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex items-center gap-1">
+                      <button
+                        type="button"
+                        aria-disabled={
+                          pending || !canMoveUp ? true : undefined
+                        }
+                        onClick={() => {
+                          if (!canMoveUp || pending) return;
+                          moveSibling(item.id, -1);
+                        }}
+                        className={`rounded border border-gray-300 px-2.5 py-1.5 text-xs ${
+                          pending || !canMoveUp
+                            ? "cursor-not-allowed opacity-40"
+                            : ""
+                        }`}
+                        aria-label="Move up"
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        aria-disabled={
+                          pending || !canMoveDown ? true : undefined
+                        }
+                        onClick={() => {
+                          if (!canMoveDown || pending) return;
+                          moveSibling(item.id, 1);
+                        }}
+                        className={`rounded border border-gray-300 px-2.5 py-1.5 text-xs ${
+                          pending || !canMoveDown
+                            ? "cursor-not-allowed opacity-40"
+                            : ""
+                        }`}
+                        aria-label="Move down"
+                      >
+                        ↓
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+
+            <div className="hidden overflow-x-auto rounded-lg border border-gray-200 bg-white md:block">
+              <table className="min-w-full text-left text-sm">
+                <thead className="border-b border-gray-200 bg-gray-50 text-gray-600">
+                  <tr>
+                    <th
+                      className="w-10 px-2 py-3 font-medium"
+                      aria-label="Drag"
+                    />
+                    <th className="px-4 py-3 font-medium">Order</th>
+                    <th className="px-4 py-3 font-medium">Label</th>
+                    <th className="px-4 py-3 font-medium">Type</th>
+                    <th className="px-4 py-3 font-medium">Status</th>
+                    <th className="px-4 py-3 font-medium text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayItems.map((item) => {
+                    const label = itemLabel(item);
+                    const depth = getItemDepth(item.id, parentById);
+                    const meta = siblingMeta.get(item.id) ?? {
+                      index: 0,
+                      count: 1,
+                    };
+                    const canMoveUp = meta.index > 0;
+                    const canMoveDown = meta.index < meta.count - 1;
+                    const isDragging = dragId === item.id;
+                    const isOver = overId === item.id && dragId !== item.id;
+                    const childCount = displayItems.filter(
+                      (entry) => entry.parentId === item.id,
+                    ).length;
+                    const canAddChild = depth < MAX_MENU_DEPTH;
+
+                    return (
+                      <tr
+                        key={item.id}
+                        draggable={!pending}
+                        onDragStart={(event) => onDragStart(event, item.id)}
+                        onDragOver={(event) => onDragOver(event, item.id)}
+                        onDrop={(event) => onDrop(event, item.id)}
+                        onDragEnd={onDragEnd}
+                        className={`border-b border-gray-100 ${
+                          depth > 0 ? "bg-gray-50/80" : "bg-white"
+                        } ${isDragging ? "opacity-60" : ""} ${
+                          isOver && dropMode === "before"
+                            ? "border-t-2 border-t-gray-900"
+                            : ""
+                        } ${
+                          isOver && dropMode === "after"
+                            ? "border-b-2 border-b-gray-900"
+                            : ""
+                        } ${
+                          isOver && dropMode === "into"
+                            ? "bg-lime-50 ring-1 ring-inset ring-lime-400"
+                            : ""
+                        } ${
+                          pending
+                            ? "cursor-wait"
+                            : "cursor-grab active:cursor-grabbing"
+                        }`}
+                      >
+                        <td className="px-2 py-3 text-center text-gray-400">
+                          <span
+                            className="inline-block select-none px-1"
+                            title="Drag to reorder or nest"
+                            aria-hidden
+                          >
+                            ⠿
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              aria-disabled={
+                                pending || !canMoveUp ? true : undefined
+                              }
+                              onClick={() => {
+                                if (!canMoveUp || pending) return;
+                                moveSibling(item.id, -1);
+                              }}
+                              className={`rounded border border-gray-300 px-2 py-1 text-xs ${
+                                pending || !canMoveUp
+                                  ? "cursor-not-allowed opacity-40"
+                                  : ""
+                              }`}
+                              aria-label="Move up"
+                            >
+                              ↑
+                            </button>
+                            <button
+                              type="button"
+                              aria-disabled={
+                                pending || !canMoveDown ? true : undefined
+                              }
+                              onClick={() => {
+                                if (!canMoveDown || pending) return;
+                                moveSibling(item.id, 1);
+                              }}
+                              className={`rounded border border-gray-300 px-2 py-1 text-xs ${
+                                pending || !canMoveDown
+                                  ? "cursor-not-allowed opacity-40"
+                                  : ""
+                              }`}
+                              aria-label="Move down"
+                            >
+                              ↓
+                            </button>
+                            <span className="ml-2 text-gray-500">
+                              {meta.index + 1}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 font-medium">
+                          <div
+                            className="relative flex min-w-0 items-center gap-2"
+                            style={
+                              depth > 0
+                                ? { paddingLeft: `${depth * 1.5}rem` }
+                                : undefined
+                            }
+                          >
+                            {depth > 0 ? (
+                              <span className="rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-gray-500 uppercase">
+                                {depthLabel(depth)}
+                              </span>
+                            ) : null}
+                            <span className="min-w-0 truncate">{label}</span>
+                            {childCount > 0 ? (
+                              <span className="shrink-0 rounded bg-gray-900 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-white uppercase">
+                                Nested · {childCount}
+                              </span>
+                            ) : null}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 capitalize">
+                          {item.type === "page" ? "Page" : "Custom"}
+                          {item.type === "page" && item.pageTitle
+                            ? ` · ${item.pageTitle}`
+                            : null}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={
+                              item.enabled ? "text-green-700" : "text-amber-700"
+                            }
+                          >
+                            {item.enabled ? "Enabled" : "Disabled"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          <RowActionsGroup>
+                            {canAddChild ? (
+                              <IconActionButton
+                                label="Add child"
+                                onClick={() => openCreate(item.id)}
+                              >
+                                <span className="text-sm font-semibold leading-none">
+                                  +
+                                </span>
+                              </IconActionButton>
+                            ) : null}
+                            <IconActionButton
+                              label="Edit"
+                              onClick={() => openEdit(item)}
+                            >
+                              <EditIcon />
+                            </IconActionButton>
+                            <IconActionButton
+                              label="Move to trash"
+                              variant="danger"
+                              disabled={pending}
+                              onClick={() => onDelete(item.id)}
+                            >
+                              <TrashIcon />
+                            </IconActionButton>
+                          </RowActionsGroup>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
       {modal}

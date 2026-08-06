@@ -86,7 +86,7 @@ export function ArticleCard({ article, locale, variant, labels }: Props) {
               {article.title}
             </h3>
             {article.excerpt ? (
-              <p className="mt-3 max-w-[42ch] text-base leading-relaxed text-muted">
+              <p className="mt-3 w-full text-base leading-relaxed text-muted">
                 {article.excerpt}
               </p>
             ) : null}

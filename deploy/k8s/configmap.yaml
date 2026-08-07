@@ -9,6 +9,8 @@ data:
   NEXT_PUBLIC_SITE_URL: "https://hamvn.com"
   AUTH_URL: "https://hamvn.com"
   AUTH_TRUST_HOST: "true"
+  # Redis-compatible Valkey host (auth via VALKEY_PASSWORD in the Secret).
+  VALKEY_URL: "redis://valkey:6379"
   STORAGE_DRIVER: "s3"
   S3_ENDPOINT: "https://s3.classq.io"
   S3_REGION: "us-east-1"

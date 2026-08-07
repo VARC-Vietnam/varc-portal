@@ -1,0 +1,91 @@
+# Valkey (Redis-compatible) — shared cache for portal CMS reads.
+# Auth: VALKEY_PASSWORD from varc-portal-secrets (requirepass).
+# Same namespace as varc-portal; ClusterIP only (not exposed via Ingress).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: valkey
+  namespace: varc
+  labels:
+    app: valkey
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: valkey
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: valkey
+    spec:
+      containers:
+        - name: valkey
+          image: valkey/valkey:8-alpine
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: VALKEY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: varc-portal-secrets
+                  key: VALKEY_PASSWORD
+            # Used by valkey-cli probes (avoids -a on the command line).
+            - name: REDISCLI_AUTH
+              valueFrom:
+                secretKeyRef:
+                  name: varc-portal-secrets
+                  key: VALKEY_PASSWORD
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -e
+              if [ -z "$VALKEY_PASSWORD" ]; then
+                echo "VALKEY_PASSWORD is required" >&2
+                exit 1
+              fi
+              exec valkey-server \
+                --save "" \
+                --appendonly no \
+                --maxmemory 1gb \
+                --maxmemory-policy allkeys-lru \
+                --protected-mode yes \
+                --bind 0.0.0.0 \
+                --port 6379 \
+                --requirepass "$VALKEY_PASSWORD"
+          ports:
+            - name: redis
+              containerPort: 6379
+          readinessProbe:
+            exec:
+              command: ["valkey-cli", "ping"]
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            exec:
+              command: ["valkey-cli", "ping"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 1280Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: valkey
+  namespace: varc
+  labels:
+    app: valkey
+spec:
+  selector:
+    app: valkey
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+  type: ClusterIP

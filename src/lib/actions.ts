@@ -61,6 +61,11 @@ import { SITE_SETTINGS_KEY, SiteSettings } from "@/models/SiteSettings";
 import { User } from "@/models/User";
 import { deleteObject } from "@/lib/media/storage";
 import { failAction, logServerError } from "@/lib/safe-error";
+import {
+  CmsCacheTags,
+  invalidateCmsTags,
+  type CmsCacheTag,
+} from "@/lib/cache/cms-cache";
 
 async function loadMenuParentRefs(location: "navigation" | "footer") {
   const docs = await MenuItem.find({ location, ...notDeletedFilter })
@@ -138,7 +143,19 @@ async function markNavigationMenuInitialized() {
   );
 }
 
-function revalidatePortal() {
+/** Next.js path revalidation + Valkey tag flush for public CMS reads. */
+async function refreshPortal(...extraTags: CmsCacheTag[]) {
+  // Flush all public CMS tags so no write path can leave stale portal data.
+  await invalidateCmsTags(
+    CmsCacheTags.branding,
+    CmsCacheTags.settings,
+    CmsCacheTags.menus,
+    CmsCacheTags.pages,
+    CmsCacheTags.articles,
+    CmsCacheTags.categories,
+    CmsCacheTags.templates,
+    ...extraTags,
+  );
   revalidatePath("/", "layout");
   revalidatePath("/vi", "layout");
   revalidatePath("/en", "layout");
@@ -279,7 +296,7 @@ export async function saveArticleAction(
         existing.set("createdAt", new Date(data.createdAt));
       }
       await existing.save();
-      revalidatePortal();
+      await refreshPortal();
       return { ok: true, id: String(existing._id) };
     }
 
@@ -300,7 +317,7 @@ export async function saveArticleAction(
           : null,
       ...(data.createdAt ? { createdAt: new Date(data.createdAt) } : {}),
     });
-    revalidatePortal();
+    await refreshPortal();
     return { ok: true, id: String(created._id) };
   } catch (error) {
     const failed = failAction(error, "Failed to save article");
@@ -364,7 +381,7 @@ export async function cloneArticleAction(
       },
     });
 
-    revalidatePortal();
+    await refreshPortal();
     return { ok: true, id: String(created._id) };
   } catch (error) {
     return failAction(error, "Failed to clone article");
@@ -381,7 +398,7 @@ export async function deleteArticleAction(
     if (!existing) return { ok: false, error: "Article not found" };
     existing.deletedAt = new Date();
     await existing.save();
-    revalidatePortal();
+    await refreshPortal();
     return { ok: true };
   } catch (error) {
     return failAction(error, "Failed to delete");
@@ -400,7 +417,7 @@ export async function restoreArticleAction(
     }
     existing.deletedAt = null;
     await existing.save();
-    revalidatePortal();
+    await refreshPortal();
     return { ok: true };
   } catch (error) {
     return failAction(error, "Failed to restore");
@@ -418,7 +435,7 @@ export async function permanentlyDeleteArticleAction(
       return { ok: false, error: "Trashed article not found" };
     }
     await Article.findByIdAndDelete(id);
-    revalidatePortal();
+    await refreshPortal();
     return { ok: true };
   } catch (error) {
     return failAction(error, "Failed to delete permanently");
@@ -432,7 +449,7 @@ export async function emptyArticlesTrashAction(): Promise<
     await requireArticleManager();
     await connectDb();
     const result = await Article.deleteMany(deletedFilter);
-    revalidatePortal();
+    await refreshPortal();
     return { ok: true, deleted: result.deletedCount };
   } catch (error) {
     return failAction(error, "Failed to empty trash");
@@ -527,7 +544,7 @@ export async function saveCategoryAction(
       existing.locales = locales;
       existing.parentId = nextParentId;
       await existing.save();
-      revalidatePortal();
+      await refreshPortal();
       return { ok: true, id: String(existing._id) };
     }
 
@@ -573,7 +590,7 @@ export async function saveCategoryAction(
       parentId,
       sortOrder,
     });
-    revalidatePortal();
+    await refreshPortal();
     return { ok: true, id: String(created._id) };
   } catch (error) {
     return failAction(error, "Failed to save category");
@@ -628,7 +645,7 @@ export async function deleteCategoryAction(
         },
       },
     );
-    revalidatePortal();
+    await refreshPortal();
     return { ok: true };
   } catch (error) {
     return failAction(error, "Failed to delete category");
@@ -647,7 +664,7 @@ export async function restoreCategoryAction(
     }
     existing.deletedAt = null;
     await existing.save();
-    revalidatePortal();
+    await refreshPortal();
     return { ok: true };
   } catch (error) {
     return failAction(error, "Failed to restore category");
@@ -681,7 +698,7 @@ export async function permanentlyDeleteCategoryAction(
       },
     );
     await Category.findByIdAndDelete(id);
-    revalidatePortal();
+    await refreshPortal();
     return { ok: true };
   } catch (error) {
     return failAction(error, "Failed to delete permanently");
@@ -766,7 +783,7 @@ export async function reorderCategoriesAction(
         ),
       ),
     );
-    revalidatePortal();
+    await refreshPortal();
     return { ok: true };
   } catch (error) {
     return failAction(error, "Failed to reorder categories");
@@ -784,7 +801,7 @@ export async function emptyCategoriesTrashAction(): Promise<
       key: { $ne: UNCATEGORIZED_KEY },
       isSystem: { $ne: true },
     });
-    revalidatePortal();
+    await refreshPortal();
     return { ok: true, deleted: result.deletedCount };
   } catch (error) {
     return failAction(error, "Failed to empty trash");
@@ -859,7 +876,7 @@ export async function savePageAction(
       existing.sortOrder = data.sortOrder;
       existing.locales = locales;
       await existing.save();
-      revalidatePortal();
+      await refreshPortal();
       return { ok: true, id: String(existing._id) };
     }
 
@@ -873,7 +890,7 @@ export async function savePageAction(
       sortOrder: data.sortOrder,
       locales,
     });
-    revalidatePortal();
+    await refreshPortal();
     return { ok: true, id: String(created._id) };
   } catch (error) {
     return failAction(error, "Failed to save page");
@@ -893,7 +910,7 @@ export async function deletePageAction(
     }
     existing.deletedAt = new Date();
     await existing.save();
-    revalidatePortal();
+    await refreshPortal();
     return { ok: true };
   } catch (error) {
     return failAction(error, "Failed to delete page");
@@ -912,7 +929,7 @@ export async function restorePageAction(
     }
     existing.deletedAt = null;
     await existing.save();
-    revalidatePortal();
+    await refreshPortal();
     return { ok: true };
   } catch (error) {
     return failAction(error, "Failed to restore page");
@@ -933,7 +950,7 @@ export async function permanentlyDeletePageAction(
       return { ok: false, error: "The Home page cannot be deleted" };
     }
     await Page.findByIdAndDelete(id);
-    revalidatePortal();
+    await refreshPortal();
     return { ok: true };
   } catch (error) {
     return failAction(error, "Failed to delete permanently");
@@ -955,7 +972,7 @@ export async function emptyPagesTrashAction(): Promise<
       { key: HOME_PAGE_KEY, deletedAt: { $ne: null } },
       { $set: { deletedAt: null, status: "published" } },
     );
-    revalidatePortal();
+    await refreshPortal();
     return { ok: true, deleted: result.deletedCount };
   } catch (error) {
     return failAction(error, "Failed to empty trash");
@@ -1054,7 +1071,7 @@ export async function saveMenuItemAction(
       if (data.location === "navigation") {
         await markNavigationMenuInitialized();
       }
-      revalidatePortal();
+      await refreshPortal();
       return { ok: true, id: String(existing._id) };
     }
 
@@ -1122,7 +1139,7 @@ export async function saveMenuItemAction(
     if (data.location === "navigation") {
       await markNavigationMenuInitialized();
     }
-    revalidatePortal();
+    await refreshPortal();
     return { ok: true, id: String(created._id) };
   } catch (error) {
     return failAction(error, "Failed to save menu item");
@@ -1153,7 +1170,7 @@ export async function deleteMenuItemAction(
     if (existing.location === "navigation") {
       await markNavigationMenuInitialized();
     }
-    revalidatePortal();
+    await refreshPortal();
     return { ok: true };
   } catch (error) {
     return failAction(error, "Failed to delete menu item");
@@ -1172,7 +1189,7 @@ export async function restoreMenuItemAction(
     }
     existing.deletedAt = null;
     await existing.save();
-    revalidatePortal();
+    await refreshPortal();
     return { ok: true };
   } catch (error) {
     return failAction(error, "Failed to restore menu item");
@@ -1203,7 +1220,7 @@ export async function permanentlyDeleteMenuItemAction(
       },
     );
     await MenuItem.findByIdAndDelete(id);
-    revalidatePortal();
+    await refreshPortal();
     return { ok: true };
   } catch (error) {
     return failAction(error, "Failed to delete permanently");
@@ -1224,7 +1241,7 @@ export async function emptyMenuTrashAction(): Promise<
       await markNavigationMenuInitialized();
     }
     const result = await MenuItem.deleteMany(deletedFilter);
-    revalidatePortal();
+    await refreshPortal();
     return { ok: true, deleted: result.deletedCount };
   } catch (error) {
     return failAction(error, "Failed to empty trash");
@@ -1294,7 +1311,7 @@ export async function reorderMenuItemsAction(
         ),
       ),
     );
-    revalidatePortal();
+    await refreshPortal();
     return { ok: true };
   } catch (error) {
     return failAction(error, "Failed to reorder menu items");
@@ -1434,7 +1451,7 @@ export async function saveSiteSettingsAction(
       { upsert: true, new: true, setDefaultsOnInsert: true },
     );
 
-    revalidatePortal();
+    await refreshPortal();
     return { ok: true };
   } catch (error) {
     return failAction(error, "Failed to save site settings");
@@ -1616,7 +1633,7 @@ export async function savePageTemplateAction(
       existing.description = description;
       existing.layout = layout;
       await existing.save();
-      revalidatePortal();
+      await refreshPortal();
       revalidatePath("/admin/templates");
       return { ok: true, id: String(existing._id) };
     }
@@ -1629,7 +1646,7 @@ export async function savePageTemplateAction(
       isSystem: false,
       layout,
     });
-    revalidatePortal();
+    await refreshPortal();
     revalidatePath("/admin/templates");
     return { ok: true, id: String(created._id) };
   } catch (error) {
@@ -1654,6 +1671,7 @@ export async function duplicatePageTemplateAction(
       isSystem: false,
       layout: source.layout,
     });
+    await refreshPortal();
     revalidatePath("/admin/templates");
     return { ok: true, id: String(created._id) };
   } catch (error) {
@@ -1674,7 +1692,7 @@ export async function deletePageTemplateAction(
     }
     existing.deletedAt = new Date();
     await existing.save();
-    revalidatePortal();
+    await refreshPortal();
     revalidatePath("/admin/templates");
     return { ok: true };
   } catch (error) {

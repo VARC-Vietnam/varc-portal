@@ -1,5 +1,11 @@
 import { connectDb } from "@/lib/db";
 import {
+  cacheAside,
+  CmsCacheKeys,
+  CmsCacheTags,
+  hashExcludeIds,
+} from "@/lib/cache/cms-cache";
+import {
   DEFAULT_COVER_FOCUS,
   normalizeCoverFocus,
   type CoverFocusRect,
@@ -110,66 +116,89 @@ export async function listPublishedArticles(
   pageSize = 12,
   options?: { excludeIds?: string[] },
 ) {
-  await connectDb();
-  const filter: Record<string, unknown> = {
-    ...publishedLocaleFilter(locale),
-  };
-  if (options?.excludeIds?.length) {
-    filter._id = {
-      $nin: options.excludeIds
-        .filter((id) => mongoose.isValidObjectId(id))
-        .map((id) => new mongoose.Types.ObjectId(id)),
-    };
-  }
+  const loc = localeKey(locale);
+  const excludeHash = hashExcludeIds(options?.excludeIds);
+  return cacheAside(
+    CmsCacheKeys.articlesList(loc, page, pageSize, excludeHash),
+    [CmsCacheTags.articles],
+    async () => {
+      await connectDb();
+      const filter: Record<string, unknown> = {
+        ...publishedLocaleFilter(locale),
+      };
+      if (options?.excludeIds?.length) {
+        filter._id = {
+          $nin: options.excludeIds
+            .filter((id) => mongoose.isValidObjectId(id))
+            .map((id) => new mongoose.Types.ObjectId(id)),
+        };
+      }
 
-  const [items, total] = await Promise.all([
-    Article.find(filter)
-      .sort({ publishedAt: -1, createdAt: -1 })
-      .skip((page - 1) * pageSize)
-      .limit(pageSize)
-      .lean<ArticleDocument[]>(),
-    Article.countDocuments(filter),
-  ]);
+      const [items, total] = await Promise.all([
+        Article.find(filter)
+          .sort({ publishedAt: -1, createdAt: -1 })
+          .skip((page - 1) * pageSize)
+          .limit(pageSize)
+          .lean<ArticleDocument[]>(),
+        Article.countDocuments(filter),
+      ]);
 
-  return {
-    articles: items.map((article) => toPublicCard(article, locale)),
-    total,
-    page,
-    pageSize,
-  };
+      return {
+        articles: items.map((article) => toPublicCard(article, locale)),
+        total,
+        page,
+        pageSize,
+      };
+    },
+  );
 }
 
 /**
  * Published articles explicitly marked featured (no newest-post fallback).
  */
 export async function listFeaturedArticles(locale: AppLocale, limit = 3) {
-  await connectDb();
-  const items = await Article.find({
-    ...publishedLocaleFilter(locale),
-    featured: true,
-  })
-    .sort({ publishedAt: -1, createdAt: -1 })
-    .limit(limit)
-    .lean<ArticleDocument[]>();
+  const loc = localeKey(locale);
+  return cacheAside(
+    CmsCacheKeys.featured(loc, limit),
+    [CmsCacheTags.articles],
+    async () => {
+      await connectDb();
+      const items = await Article.find({
+        ...publishedLocaleFilter(locale),
+        featured: true,
+      })
+        .sort({ publishedAt: -1, createdAt: -1 })
+        .limit(limit)
+        .lean<ArticleDocument[]>();
 
-  return items.map((article) => toPublicCard(article, locale));
+      return items.map((article) => toPublicCard(article, locale));
+    },
+  );
 }
 
 export async function getPublishedArticleBySlug(
   locale: AppLocale,
   slug: string,
 ) {
-  await connectDb();
   const key = localeKey(locale);
-  const now = new Date();
-  const article = await Article.findOne({
-    ...notDeletedFilter,
-    status: "published",
-    publishedAt: { $ne: null, $lte: now },
-    [`locales.${key}.slug`]: slug,
-  }).lean<ArticleDocument | null>();
-
-  return article;
+  return cacheAside(
+    CmsCacheKeys.articleBySlug(key, slug),
+    [CmsCacheTags.articles],
+    async () => {
+      await connectDb();
+      const now = new Date();
+      return Article.findOne({
+        ...notDeletedFilter,
+        status: "published",
+        publishedAt: { $ne: null, $lte: now },
+        [`locales.${key}.slug`]: slug,
+      }).lean<ArticleDocument | null>();
+    },
+    {
+      tagsFromValue: (article) =>
+        article?._id ? [CmsCacheTags.article(String(article._id))] : [],
+    },
+  );
 }
 
 export async function listAllArticles(options?: { trash?: boolean }) {

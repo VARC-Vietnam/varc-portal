@@ -1,4 +1,9 @@
 import { connectDb } from "@/lib/db";
+import {
+  cacheAside,
+  CmsCacheKeys,
+  CmsCacheTags,
+} from "@/lib/cache/cms-cache";
 import { SYSTEM_TEMPLATE_SEEDS } from "@/lib/blocks/presets";
 import {
   templateLayoutSchema,
@@ -230,12 +235,19 @@ export async function listPageTemplateOptions(): Promise<
 export async function getPageTemplateByKey(
   key: string,
 ): Promise<PageTemplateDocument | null> {
-  await connectDb();
-  await ensureSystemTemplates();
-  return PageTemplate.findOne({
-    key: key.trim(),
-    ...notDeletedFilter,
-  }).lean<PageTemplateDocument | null>();
+  const trimmed = key.trim();
+  return cacheAside(
+    CmsCacheKeys.templateByKey(trimmed),
+    [CmsCacheTags.templates],
+    async () => {
+      await connectDb();
+      await ensureSystemTemplates();
+      return PageTemplate.findOne({
+        key: trimmed,
+        ...notDeletedFilter,
+      }).lean<PageTemplateDocument | null>();
+    },
+  );
 }
 
 export async function getPageTemplateById(

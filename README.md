@@ -92,7 +92,11 @@ docker compose up --build web
 
 ## Kubernetes / Argo CD
 
-Manifests for Argo CD live in `deploy/k8s/` (Deployment, Service, Ingress, ConfigMap). App secrets are **not** synced by Argo — create them once in the cluster.
+Manifests for Argo CD live in `deploy/k8s/` (Deployment, Service, Ingress, ConfigMap, Valkey). App secrets are **not** synced by Argo — create them once in the cluster.
+
+Valkey (`deploy/k8s/valkey.yaml`) is a single in-cluster cache (`VALKEY_URL=redis://valkey:6379` in the ConfigMap). It requires `VALKEY_PASSWORD` in `varc-portal-secrets` (`--requirepass`, probes use `REDISCLI_AUTH`). It is not on the Ingress; data is ephemeral (LRU, no AOF).
+
+Public CMS reads (branding, menus, pages, articles, categories, templates) use cache-aside with tag invalidation on every admin save. If `VALKEY_URL` is unset or Valkey is down, the app falls back to Mongo. Locally you can run Valkey with a password and set `VALKEY_URL` + `VALKEY_PASSWORD` (see `.env.example`).
 
 ### One-time bootstrap
 

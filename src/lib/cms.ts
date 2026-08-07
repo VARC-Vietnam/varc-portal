@@ -1,4 +1,9 @@
 import { connectDb } from "@/lib/db";
+import {
+  cacheAside,
+  CmsCacheKeys,
+  CmsCacheTags,
+} from "@/lib/cache/cms-cache";
 import { buildParentMap, getItemDepth, MAX_MENU_DEPTH } from "@/lib/menu-tree";
 import {
   categoryIndentLabel,
@@ -32,18 +37,24 @@ function localeKey(locale: AppLocale): "vi" | "en" {
 }
 
 export async function listCategories(options?: { trash?: boolean }) {
-  await connectDb();
-  if (!options?.trash) {
-    await ensureUncategorizedCategory();
+  if (options?.trash) {
+    await connectDb();
+    return Category.find({ deletedAt: { $ne: null } })
+      .sort({ deletedAt: -1 })
+      .lean<CategoryDocument[]>();
   }
-  const filter = options?.trash ? { deletedAt: { $ne: null } } : notDeletedFilter;
-  return Category.find(filter)
-    .sort(
-      options?.trash
-        ? { deletedAt: -1 }
-        : { sortOrder: 1, isSystem: -1, createdAt: -1 },
-    )
-    .lean<CategoryDocument[]>();
+
+  return cacheAside(
+    CmsCacheKeys.categories(),
+    [CmsCacheTags.categories],
+    async () => {
+      await connectDb();
+      await ensureUncategorizedCategory();
+      return Category.find(notDeletedFilter)
+        .sort({ sortOrder: 1, isSystem: -1, createdAt: -1 })
+        .lean<CategoryDocument[]>();
+    },
+  );
 }
 
 export type AdminCategoryItem = {
@@ -173,18 +184,34 @@ export function getPageLocale(
 }
 
 export async function getPageById(id: string) {
-  await connectDb();
-  return Page.findById(id).lean<PageDocument | null>();
+  return cacheAside(
+    CmsCacheKeys.pageById(id),
+    [CmsCacheTags.pages, CmsCacheTags.page(id)],
+    async () => {
+      await connectDb();
+      return Page.findById(id).lean<PageDocument | null>();
+    },
+  );
 }
 
 export async function getPublishedPageBySlug(locale: AppLocale, slug: string) {
-  await connectDb();
   const key = localeKey(locale);
-  return Page.findOne({
-    ...notDeletedFilter,
-    status: "published",
-    [`locales.${key}.slug`]: slug,
-  }).lean<PageDocument | null>();
+  return cacheAside(
+    CmsCacheKeys.pageBySlug(key, slug),
+    [CmsCacheTags.pages],
+    async () => {
+      await connectDb();
+      return Page.findOne({
+        ...notDeletedFilter,
+        status: "published",
+        [`locales.${key}.slug`]: slug,
+      }).lean<PageDocument | null>();
+    },
+    {
+      tagsFromValue: (page) =>
+        page?._id ? [CmsCacheTags.page(String(page._id))] : [],
+    },
+  );
 }
 
 export type NavPageItem = {
@@ -392,6 +419,18 @@ export async function countMenuItems(options?: {
 }
 
 export async function listPublicMenuLinks(
+  location: MenuLocation,
+  locale: AppLocale,
+): Promise<PublicMenuLink[]> {
+  const loc = localeKey(locale);
+  return cacheAside(
+    CmsCacheKeys.menu(location, loc),
+    [CmsCacheTags.menus],
+    async () => loadPublicMenuLinks(location, locale),
+  );
+}
+
+async function loadPublicMenuLinks(
   location: MenuLocation,
   locale: AppLocale,
 ): Promise<PublicMenuLink[]> {
@@ -641,8 +680,16 @@ export function getDefaultSiteSettingsForm(): SiteSettingsFormValues {
 }
 
 export async function getSiteSettingsDocument() {
-  await connectDb();
-  return SiteSettings.findOne({ key: SITE_SETTINGS_KEY }).lean<SiteSettingsDocument | null>();
+  return cacheAside(
+    CmsCacheKeys.settings(),
+    [CmsCacheTags.settings],
+    async () => {
+      await connectDb();
+      return SiteSettings.findOne({
+        key: SITE_SETTINGS_KEY,
+      }).lean<SiteSettingsDocument | null>();
+    },
+  );
 }
 
 export async function getSiteSettingsFormValues(): Promise<SiteSettingsFormValues> {
@@ -677,25 +724,31 @@ export async function getPublicSiteBranding(
     ogImageUrl: "",
   };
 
-  try {
-    const doc = await getSiteSettingsDocument();
-    if (!doc) return empty;
+  return cacheAside(
+    CmsCacheKeys.branding(key),
+    [CmsCacheTags.branding, CmsCacheTags.settings],
+    async () => {
+      try {
+        const doc = await getSiteSettingsDocument();
+        if (!doc) return empty;
 
-    const preferred = doc.locales?.[key];
-    const fallback = doc.locales?.[key === "en" ? "vi" : "en"];
-    const localeContent = mergeLocale(
-      preferred,
-      mergeLocale(fallback, defaults),
-    );
+        const preferred = doc.locales?.[key];
+        const fallback = doc.locales?.[key === "en" ? "vi" : "en"];
+        const localeContent = mergeLocale(
+          preferred,
+          mergeLocale(fallback, defaults),
+        );
 
-    return {
-      ...localeContent,
-      logoUrl: doc.logoUrl ?? "",
-      faviconUrl: doc.faviconUrl ?? "",
-      ogImageUrl: doc.ogImageUrl ?? "",
-    };
-  } catch {
-    // Build-time prerender / transient DB outages should not crash the app.
-    return empty;
-  }
+        return {
+          ...localeContent,
+          logoUrl: doc.logoUrl ?? "",
+          faviconUrl: doc.faviconUrl ?? "",
+          ogImageUrl: doc.ogImageUrl ?? "",
+        };
+      } catch {
+        // Build-time prerender / transient DB outages should not crash the app.
+        return empty;
+      }
+    },
+  );
 }

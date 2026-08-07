@@ -1,6 +1,10 @@
 # Valkey (Redis-compatible) — shared cache for portal CMS reads.
 # Auth: VALKEY_PASSWORD from varc-portal-secrets (requirepass).
 # Same namespace as varc-portal; ClusterIP only (not exposed via Ingress).
+#
+# Invalidation uses a monotonic cms:gen counter (see src/lib/cache/cms-cache.ts)
+# so allkeys-lru eviction of tag sets cannot leave stale article/page entries
+# reachable after an admin save.
 apiVersion: apps/v1
 kind: Deployment
 metadata:

@@ -104,7 +104,18 @@ export function toAdminCategoryItem(
 export async function listCategoriesAdmin(options?: {
   trash?: boolean;
 }): Promise<AdminCategoryItem[]> {
-  const categories = await listCategories(options);
+  // Admin UI must not read the public Valkey category snapshot.
+  await connectDb();
+  if (options?.trash) {
+    const categories = await Category.find({ deletedAt: { $ne: null } })
+      .sort({ deletedAt: -1 })
+      .lean<CategoryDocument[]>();
+    return categories.map(toAdminCategoryItem);
+  }
+  await ensureUncategorizedCategory();
+  const categories = await Category.find(notDeletedFilter)
+    .sort({ sortOrder: 1, isSystem: -1, createdAt: -1 })
+    .lean<CategoryDocument[]>();
   return categories.map(toAdminCategoryItem);
 }
 
@@ -184,14 +195,9 @@ export function getPageLocale(
 }
 
 export async function getPageById(id: string) {
-  return cacheAside(
-    CmsCacheKeys.pageById(id),
-    [CmsCacheTags.pages, CmsCacheTags.page(id)],
-    async () => {
-      await connectDb();
-      return Page.findById(id).lean<PageDocument | null>();
-    },
-  );
+  // Admin editors load by id — never serve a Valkey snapshot here.
+  await connectDb();
+  return Page.findById(id).lean<PageDocument | null>();
 }
 
 export async function getPublishedPageBySlug(locale: AppLocale, slug: string) {
@@ -694,7 +700,11 @@ export async function getSiteSettingsDocument() {
 
 export async function getSiteSettingsFormValues(): Promise<SiteSettingsFormValues> {
   await ensureDefaultHomePage();
-  const doc = await getSiteSettingsDocument();
+  // Admin settings form — read Mongo directly, not the public Valkey snapshot.
+  await connectDb();
+  const doc = await SiteSettings.findOne({
+    key: SITE_SETTINGS_KEY,
+  }).lean<SiteSettingsDocument | null>();
   if (!doc) return getDefaultSiteSettingsForm();
 
   return {

@@ -62,7 +62,9 @@ import { User } from "@/models/User";
 import { deleteObject } from "@/lib/media/storage";
 import { failAction, logServerError } from "@/lib/safe-error";
 import {
+  CmsCacheKeys,
   CmsCacheTags,
+  deleteCmsKeys,
   invalidateCmsTags,
   type CmsCacheTag,
 } from "@/lib/cache/cms-cache";
@@ -143,9 +145,10 @@ async function markNavigationMenuInitialized() {
   );
 }
 
-/** Next.js path revalidation + Valkey tag flush for public CMS reads. */
+/** Next.js path revalidation + Valkey generation bump / tag flush for public CMS reads. */
 async function refreshPortal(...extraTags: CmsCacheTag[]) {
-  // Flush all public CMS tags so no write path can leave stale portal data.
+  // Generation bump makes prior Valkey entries unreachable even if tag sets
+  // were LRU-evicted (allkeys-lru) and could not be walked for deletion.
   await invalidateCmsTags(
     CmsCacheTags.branding,
     CmsCacheTags.settings,
@@ -167,6 +170,32 @@ async function refreshPortal(...extraTags: CmsCacheTag[]) {
   revalidatePath("/admin/menu");
   revalidatePath("/admin/settings");
   revalidatePath("/admin/media");
+}
+
+function revalidateArticlePaths(...slugs: Array<string | null | undefined>) {
+  const unique = [...new Set(slugs.map((s) => s?.trim()).filter(Boolean))] as string[];
+  for (const slug of unique) {
+    revalidatePath(`/vi/news/${slug}`);
+    revalidatePath(`/en/news/${slug}`);
+  }
+}
+
+async function bustArticleCache(options: {
+  id?: string | null;
+  viSlugs?: Array<string | null | undefined>;
+  enSlugs?: Array<string | null | undefined>;
+}) {
+  const viSlugs = (options.viSlugs ?? []).map((s) => s?.trim()).filter(Boolean) as string[];
+  const enSlugs = (options.enSlugs ?? []).map((s) => s?.trim()).filter(Boolean) as string[];
+  const keys = [
+    ...viSlugs.map((slug) => CmsCacheKeys.articleBySlug("vi", slug)),
+    ...enSlugs.map((slug) => CmsCacheKeys.articleBySlug("en", slug)),
+  ];
+  await deleteCmsKeys(...keys);
+  await refreshPortal(
+    ...(options.id ? [CmsCacheTags.article(String(options.id))] : []),
+  );
+  revalidateArticlePaths(...viSlugs, ...enSlugs);
 }
 
 async function articleSlugTaken(
@@ -276,6 +305,9 @@ export async function saveArticleAction(
       const existing = await Article.findById(id);
       if (!existing) return { ok: false, error: "Article not found" };
 
+      const prevViSlug = existing.locales?.vi?.slug ?? "";
+      const prevEnSlug = existing.locales?.en?.slug ?? "";
+
       existing.status = data.status;
       existing.featured = data.featured;
       existing.coverImageUrl = data.coverImageUrl.trim();
@@ -296,7 +328,11 @@ export async function saveArticleAction(
         existing.set("createdAt", new Date(data.createdAt));
       }
       await existing.save();
-      await refreshPortal();
+      await bustArticleCache({
+        id: String(existing._id),
+        viSlugs: [prevViSlug, locales.vi.slug],
+        enSlugs: [prevEnSlug, locales.en.slug],
+      });
       return { ok: true, id: String(existing._id) };
     }
 
@@ -317,7 +353,11 @@ export async function saveArticleAction(
           : null,
       ...(data.createdAt ? { createdAt: new Date(data.createdAt) } : {}),
     });
-    await refreshPortal();
+    await bustArticleCache({
+      id: String(created._id),
+      viSlugs: [locales.vi.slug],
+      enSlugs: [locales.en.slug],
+    });
     return { ok: true, id: String(created._id) };
   } catch (error) {
     const failed = failAction(error, "Failed to save article");
@@ -396,9 +436,15 @@ export async function deleteArticleAction(
     await connectDb();
     const existing = await Article.findOne({ _id: id, ...notDeletedFilter });
     if (!existing) return { ok: false, error: "Article not found" };
+    const viSlug = existing.locales?.vi?.slug ?? "";
+    const enSlug = existing.locales?.en?.slug ?? "";
     existing.deletedAt = new Date();
     await existing.save();
-    await refreshPortal();
+    await bustArticleCache({
+      id: String(existing._id),
+      viSlugs: [viSlug],
+      enSlugs: [enSlug],
+    });
     return { ok: true };
   } catch (error) {
     return failAction(error, "Failed to delete");
@@ -417,7 +463,11 @@ export async function restoreArticleAction(
     }
     existing.deletedAt = null;
     await existing.save();
-    await refreshPortal();
+    await bustArticleCache({
+      id: String(existing._id),
+      viSlugs: [existing.locales?.vi?.slug],
+      enSlugs: [existing.locales?.en?.slug],
+    });
     return { ok: true };
   } catch (error) {
     return failAction(error, "Failed to restore");
@@ -434,8 +484,14 @@ export async function permanentlyDeleteArticleAction(
     if (!existing) {
       return { ok: false, error: "Trashed article not found" };
     }
+    const viSlug = existing.locales?.vi?.slug ?? "";
+    const enSlug = existing.locales?.en?.slug ?? "";
     await Article.findByIdAndDelete(id);
-    await refreshPortal();
+    await bustArticleCache({
+      id: String(existing._id),
+      viSlugs: [viSlug],
+      enSlugs: [enSlug],
+    });
     return { ok: true };
   } catch (error) {
     return failAction(error, "Failed to delete permanently");

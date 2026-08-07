@@ -5,6 +5,7 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  poweredByHeader: false,
   async redirects() {
     return [
       // Legacy Vietnamese paths from localePrefix "as-needed" + localized pathnames

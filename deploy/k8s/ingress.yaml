@@ -16,7 +16,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: www.hamvn.com
+    - host: hamvn.com
       http:
         paths:
           - path: /

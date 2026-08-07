@@ -15,6 +15,13 @@ const CategorySchema = new Schema(
     key: { type: String, default: null },
     isSystem: { type: Boolean, default: false },
     deletedAt: { type: Date, default: null, index: true },
+    parentId: {
+      type: Schema.Types.ObjectId,
+      ref: "Category",
+      default: null,
+      index: true,
+    },
+    sortOrder: { type: Number, default: 0, index: true },
     locales: {
       vi: { type: LocaleSchema, required: true },
       en: { type: LocaleSchema, required: true },
@@ -23,6 +30,7 @@ const CategorySchema = new Schema(
   { timestamps: true },
 );
 
+CategorySchema.index({ parentId: 1, sortOrder: 1 });
 CategorySchema.index(
   { "locales.vi.slug": 1 },
   {
@@ -61,6 +69,19 @@ export type CategoryDocument = InferSchemaType<typeof CategorySchema> & {
   _id: mongoose.Types.ObjectId;
 };
 
-export const Category: Model<CategoryDocument> =
-  mongoose.models.Category ??
-  mongoose.model<CategoryDocument>("Category", CategorySchema);
+// Hot-reload can keep a stale model without parentId/sortOrder.
+if (mongoose.models.Category) {
+  delete mongoose.models.Category;
+}
+const connectionModels = mongoose.connection.models as Record<
+  string,
+  Model<unknown> | undefined
+>;
+if (connectionModels.Category) {
+  delete connectionModels.Category;
+}
+
+export const Category: Model<CategoryDocument> = mongoose.model<CategoryDocument>(
+  "Category",
+  CategorySchema,
+);

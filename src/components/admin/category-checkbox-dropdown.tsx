@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { AdminCheckbox } from "@/components/admin/admin-checkbox";
 
-type Option = { id: string; label: string };
+type Option = { id: string; label: string; depth?: number };
 
 type Props = {
   options: Option[];
@@ -29,7 +29,7 @@ export function CategoryCheckboxDropdown({
     selected.length === 0
       ? placeholder
       : selected.length <= 2
-        ? selected.map((option) => option.label).join(", ")
+        ? selected.map((option) => option.label.replace(/^—\s*/, "").trim() || option.label).join(", ")
         : `${selected.length} selected`;
 
   useEffect(() => {
@@ -111,19 +111,28 @@ export function CategoryCheckboxDropdown({
         >
           {options.map((option) => {
             const checked = value.includes(option.id);
+            const depth = option.depth ?? 0;
             return (
               <label
                 key={option.id}
                 role="option"
                 aria-selected={checked}
                 className="flex cursor-pointer items-start gap-2.5 px-3 py-2 text-sm text-gray-800 hover:bg-gray-50"
+                style={{ paddingLeft: `${0.75 + Math.min(depth, 3) * 0.75}rem` }}
               >
                 <AdminCheckbox
                   className="mt-0.5"
                   checked={checked}
                   onChange={() => toggle(option.id)}
                 />
-                <span className="min-w-0 break-words">{option.label}</span>
+                <span className="min-w-0 break-words">
+                  {depth > 0 ? (
+                    <span className="mr-1 text-gray-400" aria-hidden>
+                      └
+                    </span>
+                  ) : null}
+                  {option.label.replace(/^(—\s*)+/, "") || option.label}
+                </span>
               </label>
             );
           })}

@@ -1,44 +1,13 @@
-import { notFound } from "next/navigation";
-import {
-  CategoryEditor,
-  emptyCategoryForm,
-} from "@/components/admin/category-editor";
+import { redirect } from "next/navigation";
 import { requireEditorialPage } from "@/lib/admin-access";
-import { getCategoryById, getCategoryLocale } from "@/lib/cms";
-import { UNCATEGORIZED_KEY } from "@/lib/soft-delete";
-
-export const dynamic = "force-dynamic";
 
 type Props = {
   params: Promise<{ id: string }>;
 };
 
+/** Legacy route — create/edit now happens in a modal on /admin/categories. */
 export default async function EditCategoryPage({ params }: Props) {
   await requireEditorialPage();
-
   const { id } = await params;
-  const category = await getCategoryById(id);
-  if (!category || category.deletedAt) notFound();
-
-  const vi = getCategoryLocale(category, "vi");
-  const en = getCategoryLocale(category, "en");
-  const isSystem =
-    Boolean(category.isSystem) || category.key === UNCATEGORIZED_KEY;
-
-  return (
-    <div>
-      <h1 className="mb-6 text-2xl font-semibold">Edit category</h1>
-      <CategoryEditor
-        categoryId={id}
-        isSystem={isSystem}
-        initial={{
-          ...emptyCategoryForm,
-          locales: {
-            vi: { name: vi.name, description: vi.description },
-            en: { name: en.name, description: en.description },
-          },
-        }}
-      />
-    </div>
-  );
+  redirect(`/admin/categories?edit=${encodeURIComponent(id)}`);
 }

@@ -2,7 +2,7 @@ import { TemplateEditor } from "@/components/admin/template-builder/template-edi
 import { requireSitePage } from "@/lib/admin-access";
 import { emptyLayout } from "@/lib/blocks/types";
 import { listAllArticles, getLocaleContent } from "@/lib/articles";
-import { listCategories, getCategoryLocale } from "@/lib/cms";
+import { listCategories, categorySelectOptions } from "@/lib/cms";
 
 export default async function NewTemplatePage() {
   await requireSitePage();
@@ -29,13 +29,7 @@ export default async function NewTemplatePage() {
             getLocaleContent(article, "en").title ||
             String(article._id),
         }))}
-        categoryOptions={categories.map((category) => ({
-          id: String(category._id),
-          label:
-            getCategoryLocale(category, "vi").name ||
-            getCategoryLocale(category, "en").name ||
-            String(category._id),
-        }))}
+        categoryOptions={categorySelectOptions(categories, "vi")}
       />
     </div>
   );

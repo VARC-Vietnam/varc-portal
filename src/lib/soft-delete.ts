@@ -44,6 +44,8 @@ export async function ensureUncategorizedCategory(): Promise<CategoryDocument> {
       key: UNCATEGORIZED_KEY,
       isSystem: true,
       deletedAt: null,
+      parentId: null,
+      sortOrder: 0,
       locales: UNCATEGORIZED_LOCALES,
     });
   } else {
@@ -58,6 +60,10 @@ export async function ensureUncategorizedCategory(): Promise<CategoryDocument> {
     }
     if (category.deletedAt) {
       category.deletedAt = null;
+      dirty = true;
+    }
+    if (category.parentId) {
+      category.parentId = null;
       dirty = true;
     }
     if (dirty) await category.save();

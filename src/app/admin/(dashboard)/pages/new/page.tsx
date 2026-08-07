@@ -7,7 +7,7 @@ import {
   parseLayout,
 } from "@/lib/blocks/templates";
 import { emptyLayout, type TemplateLayout } from "@/lib/blocks/types";
-import { getCategoryLocale, listCategories } from "@/lib/cms";
+import { categorySelectOptions, listCategories } from "@/lib/cms";
 
 export default async function NewPagePage() {
   await requireSitePage();
@@ -38,13 +38,7 @@ export default async function NewPagePage() {
             getLocaleContent(article, "en").title ||
             String(article._id),
         }))}
-        categoryOptions={categories.map((category) => ({
-          id: String(category._id),
-          label:
-            getCategoryLocale(category, "vi").name ||
-            getCategoryLocale(category, "en").name ||
-            String(category._id),
-        }))}
+        categoryOptions={categorySelectOptions(categories, "vi")}
       />
     </div>
   );

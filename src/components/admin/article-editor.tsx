@@ -37,7 +37,7 @@ import {
   toDatetimeLocalValue,
 } from "@/lib/datetime-local";
 
-type CategoryOption = { id: string; label: string };
+type CategoryOption = { id: string; label: string; depth?: number };
 
 type Props = {
   articleId?: string;

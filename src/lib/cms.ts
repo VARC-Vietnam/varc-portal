@@ -1,9 +1,14 @@
 import { connectDb } from "@/lib/db";
-import { MAX_MENU_DEPTH } from "@/lib/menu-tree";
+import { buildParentMap, getItemDepth, MAX_MENU_DEPTH } from "@/lib/menu-tree";
+import {
+  categoryIndentLabel,
+  flattenCategoryTree,
+} from "@/lib/category-tree";
 import {
   ensureUncategorizedCategory,
   notDeletedFilter,
   deletedFilter,
+  UNCATEGORIZED_KEY,
 } from "@/lib/soft-delete";
 import { Category, type CategoryDocument } from "@/models/Category";
 import {
@@ -36,9 +41,93 @@ export async function listCategories(options?: { trash?: boolean }) {
     .sort(
       options?.trash
         ? { deletedAt: -1 }
-        : { isSystem: -1, createdAt: -1 },
+        : { sortOrder: 1, isSystem: -1, createdAt: -1 },
     )
     .lean<CategoryDocument[]>();
+}
+
+export type AdminCategoryItem = {
+  id: string;
+  parentId: string | null;
+  sortOrder: number;
+  name: string;
+  viName: string;
+  slug: string;
+  enName: string;
+  viDescription: string;
+  enDescription: string;
+  isSystem: boolean;
+  isBuiltin: boolean;
+  viReady: boolean;
+  enReady: boolean;
+  deletedAt: string | null;
+};
+
+export function toAdminCategoryItem(
+  category: CategoryDocument,
+): AdminCategoryItem {
+  const vi = getCategoryLocale(category, "vi");
+  const en = getCategoryLocale(category, "en");
+  const isBuiltin =
+    Boolean(category.isSystem) || category.key === UNCATEGORIZED_KEY;
+  return {
+    id: String(category._id),
+    parentId: category.parentId ? String(category.parentId) : null,
+    sortOrder: Number(category.sortOrder) || 0,
+    name: vi.name || en.name || "(untitled)",
+    viName: vi.name || "",
+    slug: vi.slug || en.slug || "",
+    enName: en.name || "",
+    viDescription: vi.description || "",
+    enDescription: en.description || "",
+    isSystem: Boolean(category.isSystem),
+    isBuiltin,
+    viReady: Boolean(vi.name.trim() && vi.slug.trim()),
+    enReady: Boolean(en.name.trim() && en.slug.trim()),
+    deletedAt: category.deletedAt
+      ? new Date(category.deletedAt).toISOString()
+      : null,
+  };
+}
+
+export async function listCategoriesAdmin(options?: {
+  trash?: boolean;
+}): Promise<AdminCategoryItem[]> {
+  const categories = await listCategories(options);
+  return categories.map(toAdminCategoryItem);
+}
+
+/** Flat options in tree order with indented labels for selects/checkboxes. */
+export function categorySelectOptions(
+  categories: CategoryDocument[],
+  locale: AppLocale = "vi",
+): Array<{ id: string; label: string; depth: number; parentId: string | null }> {
+  const nodes = categories.map((category) => {
+    const content = getCategoryLocale(category, locale);
+    const fallback = getCategoryLocale(
+      category,
+      locale === "vi" ? "en" : "vi",
+    );
+    return {
+      id: String(category._id),
+      parentId: category.parentId ? String(category.parentId) : null,
+      sortOrder: Number(category.sortOrder) || 0,
+      name: content.name || fallback.name || String(category._id),
+    };
+  });
+  const flat = flattenCategoryTree(nodes);
+  const parentById = buildParentMap(
+    flat.map((item) => ({ id: item.id, parentId: item.parentId })),
+  );
+  return flat.map((item) => {
+    const depth = getItemDepth(item.id, parentById);
+    return {
+      id: item.id,
+      label: categoryIndentLabel(item.name, depth),
+      depth,
+      parentId: item.parentId,
+    };
+  });
 }
 
 export function getCategoryLocale(category: CategoryDocument, locale: AppLocale) {

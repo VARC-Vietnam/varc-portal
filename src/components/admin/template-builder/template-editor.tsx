@@ -15,7 +15,7 @@ import { TemplateLayoutBuilder } from "@/components/admin/template-builder/templ
 import { useConfirm } from "@/components/admin/use-confirm";
 import { notifyAction } from "@/components/admin/admin-toast";
 
-type Option = { id: string; label: string };
+type Option = { id: string; label: string; depth?: number };
 
 type Props = {
   templateId?: string;

@@ -1,16 +1,16 @@
-import {
-  CategoryEditor,
-  emptyCategoryForm,
-} from "@/components/admin/category-editor";
+import { redirect } from "next/navigation";
 import { requireEditorialPage } from "@/lib/admin-access";
 
-export default async function NewCategoryPage() {
-  await requireEditorialPage();
+type Props = {
+  searchParams: Promise<{ parentId?: string }>;
+};
 
-  return (
-    <div>
-      <h1 className="mb-6 text-2xl font-semibold">New category</h1>
-      <CategoryEditor initial={emptyCategoryForm} />
-    </div>
-  );
+/** Legacy route — create/edit now happens in a modal on /admin/categories. */
+export default async function NewCategoryPage({ searchParams }: Props) {
+  await requireEditorialPage();
+  const { parentId } = await searchParams;
+  if (parentId) {
+    redirect(`/admin/categories?parentId=${encodeURIComponent(parentId)}`);
+  }
+  redirect("/admin/categories");
 }

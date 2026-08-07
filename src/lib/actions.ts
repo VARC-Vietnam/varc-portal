@@ -30,6 +30,7 @@ import {
   createUserSchema,
   menuItemFormSchema,
   pageFormSchema,
+  reorderCategoriesSchema,
   reorderMenuSchema,
   roleFormSchema,
   siteSettingsFormSchema,
@@ -63,6 +64,16 @@ import { failAction, logServerError } from "@/lib/safe-error";
 
 async function loadMenuParentRefs(location: "navigation" | "footer") {
   const docs = await MenuItem.find({ location, ...notDeletedFilter })
+    .select("_id parentId")
+    .lean();
+  return docs.map((doc) => ({
+    id: String(doc._id),
+    parentId: doc.parentId ? String(doc.parentId) : null,
+  }));
+}
+
+async function loadCategoryParentRefs() {
+  const docs = await Category.find(notDeletedFilter)
     .select("_id parentId")
     .lean();
   return docs.map((doc) => ({
@@ -472,13 +483,96 @@ export async function saveCategoryAction(
       if (existing.deletedAt) {
         return { ok: false, error: "Restore this category before editing" };
       }
+
+      let nextParentId: mongoose.Types.ObjectId | null = existing.parentId
+        ? new mongoose.Types.ObjectId(String(existing.parentId))
+        : null;
+
+      if (data.parentId !== undefined) {
+        if (data.parentId === id) {
+          return { ok: false, error: "A category cannot be its own parent" };
+        }
+        if (
+          existing.isSystem ||
+          existing.key === UNCATEGORIZED_KEY
+        ) {
+          if (data.parentId) {
+            return {
+              ok: false,
+              error: "Built-in categories must stay at the top level",
+            };
+          }
+          nextParentId = null;
+        } else if (data.parentId) {
+          const parent = await Category.findOne({
+            _id: data.parentId,
+            ...notDeletedFilter,
+          });
+          if (!parent) {
+            return { ok: false, error: "Parent category not found" };
+          }
+          const refs = await loadCategoryParentRefs();
+          if (!canPlaceUnderParent(id, data.parentId, refs)) {
+            return {
+              ok: false,
+              error: `Categories can nest at most ${MAX_MENU_DEPTH} levels deep`,
+            };
+          }
+          nextParentId = new mongoose.Types.ObjectId(data.parentId);
+        } else {
+          nextParentId = null;
+        }
+      }
+
       existing.locales = locales;
+      existing.parentId = nextParentId;
       await existing.save();
       revalidatePortal();
       return { ok: true, id: String(existing._id) };
     }
 
-    const created = await Category.create({ locales });
+    let parentId: mongoose.Types.ObjectId | null = null;
+    if (data.parentId) {
+      const parent = await Category.findOne({
+        _id: data.parentId,
+        ...notDeletedFilter,
+      });
+      if (!parent) {
+        return { ok: false, error: "Parent category not found" };
+      }
+      const provisionalId = new mongoose.Types.ObjectId().toString();
+      const refs = await loadCategoryParentRefs();
+      if (
+        !canPlaceUnderParent(provisionalId, data.parentId, [
+          ...refs,
+          { id: provisionalId, parentId: null },
+        ])
+      ) {
+        return {
+          ok: false,
+          error: `Categories can nest at most ${MAX_MENU_DEPTH} levels deep`,
+        };
+      }
+      parentId = new mongoose.Types.ObjectId(data.parentId);
+    }
+
+    const siblingFilter = parentId
+      ? { ...notDeletedFilter, parentId }
+      : {
+          ...notDeletedFilter,
+          $or: [{ parentId: null }, { parentId: { $exists: false } }],
+        };
+    const lastSibling = await Category.findOne(siblingFilter)
+      .sort({ sortOrder: -1 })
+      .select("sortOrder")
+      .lean();
+    const sortOrder = (Number(lastSibling?.sortOrder) || 0) + 1;
+
+    const created = await Category.create({
+      locales,
+      parentId,
+      sortOrder,
+    });
     revalidatePortal();
     return { ok: true, id: String(created._id) };
   } catch (error) {
@@ -523,6 +617,17 @@ export async function deleteCategoryAction(
 
     existing.deletedAt = new Date();
     await existing.save();
+    // Reparent children under the deleted category's parent (or top-level).
+    await Category.updateMany(
+      { parentId: existing._id, ...notDeletedFilter },
+      {
+        $set: {
+          parentId: existing.parentId
+            ? new mongoose.Types.ObjectId(String(existing.parentId))
+            : null,
+        },
+      },
+    );
     revalidatePortal();
     return { ok: true };
   } catch (error) {
@@ -565,11 +670,106 @@ export async function permanentlyDeleteCategoryAction(
         error: "The Uncategorized category cannot be deleted permanently",
       };
     }
+    await Category.updateMany(
+      { parentId: existing._id },
+      {
+        $set: {
+          parentId: existing.parentId
+            ? new mongoose.Types.ObjectId(String(existing.parentId))
+            : null,
+        },
+      },
+    );
     await Category.findByIdAndDelete(id);
     revalidatePortal();
     return { ok: true };
   } catch (error) {
     return failAction(error, "Failed to delete permanently");
+  }
+}
+
+export async function reorderCategoriesAction(
+  raw: unknown,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await requireCategoryManager();
+    const parsed = reorderCategoriesSchema.safeParse(raw);
+    if (!parsed.success) {
+      return {
+        ok: false,
+        error: parsed.error.issues[0]?.message ?? "Invalid data",
+      };
+    }
+
+    const { items: nextItems } = parsed.data;
+    await connectDb();
+
+    const ids = nextItems.map((item) => item.id);
+    const existing = await Category.find({
+      _id: { $in: ids },
+      ...notDeletedFilter,
+    });
+    if (existing.length !== ids.length) {
+      return { ok: false, error: "One or more categories were not found" };
+    }
+
+    const byId = new Map(existing.map((item) => [String(item._id), item]));
+    const proposedRefs = nextItems.map((entry) => ({
+      id: entry.id,
+      parentId: entry.parentId ?? null,
+    }));
+
+    for (const entry of nextItems) {
+      const doc = byId.get(entry.id);
+      if (!doc) continue;
+
+      if (
+        (doc.isSystem || doc.key === UNCATEGORIZED_KEY) &&
+        entry.parentId
+      ) {
+        return {
+          ok: false,
+          error: "Built-in categories must stay at the top level",
+        };
+      }
+
+      if (entry.parentId === entry.id) {
+        return { ok: false, error: "A category cannot be its own parent" };
+      }
+      if (entry.parentId) {
+        const parentEntry = nextItems.find((item) => item.id === entry.parentId);
+        const parentDoc = byId.get(entry.parentId);
+        if (!parentEntry || !parentDoc) {
+          return { ok: false, error: "Parent category not found" };
+        }
+        if (!canPlaceUnderParent(entry.id, entry.parentId, proposedRefs)) {
+          return {
+            ok: false,
+            error: `Categories can nest at most ${MAX_MENU_DEPTH} levels deep`,
+          };
+        }
+      }
+    }
+
+    await Promise.all(
+      nextItems.map((entry) =>
+        Category.updateOne(
+          { _id: entry.id },
+          {
+            $set: {
+              parentId: entry.parentId
+                ? new mongoose.Types.ObjectId(entry.parentId)
+                : null,
+              sortOrder: entry.sortOrder,
+            },
+          },
+        ),
+      ),
+    );
+    revalidatePortal();
+    return { ok: true };
+  } catch (error) {
+    return failAction(error, "Failed to reorder categories");
   }
 }
 

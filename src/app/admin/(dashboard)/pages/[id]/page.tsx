@@ -10,7 +10,7 @@ import {
 } from "@/lib/blocks/templates";
 import { emptyLayout, type TemplateLayout } from "@/lib/blocks/types";
 import {
-  getCategoryLocale,
+  categorySelectOptions,
   getPageById,
   getPageLocale,
   listCategories,
@@ -68,13 +68,7 @@ export default async function EditPagePage({ params }: Props) {
             getLocaleContent(article, "en").title ||
             String(article._id),
         }))}
-        categoryOptions={categories.map((category) => ({
-          id: String(category._id),
-          label:
-            getCategoryLocale(category, "vi").name ||
-            getCategoryLocale(category, "en").name ||
-            String(category._id),
-        }))}
+        categoryOptions={categorySelectOptions(categories, "vi")}
         initial={{
           ...emptyPageForm,
           status: page.status === "published" ? "published" : "draft",

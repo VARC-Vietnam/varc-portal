@@ -20,7 +20,7 @@ type TemplateOption = {
   description: string;
 };
 
-type Option = { id: string; label: string };
+type Option = { id: string; label: string; depth?: number };
 
 type Props = {
   pageId?: string;

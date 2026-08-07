@@ -5,7 +5,7 @@ import {
 } from "@/components/admin/article-editor";
 import { requireEditorialPage } from "@/lib/admin-access";
 import { getArticleById, getLocaleContent } from "@/lib/articles";
-import { listCategories, getCategoryLocale } from "@/lib/cms";
+import { listCategories, categorySelectOptions } from "@/lib/cms";
 import { normalizeEditorHtml } from "@/lib/html";
 import { normalizeCoverFocus } from "@/lib/cover-focus";
 
@@ -32,13 +32,7 @@ export default async function EditArticlePage({ params }: Props) {
     <ArticleEditor
       articleId={id}
       heading="Edit article"
-      categories={categories.map((category) => ({
-        id: String(category._id),
-        label:
-          getCategoryLocale(category, "vi").name ||
-          getCategoryLocale(category, "en").name ||
-          String(category._id),
-      }))}
+      categories={categorySelectOptions(categories, "vi")}
       initial={{
         ...emptyArticleForm,
         status: article.status === "published" ? "published" : "draft",

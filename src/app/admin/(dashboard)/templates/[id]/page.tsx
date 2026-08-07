@@ -4,7 +4,7 @@ import { requireSitePage } from "@/lib/admin-access";
 import { getPageTemplateById, parseLayout } from "@/lib/blocks/templates";
 import { emptyLayout } from "@/lib/blocks/types";
 import { listAllArticles, getLocaleContent } from "@/lib/articles";
-import { listCategories, getCategoryLocale } from "@/lib/cms";
+import { listCategories, categorySelectOptions } from "@/lib/cms";
 
 export const dynamic = "force-dynamic";
 
@@ -41,13 +41,7 @@ export default async function EditTemplatePage({ params }: Props) {
             getLocaleContent(article, "en").title ||
             String(article._id),
         }))}
-        categoryOptions={categories.map((category) => ({
-          id: String(category._id),
-          label:
-            getCategoryLocale(category, "vi").name ||
-            getCategoryLocale(category, "en").name ||
-            String(category._id),
-        }))}
+        categoryOptions={categorySelectOptions(categories, "vi")}
       />
     </div>
   );

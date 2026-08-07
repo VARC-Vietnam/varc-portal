@@ -20,7 +20,7 @@ import { MediaPickerModal } from "@/components/admin/media-picker-modal";
 import { PageGalleryField } from "@/components/admin/page-gallery-field";
 import type { PageGalleryItemValues } from "@/lib/validations/article";
 
-type Option = { id: string; label: string };
+type Option = { id: string; label: string; depth?: number };
 
 function blockPreviewLabel(block: TemplateBlock): string {
   if (block.type === "heading") {
@@ -1128,7 +1128,13 @@ function MultiCheck({
           <p className="text-xs text-gray-400">No options</p>
         ) : (
           options.map((opt) => (
-            <label key={opt.id} className="flex items-center gap-2 text-xs">
+            <label
+              key={opt.id}
+              className="flex items-center gap-2 text-xs"
+              style={{
+                paddingLeft: `${Math.min(opt.depth ?? 0, 3) * 0.75}rem`,
+              }}
+            >
               <input
                 type="checkbox"
                 checked={set.has(opt.id)}
@@ -1139,7 +1145,14 @@ function MultiCheck({
                   onChange([...next]);
                 }}
               />
-              <span className="truncate">{opt.label}</span>
+              <span className="truncate">
+                {(opt.depth ?? 0) > 0 ? (
+                  <span className="mr-1 text-gray-400" aria-hidden>
+                    └
+                  </span>
+                ) : null}
+                {opt.label.replace(/^(—\s*)+/, "") || opt.label}
+              </span>
             </label>
           ))
         )}

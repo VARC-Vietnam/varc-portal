@@ -86,6 +86,7 @@ const categoryLocaleSchema = z.object({
 
 export const categoryFormSchema = z
   .object({
+    parentId: z.string().max(64).nullable().optional(),
     locales: z.object({
       vi: categoryLocaleSchema,
       en: categoryLocaleSchema,
@@ -102,6 +103,27 @@ export const categoryFormSchema = z
   });
 
 export type CategoryFormValues = z.infer<typeof categoryFormSchema>;
+
+export const emptyCategoryForm: CategoryFormValues = {
+  parentId: null,
+  locales: {
+    vi: { name: "", description: "" },
+    en: { name: "", description: "" },
+  },
+};
+
+export const reorderCategoriesSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        id: z.string().min(1).max(64),
+        parentId: z.string().max(64).nullable(),
+        sortOrder: z.number().int().nonnegative().max(10_000),
+      }),
+    )
+    .min(1)
+    .max(500),
+});
 
 const pageLocaleSchema = z.object({
   title: z.string().trim().max(MAX_TEXT_CHARS),

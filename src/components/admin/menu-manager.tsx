@@ -12,7 +12,6 @@ import {
   permanentlyDeleteMenuItemAction,
   reorderMenuItemsAction,
   restoreMenuItemAction,
-  saveMenuItemAction,
 } from "@/lib/actions";
 import type { AdminMenuItem } from "@/lib/cms";
 import {
@@ -24,6 +23,10 @@ import {
 } from "@/lib/menu-tree";
 import type { MenuItemFormValues } from "@/lib/validations/article";
 import type { MenuLocation } from "@/models/MenuItem";
+import {
+  emptyMenuItemForm,
+  MenuItemEditorModal,
+} from "@/components/admin/menu-item-editor-modal";
 import { EditIcon, TrashIcon } from "@/components/admin/admin-action-icons";
 import {
   IconActionButton,
@@ -47,18 +50,10 @@ type Props = {
 
 type DropMode = "before" | "into" | "after";
 
-const emptyForm = (location: MenuLocation): MenuItemFormValues => ({
-  location,
-  type: "page",
-  pageId: null,
-  parentId: null,
-  locales: {
-    vi: { label: "", url: "" },
-    en: { label: "", url: "" },
-  },
-  enabled: true,
-  openInNewTab: false,
-});
+type EditorState = {
+  editingId: string | null;
+  initial: MenuItemFormValues;
+};
 
 function bySortOrder(a: AdminMenuItem, b: AdminMenuItem) {
   const orderA = Number(a.sortOrder) || 0;
@@ -194,9 +189,7 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<MenuLocation>("navigation");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<MenuItemFormValues>(emptyForm("navigation"));
-  const [showForm, setShowForm] = useState(false);
+  const [editor, setEditor] = useState<EditorState | null>(null);
   const [optimisticItems, setOptimisticItems] = useState<AdminMenuItem[] | null>(
     null,
   );
@@ -223,49 +216,27 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
   );
 
   function openCreate(parentId: string | null = null) {
-    setEditingId(null);
-    setForm({ ...emptyForm(tab), parentId });
-    setShowForm(true);
+    setEditor({
+      editingId: null,
+      initial: { ...emptyMenuItemForm(tab), parentId },
+    });
     setError(null);
   }
 
   function openEdit(item: AdminMenuItem) {
-    setEditingId(item.id);
-    setForm({
-      location: item.location,
-      type: item.type,
-      pageId: item.pageId,
-      parentId: item.parentId,
-      locales: item.locales,
-      enabled: item.enabled,
-      openInNewTab: item.openInNewTab,
+    setEditor({
+      editingId: item.id,
+      initial: {
+        location: item.location,
+        type: item.type,
+        pageId: item.pageId,
+        parentId: item.parentId,
+        locales: item.locales,
+        enabled: item.enabled,
+        openInNewTab: item.openInNewTab,
+      },
     });
-    setShowForm(true);
     setError(null);
-  }
-
-  function onSave() {
-    setError(null);
-    startTransition(async () => {
-      const result = await saveMenuItemAction(editingId, {
-        ...form,
-        location: tab,
-        parentId: form.parentId ?? null,
-      });
-      if (
-        !notifyAction(
-          result,
-          editingId ? "Menu item updated" : "Menu item created",
-        )
-      ) {
-        setError(result.error);
-        return;
-      }
-      setShowForm(false);
-      setEditingId(null);
-      setOptimisticItems(null);
-      router.refresh();
-    });
   }
 
   async function onDelete(id: string) {
@@ -284,9 +255,8 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
         setError(result.error);
         return;
       }
-      if (editingId === id) {
-        setShowForm(false);
-        setEditingId(null);
+      if (editor?.editingId === id) {
+        setEditor(null);
       }
       setOptimisticItems(null);
       router.refresh();
@@ -460,8 +430,7 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
   function switchTab(next: MenuLocation) {
     setTab(next);
     setOptimisticItems(null);
-    setShowForm(false);
-    setEditingId(null);
+    setEditor(null);
     setError(null);
     setDragId(null);
     setOverId(null);
@@ -481,6 +450,8 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
     () => buildParentMap(toParentRefs(displayItems)),
     [displayItems],
   );
+
+  const editingId = editor?.editingId ?? null;
 
   const parentOptions = displayItems.filter((item) => {
     if (editingId && (item.id === editingId || isDescendantOf(items, editingId, item.id))) {
@@ -663,272 +634,6 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
           <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {error}
           </p>
-        ) : null}
-
-        {showForm ? (
-          <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-4 sm:p-5">
-            <h2 className="text-base font-semibold">
-              {editingId ? "Edit menu item" : "New menu item"}
-            </h2>
-
-            <label className="block text-sm">
-              <span className="mb-1 block font-medium">Parent (dropdown)</span>
-              <select
-                value={form.parentId ?? ""}
-                onChange={(event) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    parentId: event.target.value || null,
-                  }))
-                }
-                className="w-full rounded border border-gray-300 px-3 py-2"
-              >
-                <option value="">Top level</option>
-                {parentOptions.map((item) => {
-                  const depth = getItemDepth(item.id, parentById);
-                  const prefix = depth > 0 ? `${"— ".repeat(depth)}` : "";
-                  return (
-                    <option key={item.id} value={item.id}>
-                      {prefix}
-                      {itemLabel(item)}
-                    </option>
-                  );
-                })}
-              </select>
-              <span className="mt-1 block text-xs text-gray-500">
-                Nested items appear in dropdowns on the site (max{" "}
-                {MAX_MENU_DEPTH} levels).
-              </span>
-            </label>
-
-            <div className="flex flex-wrap gap-4 text-sm">
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="menu-type"
-                  checked={form.type === "page"}
-                  onChange={() =>
-                    setForm((prev) => ({
-                      ...prev,
-                      type: "page",
-                      pageId: prev.pageId,
-                    }))
-                  }
-                />
-                CMS page
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="radio"
-                  name="menu-type"
-                  checked={form.type === "custom"}
-                  onChange={() =>
-                    setForm((prev) => ({
-                      ...prev,
-                      type: "custom",
-                      pageId: null,
-                    }))
-                  }
-                />
-                Custom link
-              </label>
-            </div>
-
-            {form.type === "page" ? (
-              <div className="grid gap-4 md:grid-cols-2">
-                <label className="block text-sm md:col-span-2">
-                  <span className="mb-1 block font-medium">Page</span>
-                  <select
-                    value={form.pageId ?? ""}
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        pageId: event.target.value || null,
-                      }))
-                    }
-                    className="w-full rounded border border-gray-300 px-3 py-2"
-                  >
-                    <option value="">Select a page…</option>
-                    {pages.map((page) => (
-                      <option key={page.id} value={page.id}>
-                        {page.title || "(untitled)"} ({page.status})
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="block text-sm">
-                  <span className="mb-1 block font-medium">
-                    Label override (VI, optional)
-                  </span>
-                  <input
-                    value={form.locales.vi.label}
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        locales: {
-                          ...prev.locales,
-                          vi: {
-                            ...prev.locales.vi,
-                            label: event.target.value,
-                          },
-                        },
-                      }))
-                    }
-                    className="w-full rounded border border-gray-300 px-3 py-2"
-                    placeholder="Uses page title if empty"
-                  />
-                </label>
-                <label className="block text-sm">
-                  <span className="mb-1 block font-medium">
-                    Label override (EN, optional)
-                  </span>
-                  <input
-                    value={form.locales.en.label}
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        locales: {
-                          ...prev.locales,
-                          en: {
-                            ...prev.locales.en,
-                            label: event.target.value,
-                          },
-                        },
-                      }))
-                    }
-                    className="w-full rounded border border-gray-300 px-3 py-2"
-                    placeholder="Uses page title if empty"
-                  />
-                </label>
-              </div>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2">
-                <label className="block text-sm">
-                  <span className="mb-1 block font-medium">Label (VI)</span>
-                  <input
-                    value={form.locales.vi.label}
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        locales: {
-                          ...prev.locales,
-                          vi: {
-                            ...prev.locales.vi,
-                            label: event.target.value,
-                          },
-                        },
-                      }))
-                    }
-                    className="w-full rounded border border-gray-300 px-3 py-2"
-                  />
-                </label>
-                <label className="block text-sm">
-                  <span className="mb-1 block font-medium">URL (VI)</span>
-                  <input
-                    value={form.locales.vi.url}
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        locales: {
-                          ...prev.locales,
-                          vi: { ...prev.locales.vi, url: event.target.value },
-                        },
-                      }))
-                    }
-                    className="w-full rounded border border-gray-300 px-3 py-2"
-                    placeholder="/vi or https://…"
-                  />
-                </label>
-                <label className="block text-sm">
-                  <span className="mb-1 block font-medium">Label (EN)</span>
-                  <input
-                    value={form.locales.en.label}
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        locales: {
-                          ...prev.locales,
-                          en: {
-                            ...prev.locales.en,
-                            label: event.target.value,
-                          },
-                        },
-                      }))
-                    }
-                    className="w-full rounded border border-gray-300 px-3 py-2"
-                  />
-                </label>
-                <label className="block text-sm">
-                  <span className="mb-1 block font-medium">URL (EN)</span>
-                  <input
-                    value={form.locales.en.url}
-                    onChange={(event) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        locales: {
-                          ...prev.locales,
-                          en: { ...prev.locales.en, url: event.target.value },
-                        },
-                      }))
-                    }
-                    className="w-full rounded border border-gray-300 px-3 py-2"
-                    placeholder="/en or https://…"
-                  />
-                </label>
-              </div>
-            )}
-
-            <div className="flex flex-wrap gap-4 text-sm">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={form.enabled}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      enabled: event.target.checked,
-                    }))
-                  }
-                />
-                Enabled
-              </label>
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={form.openInNewTab}
-                  onChange={(event) =>
-                    setForm((prev) => ({
-                      ...prev,
-                      openInNewTab: event.target.checked,
-                    }))
-                  }
-                />
-                Open in new tab
-              </label>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                disabled={pending}
-                onClick={onSave}
-                className="rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-black disabled:opacity-60"
-              >
-                {pending ? "Saving…" : "Save"}
-              </button>
-              <button
-                type="button"
-                disabled={pending}
-                onClick={() => {
-                  setShowForm(false);
-                  setEditingId(null);
-                }}
-                className="rounded border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
         ) : null}
 
         {displayItems.length === 0 ? (
@@ -1258,6 +963,24 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
           </>
         )}
       </div>
+      <MenuItemEditorModal
+        key={
+          editor
+            ? `${editor.editingId ?? "new"}-${editor.initial.parentId ?? "root"}-${tab}`
+            : "closed"
+        }
+        open={Boolean(editor)}
+        editingId={editor?.editingId}
+        location={tab}
+        initial={editor?.initial ?? emptyMenuItemForm(tab)}
+        pages={pages}
+        parentOptions={parentOptions.map((item) => ({
+          id: item.id,
+          label: itemLabel(item),
+          depth: getItemDepth(item.id, parentById),
+        }))}
+        onClose={() => setEditor(null)}
+      />
       {modal}
     </>
   );

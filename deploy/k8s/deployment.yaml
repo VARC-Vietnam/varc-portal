@@ -20,7 +20,8 @@ spec:
       containers:
         - name: web
           image: ghcr.io/varc-vietnam/varc-portal:v0.0.21
-          imagePullPolicy: IfNotPresent
+          # Always: same tag rebuilds (e.g. overwrite v0.0.21) must pull the new digest.
+          imagePullPolicy: Always
           ports:
             - containerPort: 3099
           envFrom:

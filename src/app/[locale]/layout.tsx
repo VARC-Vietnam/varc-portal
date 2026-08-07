@@ -30,6 +30,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const siteTitle = branding.siteTitle;
   const description = branding.metaDescription || branding.tagline;
   const suffix = `${siteName} | ${siteTitle}`;
+  const favicon = branding.faviconUrl.trim();
 
   return {
     title: {
@@ -39,8 +40,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       template: `%s - ${suffix}`,
     },
     description,
-    icons: branding.faviconUrl
-      ? { icon: branding.faviconUrl }
+    icons: favicon
+      ? {
+          icon: [{ url: "/api/favicon" }],
+          shortcut: [{ url: "/api/favicon" }],
+          apple: [{ url: "/api/favicon" }],
+        }
       : undefined,
     openGraph: {
       title: suffix,

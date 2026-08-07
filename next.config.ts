@@ -8,6 +8,12 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   async redirects() {
     return [
+      // Prefer CMS favicon over any leftover static /favicon.ico from older images.
+      {
+        source: "/favicon.ico",
+        destination: "/api/favicon",
+        permanent: false,
+      },
       // Legacy Vietnamese paths from localePrefix "as-needed" + localized pathnames
       {
         source: "/tin-tuc/:slug",

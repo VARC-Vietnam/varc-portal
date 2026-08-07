@@ -669,29 +669,33 @@ export async function getPublicSiteBranding(
   locale: AppLocale,
 ): Promise<PublicSiteBranding> {
   const key = localeKey(locale);
-  const doc = await getSiteSettingsDocument();
   const defaults = DEFAULT_SITE_LOCALES[key];
-
-  if (!doc) {
-    return {
-      ...defaults,
-      logoUrl: "",
-      faviconUrl: "",
-      ogImageUrl: "",
-    };
-  }
-
-  const preferred = doc.locales?.[key];
-  const fallback = doc.locales?.[key === "en" ? "vi" : "en"];
-  const localeContent = mergeLocale(
-    preferred,
-    mergeLocale(fallback, defaults),
-  );
-
-  return {
-    ...localeContent,
-    logoUrl: doc.logoUrl ?? "",
-    faviconUrl: doc.faviconUrl ?? "",
-    ogImageUrl: doc.ogImageUrl ?? "",
+  const empty: PublicSiteBranding = {
+    ...defaults,
+    logoUrl: "",
+    faviconUrl: "",
+    ogImageUrl: "",
   };
+
+  try {
+    const doc = await getSiteSettingsDocument();
+    if (!doc) return empty;
+
+    const preferred = doc.locales?.[key];
+    const fallback = doc.locales?.[key === "en" ? "vi" : "en"];
+    const localeContent = mergeLocale(
+      preferred,
+      mergeLocale(fallback, defaults),
+    );
+
+    return {
+      ...localeContent,
+      logoUrl: doc.logoUrl ?? "",
+      faviconUrl: doc.faviconUrl ?? "",
+      ogImageUrl: doc.ogImageUrl ?? "",
+    };
+  } catch {
+    // Build-time prerender / transient DB outages should not crash the app.
+    return empty;
+  }
 }

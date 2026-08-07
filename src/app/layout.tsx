@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Newsreader, Outfit } from "next/font/google";
-import { getPublicSiteBranding } from "@/lib/cms";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -28,30 +27,24 @@ function siteOrigin(): string | undefined {
   }
 }
 
-export async function generateMetadata(): Promise<Metadata> {
-  const branding = await getPublicSiteBranding("vi");
-  const origin = siteOrigin();
-  const favicon = branding.faviconUrl.trim();
+const origin = siteOrigin();
 
-  return {
-    metadataBase: origin ? new URL(origin) : undefined,
-    title: {
-      default: "VARC",
-      template: "%s | VARC",
-    },
-    description:
-      "Cổng thông tin Hiệp hội Vô tuyến Nghiệp dư Việt Nam / Vietnam Amateur Radio Club portal",
-    // Point every icon slot at /api/favicon so nothing competes with a
-    // leftover file-based /favicon.ico from older Docker layers.
-    icons: favicon
-      ? {
-          icon: [{ url: "/api/favicon" }],
-          shortcut: [{ url: "/api/favicon" }],
-          apple: [{ url: "/api/favicon" }],
-        }
-      : undefined,
-  };
-}
+// Keep this static (no DB). /_not-found is prerendered at build time; CMS
+// favicon is resolved at request time via /api/favicon.
+export const metadata: Metadata = {
+  metadataBase: origin ? new URL(origin) : undefined,
+  title: {
+    default: "VARC",
+    template: "%s | VARC",
+  },
+  description:
+    "Cổng thông tin Hiệp hội Vô tuyến Nghiệp dư Việt Nam / Vietnam Amateur Radio Club portal",
+  icons: {
+    icon: [{ url: "/api/favicon" }],
+    shortcut: [{ url: "/api/favicon" }],
+    apple: [{ url: "/api/favicon" }],
+  },
+};
 
 export default function RootLayout({
   children,

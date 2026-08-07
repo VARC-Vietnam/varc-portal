@@ -512,6 +512,7 @@ export function ArticleEditor({
                   key={tab}
                   value={locale.content}
                   onChange={(html) => updateLocale(tab, "content", html)}
+                  imageAltFallback={locale.title}
                   placeholder={
                     tab === "vi" ? "Nội dung bài viết…" : "Article content…"
                   }

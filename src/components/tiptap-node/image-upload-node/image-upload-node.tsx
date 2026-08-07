@@ -7,6 +7,7 @@ import { Button } from "@/components/tiptap-ui-primitive/button"
 import { CloseIcon } from "@/components/tiptap-icons/close-icon"
 import "@/components/tiptap-node/image-upload-node/image-upload-node.scss"
 import { focusNextNode, isValidPosition } from "@/lib/tiptap-utils"
+import { getImageAltFallback } from "@/lib/tiptap-image-alt"
 
 export interface FileItem {
   /**
@@ -460,12 +461,13 @@ export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
         const imageNodes = urls.map((url, index) => {
           const filename =
             files[index]?.name.replace(/\.[^/.]+$/, "") || "unknown"
+          const altFallback = getImageAltFallback(props.editor)
           return {
             type: extension.options.type,
             attrs: {
               ...extension.options,
               src: url,
-              alt: filename,
+              alt: altFallback || filename,
               title: filename,
             },
           }

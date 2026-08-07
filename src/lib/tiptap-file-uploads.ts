@@ -1,4 +1,5 @@
 import type { Editor } from "@tiptap/react"
+import { getImageAltFallback } from "@/lib/tiptap-image-alt"
 import { handleMediaUpload } from "@/lib/tiptap-utils"
 
 export const EDITOR_ALLOWED_UPLOAD_MIME = [
@@ -25,13 +26,14 @@ export function insertUploadedFile(
   pos?: number
 ) {
   if (file.type.startsWith("image/")) {
+    const alt = getImageAltFallback(editor)
     if (typeof pos === "number") {
       editor
         .chain()
         .focus()
         .insertContentAt(pos, {
           type: "image",
-          attrs: { src: url, alt: file.name || "" },
+          attrs: { src: url, alt },
         })
         .run()
       return
@@ -40,7 +42,7 @@ export function insertUploadedFile(
     editor
       .chain()
       .focus()
-      .setImage({ src: url, alt: file.name || "" })
+      .setImage({ src: url, alt })
       .run()
     return
   }

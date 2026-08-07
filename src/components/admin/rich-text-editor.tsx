@@ -6,6 +6,8 @@ type Props = {
   value: string;
   onChange: (html: string) => void;
   placeholder?: string;
+  /** Used as image alt when paste/upload does not provide one (e.g. article title). */
+  imageAltFallback?: string;
 };
 
 const SimpleEditor = dynamic(
@@ -25,6 +27,12 @@ const SimpleEditor = dynamic(
   },
 );
 
-export function RichTextEditor({ value, onChange }: Props) {
-  return <SimpleEditor content={value} onChange={onChange} />;
+export function RichTextEditor({ value, onChange, imageAltFallback }: Props) {
+  return (
+    <SimpleEditor
+      content={value}
+      onChange={onChange}
+      imageAltFallback={imageAltFallback}
+    />
+  );
 }

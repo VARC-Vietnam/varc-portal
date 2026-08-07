@@ -94,6 +94,7 @@ import {
   EDITOR_ALLOWED_UPLOAD_MIME,
   uploadFilesIntoEditor,
 } from "@/lib/tiptap-file-uploads"
+import { ImageAltFallback } from "@/lib/tiptap-image-alt"
 
 // --- Styles ---
 import "@/components/tiptap-templates/simple/simple-editor.scss"
@@ -105,6 +106,8 @@ const SEARCH_AND_REPLACE_SCROLL_OPTIONS: ScrollIntoViewOptions = {
 export type SimpleEditorProps = {
   content?: string
   onChange?: (html: string) => void
+  /** Used as image alt when paste/upload does not provide one (e.g. article title). */
+  imageAltFallback?: string
 }
 
 const MainToolbarContent = ({
@@ -334,6 +337,7 @@ export function SimpleEditor(props: SimpleEditorProps = {}) {
 function SimpleEditorClient({
   content = "",
   onChange,
+  imageAltFallback = "",
 }: SimpleEditorProps) {
   const isMobile = useIsBreakpoint()
   const [mobileView, setMobileView] = useState<"main" | "highlighter" | "link">(
@@ -380,6 +384,7 @@ function SimpleEditorClient({
         searchDebounceMs: 500,
         injectCSS: false,
       }),
+      ImageAltFallback,
       FileHandler.configure({
         allowedMimeTypes: [...EDITOR_ALLOWED_UPLOAD_MIME],
         consumePasteEvent: true,
@@ -405,6 +410,11 @@ function SimpleEditorClient({
       onChange?.(current.getHTML())
     },
   })
+
+  useEffect(() => {
+    if (!editor) return
+    editor.storage.imageAltFallback.value = imageAltFallback.trim()
+  }, [editor, imageAltFallback])
 
   useEffect(() => {
     if (!editor) return

@@ -267,6 +267,7 @@ export function PageEditor({
             key={`${tab}-${form.templateKey}`}
             value={locale.content}
             onChange={(html) => updateLocale(tab, "content", html)}
+            imageAltFallback={locale.title}
             placeholder={
               isGallery
                 ? tab === "vi"

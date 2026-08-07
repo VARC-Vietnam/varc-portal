@@ -9,6 +9,7 @@ import {
   MediaPickerModal,
   type MediaPickerSelection,
 } from "@/components/admin/media-picker-modal";
+import { resolveImageAlt } from "@/lib/tiptap-image-alt";
 
 type Props = {
   editor?: Editor | null;
@@ -33,7 +34,7 @@ export function MediaLibraryButton({
       .focus()
       .setImage({
         src: media.url,
-        alt: media.alt || media.originalName || "",
+        alt: resolveImageAlt(editor, media.alt) || media.originalName || "",
         title: media.originalName || undefined,
       })
       .run();

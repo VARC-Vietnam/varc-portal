@@ -1,52 +1,117 @@
 .tiptap.ProseMirror {
-  img {
-    max-width: 100%;
-    height: auto;
+  .content-figure-node {
     display: block;
   }
 
+  figure.content-figure,
+  .content-figure {
+    display: block;
+    margin: 2rem 0;
+    padding: 0;
+    max-width: 100%;
+    text-align: left;
+  }
+
+  figure.content-figure[data-text-align="center"],
+  figure.content-figure--align-center,
+  .content-figure[data-text-align="center"],
+  figure.content-figure[data-text-align="justify"],
+  figure.content-figure--align-justify {
+    margin-left: auto;
+    margin-right: auto;
+    text-align: center;
+  }
+
+  figure.content-figure[data-text-align="right"],
+  figure.content-figure--align-right,
+  .content-figure[data-text-align="right"] {
+    margin-left: auto;
+    margin-right: 0;
+    text-align: right;
+  }
+
+  figure.content-figure[data-text-align="left"],
+  figure.content-figure--align-left,
+  .content-figure[data-text-align="left"] {
+    margin-left: 0;
+    margin-right: auto;
+    text-align: left;
+  }
+
+  figure.content-figure img,
+  .content-figure img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+    outline: 0.125rem solid transparent;
+    border-radius: var(--tt-radius-xs, 0.25rem);
+  }
+
+  figure.content-figure.ProseMirror-selectednode img,
+  .content-figure.ProseMirror-selectednode img,
+  img.ProseMirror-selectednode {
+    outline-color: var(--tt-brand-color-500);
+  }
+
+  .content-figcaption {
+    display: block;
+    margin: 0.5rem auto 0;
+    max-width: 40rem;
+    padding: 0 0.5rem;
+    color: var(--tt-gray-light-600, #4b5563);
+    font-size: 0.875rem;
+    font-style: italic;
+    line-height: 1.4;
+    text-align: center;
+  }
+
+  figure.content-figure[data-size="small"],
+  .content-figure[data-size="small"],
   img[data-size="small"] {
     width: 25%;
     max-width: 240px;
   }
 
+  figure.content-figure[data-size="medium"],
+  .content-figure[data-size="medium"],
   img[data-size="medium"] {
     width: 50%;
     max-width: 480px;
   }
 
+  figure.content-figure[data-size="large"],
+  .content-figure[data-size="large"],
   img[data-size="large"] {
     width: 75%;
     max-width: 720px;
   }
 
+  figure.content-figure[data-size="hd"],
+  .content-figure[data-size="hd"],
   img[data-size="hd"] {
     width: 100%;
     max-width: 1280px;
   }
 
+  figure.content-figure[data-size="fhd"],
+  .content-figure[data-size="fhd"],
   img[data-size="fhd"] {
     width: 100%;
     max-width: 1920px;
   }
 
+  figure.content-figure[data-size="original"],
+  .content-figure[data-size="original"],
   img[data-size="original"] {
     width: auto;
     max-width: 100%;
   }
 
-  p > img {
-    display: inline-block;
-  }
-
-  > img:not([data-type="emoji"] img) {
-    margin: 2rem 0;
-    outline: 0.125rem solid transparent;
-    border-radius: var(--tt-radius-xs, 0.25rem);
-  }
-
-  img:not([data-type="emoji"] img).ProseMirror-selectednode {
-    outline-color: var(--tt-brand-color-500);
+  figure.content-figure[data-size] img,
+  .content-figure[data-size] img {
+    width: 100%;
+    max-width: 100%;
   }
 
   // Thread image handling

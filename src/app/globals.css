@@ -156,46 +156,113 @@ button:disabled,
   border-radius: 0.25rem;
 }
 
+.prose-article figure.content-figure,
+.prose-article-wide figure.content-figure {
+  display: block;
+  margin: 1.75rem 0;
+  margin-left: 0;
+  margin-right: auto;
+  max-width: 100%;
+  text-align: left;
+}
+
+.prose-article figure.content-figure[data-text-align="left"],
+.prose-article-wide figure.content-figure[data-text-align="left"] {
+  margin-left: 0;
+  margin-right: auto;
+  text-align: left;
+}
+
+.prose-article figure.content-figure[data-text-align="center"],
+.prose-article-wide figure.content-figure[data-text-align="center"],
+.prose-article figure.content-figure[data-text-align="justify"],
+.prose-article-wide figure.content-figure[data-text-align="justify"] {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+.prose-article figure.content-figure[data-text-align="right"],
+.prose-article-wide figure.content-figure[data-text-align="right"] {
+  margin-left: auto;
+  margin-right: 0;
+  text-align: right;
+}
+
+.prose-article figure.content-figure img,
+.prose-article-wide figure.content-figure img {
+  display: block;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 100%;
+}
+
+.prose-article .content-figcaption,
+.prose-article-wide .content-figcaption {
+  display: block;
+  margin: 0.5rem auto 0;
+  max-width: 40rem;
+  padding: 0 0.5rem;
+  color: var(--muted);
+  font-size: 0.875rem;
+  font-style: italic;
+  line-height: 1.45;
+  text-align: center;
+}
+
 .prose-article-lightbox img {
   cursor: zoom-in;
 }
 
-.prose-article-lightbox a:has(img) {
+.prose-article-lightbox a:has(img),
+.prose-article-lightbox figure:has(img) {
   cursor: zoom-in;
 }
 
 .prose-article img[data-size="small"],
-.prose-article-wide img[data-size="small"] {
+.prose-article-wide img[data-size="small"],
+.prose-article figure.content-figure[data-size="small"],
+.prose-article-wide figure.content-figure[data-size="small"] {
   width: 25%;
   max-width: 240px;
 }
 
 .prose-article img[data-size="medium"],
-.prose-article-wide img[data-size="medium"] {
+.prose-article-wide img[data-size="medium"],
+.prose-article figure.content-figure[data-size="medium"],
+.prose-article-wide figure.content-figure[data-size="medium"] {
   width: 50%;
   max-width: 480px;
 }
 
 .prose-article img[data-size="large"],
-.prose-article-wide img[data-size="large"] {
+.prose-article-wide img[data-size="large"],
+.prose-article figure.content-figure[data-size="large"],
+.prose-article-wide figure.content-figure[data-size="large"] {
   width: 75%;
   max-width: 720px;
 }
 
 .prose-article img[data-size="hd"],
-.prose-article-wide img[data-size="hd"] {
+.prose-article-wide img[data-size="hd"],
+.prose-article figure.content-figure[data-size="hd"],
+.prose-article-wide figure.content-figure[data-size="hd"] {
   width: 100%;
   max-width: 1280px;
 }
 
 .prose-article img[data-size="fhd"],
-.prose-article-wide img[data-size="fhd"] {
+.prose-article-wide img[data-size="fhd"],
+.prose-article figure.content-figure[data-size="fhd"],
+.prose-article-wide figure.content-figure[data-size="fhd"] {
   width: 100%;
   max-width: 1920px;
 }
 
 .prose-article img[data-size="original"],
-.prose-article-wide img[data-size="original"] {
+.prose-article-wide img[data-size="original"],
+.prose-article figure.content-figure[data-size="original"],
+.prose-article-wide figure.content-figure[data-size="original"] {
   width: auto;
   max-width: 100%;
 }
@@ -220,13 +287,28 @@ button:disabled,
 
 .prose-article table,
 .prose-article-wide table {
-  display: block;
+  display: table;
   width: 100%;
   max-width: 100%;
   margin: 1.25rem 0;
   border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.prose-article .tableWrapper,
+.prose-article-wide .tableWrapper {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  margin: 1.25rem 0;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+.prose-article .tableWrapper > table,
+.prose-article-wide .tableWrapper > table {
+  margin: 0;
+  min-width: 100%;
 }
 
 .prose-article th,
@@ -237,16 +319,8 @@ button:disabled,
   padding: 0.65rem 0.8rem;
   text-align: left;
   vertical-align: top;
-  white-space: nowrap;
-}
-
-@media (min-width: 640px) {
-  .prose-article th,
-  .prose-article td,
-  .prose-article-wide th,
-  .prose-article-wide td {
-    white-space: normal;
-  }
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .prose-article th,

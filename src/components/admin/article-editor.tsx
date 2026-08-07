@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cloneArticleAction, deleteArticleAction, saveArticleAction } from "@/lib/actions";
 import { isEmptyHtml } from "@/lib/html";
@@ -54,6 +54,11 @@ const emptyLocale = {
   metaDescription: "",
 };
 
+type PublishFieldErrors = {
+  title?: string;
+  content?: string;
+};
+
 export function ArticleEditor({
   articleId,
   heading,
@@ -65,11 +70,14 @@ export function ArticleEditor({
   const [now, setNow] = useState(() => new Date());
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<PublishFieldErrors>({});
   const [form, setForm] = useState<ArticleFormValues>(initial);
   const [tab, setTab] = useState<"vi" | "en">("vi");
   const [sideSection, setSideSection] =
     useState<ArticleSideSectionId | null>("category");
   const asideExpanded = useArticleSectionAsideExpanded();
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  const contentFieldRef = useRef<HTMLDivElement>(null);
 
   const publishedIsScheduled = isFuturePublishAt(form.publishedAt, now);
 
@@ -77,12 +85,6 @@ export function ArticleEditor({
     () => (form.locales[tab].title ? makeSlug(form.locales[tab].title) : ""),
     [form.locales, tab],
   );
-
-  const canPublish = useMemo(() => {
-    return Boolean(
-      form.locales.vi.title.trim() && !isEmptyHtml(form.locales.vi.content),
-    );
-  }, [form]);
 
   function updateLocale(
     locale: "vi" | "en",
@@ -96,14 +98,59 @@ export function ArticleEditor({
         [locale]: { ...prev.locales[locale], [field]: value },
       },
     }));
+    if (locale === "vi" && (field === "title" || field === "content")) {
+      setFieldErrors((prev) => {
+        if (!prev[field]) return prev;
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
   }
 
   function setCategories(categoryIds: string[]) {
     setForm((prev) => ({ ...prev, categoryIds }));
   }
 
+  function validatePublish(): PublishFieldErrors {
+    const next: PublishFieldErrors = {};
+    if (!form.locales.vi.title.trim()) {
+      next.title = "Vietnamese title is required to publish";
+    }
+    if (isEmptyHtml(form.locales.vi.content)) {
+      next.content = "Vietnamese content is required to publish";
+    }
+    return next;
+  }
+
   function onSave(status: "draft" | "published") {
     setError(null);
+
+    if (status === "published") {
+      const nextErrors = validatePublish();
+      if (nextErrors.title || nextErrors.content) {
+        setFieldErrors(nextErrors);
+        setTab("vi");
+        setError("Fill in the required Vietnamese fields before publishing.");
+        queueMicrotask(() => {
+          if (nextErrors.title) {
+            titleInputRef.current?.focus();
+            titleInputRef.current?.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+            });
+          } else {
+            contentFieldRef.current?.scrollIntoView({
+              behavior: "smooth",
+              block: "center",
+            });
+          }
+        });
+        return;
+      }
+      setFieldErrors({});
+    }
+
     startTransition(async () => {
       const nextPublishedAt =
         status === "published"
@@ -422,7 +469,7 @@ export function ArticleEditor({
               </button>
               <button
                 type="button"
-                disabled={pending || !canPublish || undefined}
+                disabled={pending || undefined}
                 onClick={() => onSave("published")}
                 className="inline-flex items-center gap-2 rounded bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-black disabled:opacity-50"
               >
@@ -463,9 +510,20 @@ export function ArticleEditor({
                 <button
                   type="button"
                   onClick={() => setTab("vi")}
-                  className={`rounded px-3 py-1.5 text-sm ${tab === "vi" ? "bg-gray-900 text-white" : "border border-gray-300 bg-white"}`}
+                  className={`rounded px-3 py-1.5 text-sm ${
+                    tab === "vi"
+                      ? "bg-gray-900 text-white"
+                      : fieldErrors.title || fieldErrors.content
+                        ? "border border-red-400 bg-red-50 text-red-800"
+                        : "border border-gray-300 bg-white"
+                  }`}
                 >
                   Vietnamese
+                  {fieldErrors.title || fieldErrors.content ? (
+                    <span className="ml-1 text-red-500" aria-hidden>
+                      *
+                    </span>
+                  ) : null}
                 </button>
                 <button
                   type="button"
@@ -478,12 +536,26 @@ export function ArticleEditor({
               <label className="block text-sm">
                 <span className="mb-1 block font-medium">
                   Title ({tab.toUpperCase()})
+                  {tab === "vi" ? (
+                    <span className="ml-1 text-red-600" aria-hidden>
+                      *
+                    </span>
+                  ) : null}
                 </span>
                 <input
+                  ref={tab === "vi" ? titleInputRef : undefined}
                   value={locale.title}
                   onChange={(e) => updateLocale(tab, "title", e.target.value)}
-                  className="w-full rounded border border-gray-300 px-3 py-2"
+                  aria-invalid={tab === "vi" && Boolean(fieldErrors.title)}
+                  className={`w-full rounded border px-3 py-2 ${
+                    tab === "vi" && fieldErrors.title
+                      ? "border-red-500 bg-red-50 outline-none ring-2 ring-red-200"
+                      : "border-gray-300"
+                  }`}
                 />
+                {tab === "vi" && fieldErrors.title ? (
+                  <p className="mt-1 text-xs text-red-600">{fieldErrors.title}</p>
+                ) : null}
               </label>
               <div className="text-sm">
                 <span className="mb-1 block font-medium">Slug (auto)</span>
@@ -506,17 +578,38 @@ export function ArticleEditor({
                   className="w-full rounded border border-gray-300 px-3 py-2"
                 />
               </label>
-              <div className="block text-sm">
-                <span className="mb-1 block font-medium">Content</span>
-                <RichTextEditor
-                  key={tab}
-                  value={locale.content}
-                  onChange={(html) => updateLocale(tab, "content", html)}
-                  imageAltFallback={locale.title}
-                  placeholder={
-                    tab === "vi" ? "Nội dung bài viết…" : "Article content…"
+              <div className="block text-sm" ref={contentFieldRef}>
+                <span className="mb-1 block font-medium">
+                  Content
+                  {tab === "vi" ? (
+                    <span className="ml-1 text-red-600" aria-hidden>
+                      *
+                    </span>
+                  ) : null}
+                </span>
+                <div
+                  aria-invalid={tab === "vi" && Boolean(fieldErrors.content)}
+                  className={
+                    tab === "vi" && fieldErrors.content
+                      ? "rounded-md ring-2 ring-red-500 ring-offset-2"
+                      : undefined
                   }
-                />
+                >
+                  <RichTextEditor
+                    key={tab}
+                    value={locale.content}
+                    onChange={(html) => updateLocale(tab, "content", html)}
+                    imageAltFallback={locale.title}
+                    placeholder={
+                      tab === "vi" ? "Nội dung bài viết…" : "Article content…"
+                    }
+                  />
+                </div>
+                {tab === "vi" && fieldErrors.content ? (
+                  <p className="mt-1 text-xs text-red-600">
+                    {fieldErrors.content}
+                  </p>
+                ) : null}
               </div>
             </div>
           </div>

@@ -75,11 +75,15 @@ export function canSetTextAlign(
   if (!editor || editor.isDestroyed || !editor.isEditable) return false
   if (
     !isExtensionAvailable(editor, "textAlign") ||
-    isNodeTypeSelected(editor, ["image", "horizontalRule"])
+    isNodeTypeSelected(editor, ["horizontalRule"])
   )
     return false
 
   try {
+    // Image nodes use TextAlign via types: ["image", ...] — allow when selected.
+    if (isNodeTypeSelected(editor, ["image"])) {
+      return Boolean(editor.can().updateAttributes("image", { textAlign: align }))
+    }
     return editor.can().setTextAlign(align)
   } catch {
     return false
@@ -102,6 +106,10 @@ export function isTextAlignActive(
   align: TextAlign
 ): boolean {
   if (!editor || !editor.isEditable) return false
+  if (isNodeTypeSelected(editor, ["image"])) {
+    const current = String(editor.getAttributes("image").textAlign || "left")
+    return current === align
+  }
   return editor.isActive({ textAlign: align })
 }
 
@@ -113,6 +121,16 @@ export function setTextAlign(editor: Editor | null, align: TextAlign): boolean {
   if (!canSetTextAlign(editor, align)) return false
 
   try {
+    if (isNodeTypeSelected(editor, ["image"])) {
+      const pos = editor.state.selection.from
+      return editor
+        .chain()
+        .focus()
+        .updateAttributes("image", { textAlign: align })
+        .setNodeSelection(pos)
+        .run()
+    }
+
     const chain = editor.chain().focus()
     if (hasSetTextAlign(chain)) {
       return chain.setTextAlign(align).run()

@@ -1,6 +1,12 @@
 "use client"
 
-import { useCallback, useEffect, useLayoutEffect, useState } from "react"
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react"
 import type { Editor } from "@tiptap/react"
 import { NodeSelection } from "@tiptap/pm/state"
 
@@ -19,6 +25,7 @@ type Props = {
 type MenuPosition = {
   top: number
   left: number
+  width: number
 }
 
 function getSelectedImageSize(editor: Editor): ImageSizePreset {
@@ -26,7 +33,8 @@ function getSelectedImageSize(editor: Editor): ImageSizePreset {
   return isImageSizePreset(size) ? size : "original"
 }
 
-function getSelectedImageElement(editor: Editor): HTMLElement | null {
+/** Prefer the figure wrapper so the menu sits under image + caption. */
+function getSelectedImageAnchor(editor: Editor): HTMLElement | null {
   const { selection } = editor.state
   if (!(selection instanceof NodeSelection) || selection.node.type.name !== "image") {
     return null
@@ -34,6 +42,11 @@ function getSelectedImageElement(editor: Editor): HTMLElement | null {
 
   const nodeDom = editor.view.nodeDOM(selection.from)
   if (!(nodeDom instanceof HTMLElement)) return null
+  if (nodeDom.tagName === "FIGURE" || nodeDom.classList.contains("content-figure")) {
+    return nodeDom
+  }
+  const figure = nodeDom.closest("figure")
+  if (figure instanceof HTMLElement) return figure
   if (nodeDom.tagName === "IMG") return nodeDom
   return nodeDom.querySelector("img")
 }
@@ -46,10 +59,37 @@ function isImageNodeSelected(editor: Editor): boolean {
   )
 }
 
+function sanitizeAlt(value: string): string {
+  return value.replace(/<[^>]*>/g, "").slice(0, 500)
+}
+
+function applyImageAlt(editor: Editor, pos: number, alt: string) {
+  const node = editor.state.doc.nodeAt(pos)
+  if (!node || node.type.name !== "image") return false
+
+  const nextAlt = sanitizeAlt(alt)
+  if ((node.attrs.alt ?? "") === nextAlt) return true
+
+  const tr = editor.state.tr.setNodeMarkup(pos, undefined, {
+    ...node.attrs,
+    alt: nextAlt,
+  })
+  editor.view.dispatch(tr)
+  return true
+}
+
 export function ImageSizeMenu({ editor }: Props) {
   const [visible, setVisible] = useState(false)
   const [activeSize, setActiveSize] = useState<ImageSizePreset>("original")
-  const [position, setPosition] = useState<MenuPosition>({ top: 0, left: 0 })
+  const [position, setPosition] = useState<MenuPosition>({
+    top: 0,
+    left: 0,
+    width: 280,
+  })
+  const [altDraft, setAltDraft] = useState("")
+  const [imagePos, setImagePos] = useState<number | null>(null)
+  const altFocusedRef = useRef(false)
+  const imagePosRef = useRef<number | null>(null)
 
   const syncMenu = useCallback(() => {
     if (!editor || editor.isDestroyed) {
@@ -57,23 +97,58 @@ export function ImageSizeMenu({ editor }: Props) {
       return
     }
 
+    if (altFocusedRef.current && imagePosRef.current != null) {
+      const pos = imagePosRef.current
+      const node = editor.state.doc.nodeAt(pos)
+      if (node?.type.name === "image") {
+        const nodeDom = editor.view.nodeDOM(pos)
+        const anchor =
+          nodeDom instanceof HTMLElement
+            ? nodeDom.tagName === "FIGURE" ||
+              nodeDom.classList.contains("content-figure")
+              ? nodeDom
+              : (nodeDom.querySelector("figure, img") as HTMLElement | null)
+            : null
+        if (anchor) {
+          const rect = anchor.getBoundingClientRect()
+          setPosition({
+            top: rect.bottom + 8,
+            left: rect.left + rect.width / 2,
+            width: Math.max(220, Math.min(rect.width, window.innerWidth - 24)),
+          })
+          setVisible(true)
+          return
+        }
+      }
+      altFocusedRef.current = false
+      imagePosRef.current = null
+      setImagePos(null)
+    }
+
     if (!isImageNodeSelected(editor)) {
       setVisible(false)
+      setImagePos(null)
+      imagePosRef.current = null
       return
     }
 
+    const pos = editor.state.selection.from
+    setImagePos(pos)
+    imagePosRef.current = pos
     setActiveSize(getSelectedImageSize(editor))
+    setAltDraft(String(editor.getAttributes("image").alt ?? ""))
 
-    const imageEl = getSelectedImageElement(editor)
-    if (!imageEl) {
+    const anchor = getSelectedImageAnchor(editor)
+    if (!anchor) {
       setVisible(false)
       return
     }
 
-    const rect = imageEl.getBoundingClientRect()
+    const rect = anchor.getBoundingClientRect()
     setPosition({
       top: rect.bottom + 8,
       left: rect.left + rect.width / 2,
+      width: Math.max(220, Math.min(rect.width, window.innerWidth - 24)),
     })
     setVisible(true)
   }, [editor])
@@ -86,7 +161,6 @@ export function ImageSizeMenu({ editor }: Props) {
     if (!editor) return
 
     const onUpdate = () => {
-      // Wait a frame so layout reflects new image size before repositioning.
       requestAnimationFrame(() => syncMenu())
     }
 
@@ -138,49 +212,95 @@ export function ImageSizeMenu({ editor }: Props) {
     [editor, syncMenu],
   )
 
+  const commitAlt = useCallback(
+    (value: string) => {
+      if (!editor || imagePosRef.current == null) return
+      applyImageAlt(editor, imagePosRef.current, value)
+    },
+    [editor],
+  )
+
   if (!editor || !visible) return null
 
   return (
     <div
       className="image-size-menu"
       role="toolbar"
-      aria-label="Image size"
+      aria-label="Image options"
       style={{
         position: "fixed",
         top: position.top,
         left: position.left,
+        width: position.width,
         transform: "translateX(-50%)",
         zIndex: 80,
       }}
       onMouseDown={(event) => {
-        // Keep image NodeSelection when interacting with the menu.
+        const target = event.target as HTMLElement | null
+        if (target?.closest("input, textarea, label")) return
         event.preventDefault()
       }}
     >
-      {IMAGE_SIZE_PRESETS.map((preset) => {
-        const isActive = activeSize === preset.id
-        return (
-          <Button
-            key={preset.id}
-            type="button"
-            variant="ghost"
-            size="small"
-            data-active-state={isActive ? "on" : "off"}
-            aria-pressed={isActive}
-            tooltip={
-              preset.id === "hd"
-                ? "Image size: HD (1280px)"
-                : preset.id === "fhd"
-                  ? "Image size: FHD (1920px)"
-                  : `Image size: ${preset.label}`
+      <div className="image-size-menu__sizes" role="group" aria-label="Image size">
+        {IMAGE_SIZE_PRESETS.map((preset) => {
+          const isActive = activeSize === preset.id
+          return (
+            <Button
+              key={preset.id}
+              type="button"
+              variant="ghost"
+              size="small"
+              data-active-state={isActive ? "on" : "off"}
+              aria-pressed={isActive}
+              tooltip={
+                preset.id === "hd"
+                  ? "Image size: HD (1280px)"
+                  : preset.id === "fhd"
+                    ? "Image size: FHD (1920px)"
+                    : `Image size: ${preset.label}`
+              }
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={() => applySize(preset.id)}
+            >
+              <span className="tiptap-button-text">{preset.label}</span>
+            </Button>
+          )
+        })}
+      </div>
+
+      <label className="image-size-menu__alt">
+        <span className="image-size-menu__alt-label">Alt text</span>
+        <input
+          type="text"
+          value={altDraft}
+          maxLength={500}
+          placeholder="Describe this image"
+          aria-label="Image alt text"
+          className="image-size-menu__alt-input"
+          onFocus={() => {
+            altFocusedRef.current = true
+          }}
+          onChange={(event) => {
+            const value = event.target.value
+            setAltDraft(value)
+            commitAlt(value)
+          }}
+          onBlur={() => {
+            altFocusedRef.current = false
+            commitAlt(altDraft)
+            requestAnimationFrame(() => syncMenu())
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Escape" || event.key === "Enter") {
+              event.preventDefault()
+              ;(event.target as HTMLInputElement).blur()
+              if (imagePos != null) {
+                editor.chain().focus().setNodeSelection(imagePos).run()
+              }
             }
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={() => applySize(preset.id)}
-          >
-            <span className="tiptap-button-text">{preset.label}</span>
-          </Button>
-        )
-      })}
+          }}
+        />
+      </label>
     </div>
   )
 }

@@ -5,9 +5,9 @@ metadata:
   namespace: varc
 data:
   PORT: "3099"
-  NEXTAUTH_URL: "https://www.hamvn.com"
-  NEXT_PUBLIC_SITE_URL: "https://www.hamvn.com"
-  AUTH_URL: "https://www.hamvn.com"
+  NEXTAUTH_URL: "https://hamvn.com"
+  NEXT_PUBLIC_SITE_URL: "https://hamvn.com"
+  AUTH_URL: "https://hamvn.com"
   AUTH_TRUST_HOST: "true"
   STORAGE_DRIVER: "s3"
   S3_ENDPOINT: "https://s3.classq.io"

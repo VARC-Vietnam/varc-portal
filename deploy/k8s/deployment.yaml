@@ -19,7 +19,7 @@ spec:
         - name: ghcr-pull
       containers:
         - name: web
-          image: ghcr.io/varc-vietnam/varc-portal:v0.0.24
+          image: ghcr.io/varc-vietnam/varc-portal:v0.0.25
           # Always: same tag rebuilds (e.g. overwrite v0.0.21) must pull the new digest.
           imagePullPolicy: Always
           ports:

@@ -232,8 +232,9 @@ const menuLocaleSchema = z.object({
 export const menuItemFormSchema = z
   .object({
     location: z.enum(["navigation", "footer"]),
-    type: z.enum(["page", "custom"]),
+    type: z.enum(["page", "category", "custom"]),
     pageId: z.string().nullable(),
+    categoryId: z.string().nullable(),
     parentId: z.string().nullable().optional(),
     locales: z.object({
       vi: menuLocaleSchema,
@@ -249,6 +250,17 @@ export const menuItemFormSchema = z
           code: "custom",
           message: "Select a page for this menu item",
           path: ["pageId"],
+        });
+      }
+      return;
+    }
+
+    if (data.type === "category") {
+      if (!data.categoryId) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Select a category for this menu item",
+          path: ["categoryId"],
         });
       }
       return;

@@ -3,7 +3,7 @@ import mongoose, { Schema, type InferSchemaType, type Model } from "mongoose";
 export const MENU_LOCATIONS = ["navigation", "footer"] as const;
 export type MenuLocation = (typeof MENU_LOCATIONS)[number];
 
-export const MENU_ITEM_TYPES = ["page", "custom"] as const;
+export const MENU_ITEM_TYPES = ["page", "category", "custom"] as const;
 export type MenuItemType = (typeof MENU_ITEM_TYPES)[number];
 
 const MenuLocaleSchema = new Schema(
@@ -31,6 +31,11 @@ const MenuItemSchema = new Schema(
     pageId: {
       type: Schema.Types.ObjectId,
       ref: "Page",
+      default: null,
+    },
+    categoryId: {
+      type: Schema.Types.ObjectId,
+      ref: "Category",
       default: null,
     },
     parentId: {

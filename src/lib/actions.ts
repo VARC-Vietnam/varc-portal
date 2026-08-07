@@ -981,6 +981,14 @@ export async function saveMenuItemAction(
       if (!page) return { ok: false, error: "Page not found" };
     }
 
+    if (data.type === "category" && data.categoryId) {
+      const category = await Category.findOne({
+        _id: data.categoryId,
+        ...notDeletedFilter,
+      });
+      if (!category) return { ok: false, error: "Category not found" };
+    }
+
     const locales = {
       vi: {
         label: data.locales.vi.label.trim(),
@@ -1033,6 +1041,10 @@ export async function saveMenuItemAction(
       existing.pageId =
         data.type === "page" && data.pageId
           ? new mongoose.Types.ObjectId(data.pageId)
+          : null;
+      existing.categoryId =
+        data.type === "category" && data.categoryId
+          ? new mongoose.Types.ObjectId(data.categoryId)
           : null;
       existing.parentId = nextParentId;
       existing.locales = locales;
@@ -1087,6 +1099,10 @@ export async function saveMenuItemAction(
       pageId:
         data.type === "page" && data.pageId
           ? new mongoose.Types.ObjectId(data.pageId)
+          : null,
+      categoryId:
+        data.type === "category" && data.categoryId
+          ? new mongoose.Types.ObjectId(data.categoryId)
           : null,
       parentId: parentId ?? null,
       locales,

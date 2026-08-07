@@ -1,6 +1,8 @@
 import {
+  categorySelectOptions,
   getPageLocale,
   importNavPagesIntoMenuIfEmpty,
+  listCategories,
   listMenuItemsAdmin,
   listPages,
 } from "@/lib/cms";
@@ -22,10 +24,11 @@ export default async function AdminMenuPage({ searchParams }: Props) {
   const { tab } = await searchParams;
   const trash = tab === "trash";
   const imported = trash ? 0 : await importNavPagesIntoMenuIfEmpty();
-  const [activeItems, trashItems, pages] = await Promise.all([
+  const [activeItems, trashItems, pages, categories] = await Promise.all([
     listMenuItemsAdmin(),
     listMenuItemsAdmin({ trash: true }),
     listPages(),
+    listCategories(),
   ]);
   const items = trash ? trashItems : activeItems;
 
@@ -38,6 +41,7 @@ export default async function AdminMenuPage({ searchParams }: Props) {
       status: page.status,
     };
   });
+  const categoryOptions = categorySelectOptions(categories, "vi");
 
   return (
     <div>
@@ -71,6 +75,7 @@ export default async function AdminMenuPage({ searchParams }: Props) {
         <MenuManager
           initialItems={items}
           pages={pageOptions}
+          categories={categoryOptions}
           trash={trash}
         />
       </div>

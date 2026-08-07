@@ -42,9 +42,16 @@ type PageOption = {
   status: string;
 };
 
+type CategoryOption = {
+  id: string;
+  label: string;
+  depth?: number;
+};
+
 type Props = {
   initialItems: AdminMenuItem[];
   pages: PageOption[];
+  categories?: CategoryOption[];
   trash?: boolean;
 };
 
@@ -69,9 +76,22 @@ function itemLabel(item: AdminMenuItem) {
   return (
     item.locales.vi.label ||
     item.pageTitle ||
+    item.categoryTitle ||
     item.locales.en.label ||
     "(untitled)"
   );
+}
+
+function typeLabel(item: AdminMenuItem) {
+  if (item.type === "page") {
+    return item.pageTitle ? `Page · ${item.pageTitle}` : "Page";
+  }
+  if (item.type === "category") {
+    return item.categoryTitle
+      ? `Category · ${item.categoryTitle}`
+      : "Category";
+  }
+  return "Custom";
 }
 
 function toParentRefs(items: AdminMenuItem[]) {
@@ -183,7 +203,12 @@ function resolveDropMode(
   return "into";
 }
 
-export function MenuManager({ initialItems, pages, trash = false }: Props) {
+export function MenuManager({
+  initialItems,
+  pages,
+  categories = [],
+  trash = false,
+}: Props) {
   const router = useRouter();
   const { ask, modal } = useConfirm();
   const [pending, startTransition] = useTransition();
@@ -230,6 +255,7 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
         location: item.location,
         type: item.type,
         pageId: item.pageId,
+        categoryId: item.categoryId,
         parentId: item.parentId,
         locales: item.locales,
         enabled: item.enabled,
@@ -493,7 +519,7 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
                           <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-600">
                             <span className="capitalize">{item.location}</span>
                             <span className="capitalize">
-                              {item.type === "page" ? "Page" : "Custom"}
+                              {typeLabel(item)}
                             </span>
                             <span className="text-gray-500">
                               Deleted{" "}
@@ -547,7 +573,7 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
                             {item.location}
                           </td>
                           <td className="px-4 py-3 capitalize">
-                            {item.type === "page" ? "Page" : "Custom"}
+                            {typeLabel(item)}
                           </td>
                           <td className="px-4 py-3 text-gray-500">
                             {item.deletedAt
@@ -687,10 +713,7 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
                         </p>
                         <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-600">
                           <span>
-                            {item.type === "page" ? "Page" : "Custom"}
-                            {item.type === "page" && item.pageTitle
-                              ? ` · ${item.pageTitle}`
-                              : null}
+                            {typeLabel(item)}
                           </span>
                           <span
                             className={
@@ -912,10 +935,7 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
                           </div>
                         </td>
                         <td className="px-4 py-3 capitalize">
-                          {item.type === "page" ? "Page" : "Custom"}
-                          {item.type === "page" && item.pageTitle
-                            ? ` · ${item.pageTitle}`
-                            : null}
+                          {typeLabel(item)}
                         </td>
                         <td className="px-4 py-3">
                           <span
@@ -974,6 +994,7 @@ export function MenuManager({ initialItems, pages, trash = false }: Props) {
         location={tab}
         initial={editor?.initial ?? emptyMenuItemForm(tab)}
         pages={pages}
+        categories={categories}
         parentOptions={parentOptions.map((item) => ({
           id: item.id,
           label: itemLabel(item),

@@ -21,12 +21,19 @@ type PageOption = {
   status: string;
 };
 
+type CategoryOption = {
+  id: string;
+  label: string;
+  depth?: number;
+};
+
 type Props = {
   open: boolean;
   editingId?: string | null;
   location: MenuLocation;
   initial: MenuItemFormValues;
   pages: PageOption[];
+  categories?: CategoryOption[];
   parentOptions: MenuParentOption[];
   onClose: () => void;
 };
@@ -36,6 +43,7 @@ export function emptyMenuItemForm(location: MenuLocation): MenuItemFormValues {
     location,
     type: "page",
     pageId: null,
+    categoryId: null,
     parentId: null,
     locales: {
       vi: { label: "", url: "" },
@@ -52,6 +60,7 @@ export function MenuItemEditorModal({
   location,
   initial,
   pages,
+  categories = [],
   parentOptions,
   onClose,
 }: Props) {
@@ -203,11 +212,26 @@ export function MenuItemEditorModal({
                     setForm((prev) => ({
                       ...prev,
                       type: "page",
-                      pageId: prev.pageId,
+                      categoryId: null,
                     }))
                   }
                 />
                 CMS page
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="radio"
+                  name="menu-type"
+                  checked={form.type === "category"}
+                  onChange={() =>
+                    setForm((prev) => ({
+                      ...prev,
+                      type: "category",
+                      pageId: null,
+                    }))
+                  }
+                />
+                Category
               </label>
               <label className="flex items-center gap-2">
                 <input
@@ -219,6 +243,7 @@ export function MenuItemEditorModal({
                       ...prev,
                       type: "custom",
                       pageId: null,
+                      categoryId: null,
                     }))
                   }
                 />
@@ -291,6 +316,74 @@ export function MenuItemEditorModal({
                     }
                     className="w-full rounded border border-gray-300 px-3 py-2"
                     placeholder="Uses page title if empty"
+                  />
+                </label>
+              </div>
+            ) : form.type === "category" ? (
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="block text-sm md:col-span-2">
+                  <span className="mb-1 block font-medium">Category</span>
+                  <select
+                    value={form.categoryId ?? ""}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        categoryId: event.target.value || null,
+                      }))
+                    }
+                    className="w-full rounded border border-gray-300 px-3 py-2"
+                    autoFocus
+                  >
+                    <option value="">Select a category…</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-sm">
+                  <span className="mb-1 block font-medium">
+                    Label override (VI, optional)
+                  </span>
+                  <input
+                    value={form.locales.vi.label}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        locales: {
+                          ...prev.locales,
+                          vi: {
+                            ...prev.locales.vi,
+                            label: event.target.value,
+                          },
+                        },
+                      }))
+                    }
+                    className="w-full rounded border border-gray-300 px-3 py-2"
+                    placeholder="Uses category name if empty"
+                  />
+                </label>
+                <label className="block text-sm">
+                  <span className="mb-1 block font-medium">
+                    Label override (EN, optional)
+                  </span>
+                  <input
+                    value={form.locales.en.label}
+                    onChange={(event) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        locales: {
+                          ...prev.locales,
+                          en: {
+                            ...prev.locales.en,
+                            label: event.target.value,
+                          },
+                        },
+                      }))
+                    }
+                    className="w-full rounded border border-gray-300 px-3 py-2"
+                    placeholder="Uses category name if empty"
                   />
                 </label>
               </div>

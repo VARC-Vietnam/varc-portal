@@ -43,6 +43,24 @@ function MenuAnchor({
     );
   }
 
+  if (item.kind === "category" && item.slug) {
+    return (
+      <Link
+        href={{
+          pathname: "/categories/[slug]",
+          params: { slug: item.slug },
+        }}
+        locale={item.linkLocale}
+        className={className}
+        target={item.openInNewTab ? "_blank" : undefined}
+        rel={item.openInNewTab ? "noopener noreferrer" : undefined}
+        onClick={onNavigate}
+      >
+        {item.label}
+      </Link>
+    );
+  }
+
   const href = item.href || "/";
   const external = /^https?:\/\//i.test(href);
 

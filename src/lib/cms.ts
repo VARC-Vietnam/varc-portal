@@ -198,8 +198,8 @@ export type NavPageItem = {
 export type PublicMenuLink = {
   id: string;
   label: string;
-  kind: "page" | "custom";
-  /** Present when kind === "page". */
+  kind: "page" | "category" | "custom";
+  /** Present when kind === "page" or "category". */
   slug?: string;
   linkLocale?: AppLocale;
   /** Present when kind === "custom". */
@@ -211,10 +211,12 @@ export type PublicMenuLink = {
 export type AdminMenuItem = {
   id: string;
   location: MenuLocation;
-  type: "page" | "custom";
+  type: "page" | "category" | "custom";
   pageId: string | null;
+  categoryId: string | null;
   parentId: string | null;
   pageTitle: string | null;
+  categoryTitle: string | null;
   locales: {
     vi: { label: string; url: string };
     en: { label: string; url: string };
@@ -243,6 +245,32 @@ function pageNavFields(
   if (fallback.slug && fallback.title) {
     return {
       title: fallback.title,
+      slug: fallback.slug,
+      linkLocale: locale === "en" ? "vi" : "en",
+    };
+  }
+
+  return null;
+}
+
+function categoryNavFields(
+  category: CategoryDocument,
+  locale: AppLocale,
+): Pick<NavPageItem, "title" | "slug" | "linkLocale"> | null {
+  const preferred = getCategoryLocale(category, locale);
+  const fallback = getCategoryLocale(category, locale === "en" ? "vi" : "en");
+
+  if (preferred.slug && preferred.name) {
+    return {
+      title: preferred.name,
+      slug: preferred.slug,
+      linkLocale: locale,
+    };
+  }
+
+  if (fallback.slug && fallback.name) {
+    return {
+      title: fallback.name,
       slug: fallback.slug,
       linkLocale: locale === "en" ? "vi" : "en",
     };
@@ -296,11 +324,29 @@ export async function listMenuItemsAdmin(
     : [];
   const pageById = new Map(pages.map((page) => [String(page._id), page]));
 
+  const categoryIds = items
+    .map((item) => item.categoryId)
+    .filter((id): id is NonNullable<typeof id> => Boolean(id));
+  const categories = categoryIds.length
+    ? await Category.find({ _id: { $in: categoryIds } }).lean<CategoryDocument[]>()
+    : [];
+  const categoryById = new Map(
+    categories.map((category) => [String(category._id), category]),
+  );
+
   return items.map((item) => {
     const page = item.pageId ? pageById.get(String(item.pageId)) : null;
     const pageTitle = page
       ? getPageLocale(page, "vi").title ||
         getPageLocale(page, "en").title ||
+        null
+      : null;
+    const category = item.categoryId
+      ? categoryById.get(String(item.categoryId))
+      : null;
+    const categoryTitle = category
+      ? getCategoryLocale(category, "vi").name ||
+        getCategoryLocale(category, "en").name ||
         null
       : null;
 
@@ -309,10 +355,12 @@ export async function listMenuItemsAdmin(
     return {
       id: String(item._id),
       location: item.location as MenuLocation,
-      type: item.type as "page" | "custom",
+      type: item.type as "page" | "category" | "custom",
       pageId: item.pageId ? String(item.pageId) : null,
+      categoryId: item.categoryId ? String(item.categoryId) : null,
       parentId: rawParent ? String(rawParent) : null,
       pageTitle,
+      categoryTitle,
       locales: {
         vi: {
           label: item.locales?.vi?.label ?? "",
@@ -376,6 +424,19 @@ export async function listPublicMenuLinks(
     : [];
   const pageById = new Map(pages.map((page) => [String(page._id), page]));
 
+  const categoryIds = items
+    .filter((item) => item.type === "category" && item.categoryId)
+    .map((item) => item.categoryId!);
+  const categories = categoryIds.length
+    ? await Category.find({
+        _id: { $in: categoryIds },
+        ...notDeletedFilter,
+      }).lean<CategoryDocument[]>()
+    : [];
+  const categoryById = new Map(
+    categories.map((category) => [String(category._id), category]),
+  );
+
   function toLink(item: MenuItemDocument): PublicMenuLink | null {
     if (item.type === "custom") {
       const preferred = item.locales?.[localeKey(locale)];
@@ -388,6 +449,27 @@ export async function listPublicMenuLinks(
         label,
         kind: "custom",
         href,
+        openInNewTab: Boolean(item.openInNewTab),
+      };
+    }
+
+    if (item.type === "category") {
+      if (!item.categoryId) return null;
+      const category = categoryById.get(String(item.categoryId));
+      if (!category) return null;
+      const fields = categoryNavFields(category, locale);
+      if (!fields) return null;
+
+      const override =
+        item.locales?.[localeKey(locale)]?.label?.trim() ||
+        item.locales?.[locale === "en" ? "vi" : "en"]?.label?.trim();
+
+      return {
+        id: String(item._id),
+        label: override || fields.title,
+        kind: "category",
+        slug: fields.slug,
+        linkLocale: fields.linkLocale,
         openInNewTab: Boolean(item.openInNewTab),
       };
     }
